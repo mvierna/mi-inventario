@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -14,7 +14,11 @@
         body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
         #lector { width: 100%; max-width: 400px; margin: 0 auto; }
         .resultado { margin-top: 20px; padding: 15px; border: 2px solid #333; border-radius: 8px; background-color: #f4f4f4; }
-        #estado { color: blue; font-weight: bold; margin-bottom: 20px; }
+        #estado { color: blue; font-weight: bold; margin-bottom: 10px; }
+        
+        /* Estilos para la nueva caja del lector láser */
+        .caja-laser { margin: 20px 0; padding: 15px; background-color: #e9ecef; border-radius: 8px; }
+        #inputLaser { padding: 10px; font-size: 18px; width: 80%; max-width: 300px; text-align: center; border: 2px solid #007bff; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -22,18 +26,27 @@
     
     <div id="estado">Conectando con la nube...</div>
 
+    <!-- NUEVO: Sección para el lector láser o entrada manual -->
+    <div class="caja-laser">
+        <h3>1. Lector Láser (o teclado)</h3>
+        <p style="font-size: 12px; margin-top: 0;">Toca la caja de abajo para que el cursor parpadee y dispara el láser.</p>
+        <input type="text" id="inputLaser" placeholder="Escanea aquí con el láser..." autofocus>
+    </div>
+
+    <!-- Sección de la cámara -->
     <div>
-        <h3>Escanea el código EAN</h3>
+        <h3>2. O escanea con la cámara</h3>
         <div id="lector"></div>
     </div>
 
+    <!-- Resultados -->
     <div id="resultado" class="resultado">
         Esperando a que escanees un código...
     </div>
 
     <script>
         let inventario = [];
-        let ultimoEscan = ""; // Evita repeticiones consecutivas del mismo código
+        let ultimoEscan = ""; 
 
         // --- SISTEMA DE AUDIO (BEEP) ---
         function reproducirBeep(frecuencia = 800, duracion = 0.1) {
@@ -47,7 +60,8 @@
         }
 
         // --- CARGA DEL INVENTARIO DESDE LA NUBE ---
-        Papa.parse("inventario.csv", {
+        // Asegúrate de que tu archivo se llama TIENDA.csv
+        Papa.parse("TIENDA.csv", {
             download: true,
             header: false,
             complete: function(resultados) {
@@ -56,26 +70,24 @@
                 document.getElementById('estado').style.color = "green";
             },
             error: function() {
-                document.getElementById('estado').innerText = "Error: No se encontró inventario.csv.";
+                document.getElementById('estado').innerText = "Error: No se encontró TIENDA.csv.";
                 document.getElementById('estado').style.color = "red";
             }
         });
 
         // --- LÓGICA DE BÚSQUEDA ---
+        // Esta función ahora es usada tanto por la cámara como por el láser
         function buscarEnInventario(eanEscaneado) {
             const divResultado = document.getElementById('resultado');
 
-            // Verifica si hay datos
             if (inventario.length === 0) {
                 divResultado.innerHTML = "<p style='color: red;'>El inventario aún no está listo.</p>";
                 return;
             }
 
-            // Ignora el código si es exactamente el mismo que se acaba de escanear
             if (eanEscaneado === ultimoEscan) return;
             ultimoEscan = eanEscaneado;
 
-            // Recorre el inventario (empieza en 1 para omitir la cabecera)
             for (let i = 1; i < inventario.length; i++) {
                 let fila = inventario[i];
                 
@@ -85,22 +97,19 @@
                     let stock = fila[2].trim();
 
                     if (ean === eanEscaneado) {
-                        reproducirBeep(800, 0.15); // Sonido agudo de éxito
+                        reproducirBeep(800, 0.15); 
                         divResultado.innerHTML = `
                             <h3 style="color: green;">¡Artículo encontrado!</h3>
                             <p><b>EAN:</b> ${eanEscaneado}</p>
                             <p><b>Descriptivo:</b> ${descripcion}</p>
                             <p><b>Stock:</b> ${stock}</p>
                         `;
-                        
-                        // Permite volver a escanear este mismo código después de 2 segundos
                         setTimeout(() => { ultimoEscan = ""; }, 2000);
                         return;
                     }
                 }
             }
 
-            // Si no lo encuentra, emite sonido grave y muestra error
             reproducirBeep(300, 0.3);
             divResultado.innerHTML = `
                 <h3 style="color: red;">No encontrado</h3>
@@ -109,16 +118,33 @@
             setTimeout(() => { ultimoEscan = ""; }, 2000);
         }
 
-        // --- CONFIGURACIÓN ÓPTIMA DE LA CÁMARA (LENTE TRASERA) ---
+        // --- NUEVO: CONFIGURACIÓN DEL LECTOR LÁSER ---
+        const inputLaser = document.getElementById('inputLaser');
+        
+        // Escuchamos cada vez que se presiona una tecla en la caja de texto
+        inputLaser.addEventListener('keypress', function(evento) {
+            // Si la tecla presionada es "Enter" (que es lo que manda el láser al final)
+            if (evento.key === 'Enter') {
+                // Obtenemos el texto y quitamos espacios en blanco
+                let codigoLeido = inputLaser.value.trim(); 
+                
+                if (codigoLeido !== "") {
+                    buscarEnInventario(codigoLeido); // Buscamos el artículo
+                    inputLaser.value = ""; // Vaciamos la caja para el siguiente escaneo
+                }
+            }
+        });
+
+        // --- CONFIGURACIÓN DE LA CÁMARA ---
         let escaner = new Html5QrcodeScanner(
             "lector",
             { 
-                fps: 20, // 20 cuadros por segundo para mayor fluidez
-                qrbox: { width: 320, height: 120 }, // Rectángulo ancho ideal para EAN
-                rememberLastUsedCamera: false, // Borra selecciones incorrectas previas
+                fps: 20, 
+                qrbox: { width: 320, height: 120 },
+                rememberLastUsedCamera: false,
                 videoConstraints: {
-                    facingMode: "environment", // Obliga a usar la cámara trasera
-                    advanced: [{ focusMode: "continuous" }] // Intenta forzar el autoenfoque
+                    facingMode: "environment",
+                    advanced: [{ focusMode: "continuous" }]
                 }
             },
             false
