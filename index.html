@@ -3,19 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lector de Inventario en la Nube</title>
+    <title>Lector de Inventario</title>
     
+    <!-- Mantenemos solo la librería para leer el archivo CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
     
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
-        #lector { width: 100%; max-width: 400px; margin: 0 auto; }
         .resultado { margin-top: 20px; padding: 15px; border: 2px solid #333; border-radius: 8px; background-color: #f4f4f4; }
-        #estado { color: blue; font-weight: bold; margin-bottom: 10px; }
+        #estado { color: blue; font-weight: bold; margin-bottom: 20px; }
         
-        .caja-laser { margin: 20px 0; padding: 15px; background-color: #e9ecef; border-radius: 8px; }
-        #inputLaser { padding: 10px; font-size: 18px; width: 80%; max-width: 300px; text-align: center; border: 2px solid #007bff; border-radius: 4px; }
+        /* Caja de texto ampliada y optimizada para teclados virtuales y lectores láser */
+        .caja-escaneo { margin: 20px 0; padding: 20px; background-color: #e9ecef; border-radius: 8px; }
+        #inputCodigo { 
+            padding: 15px; 
+            font-size: 22px; /* Letra más grande */
+            width: 90%; 
+            max-width: 350px; 
+            text-align: center; 
+            border: 3px solid #007bff; 
+            border-radius: 8px; 
+        }
     </style>
 </head>
 <body>
@@ -23,15 +31,11 @@
     
     <div id="estado">Conectando con la nube...</div>
 
-    <div class="caja-laser">
-        <h3>1. Lector Láser</h3>
-        <p style="font-size: 12px; margin-top: 0;">Toca la caja de abajo para que el cursor parpadee y dispara el láser.</p>
-        <input type="text" id="inputLaser" placeholder="Escanea aquí con el láser..." autofocus>
-    </div>
-
-    <div>
-        <h3>2. O escanea con la cámara</h3>
-        <div id="lector"></div>
+    <div class="caja-escaneo">
+        <h3>Toca la caja para escanear</h3>
+        <p style="font-size: 14px; margin-top: 0;">Usa tu teclado especial o el lector láser.</p>
+        <!-- inputmode="numeric" ayuda a que algunos teclados abran directamente en formato de números -->
+        <input type="text" id="inputCodigo" inputmode="numeric" placeholder="Escanea el código aquí..." autofocus>
     </div>
 
     <div id="resultado" class="resultado">
@@ -42,6 +46,7 @@
         let inventario = [];
         let ultimoEscan = ""; 
 
+        // --- SISTEMA DE AUDIO (BEEP) ---
         function reproducirBeep(frecuencia = 800, duracion = 0.1) {
             const contextoAudio = new (window.AudioContext || window.webkitAudioContext)();
             const oscilador = contextoAudio.createOscillator();
@@ -52,6 +57,7 @@
             oscilador.stop(contextoAudio.currentTime + duracion);
         }
 
+        // --- CARGA DEL INVENTARIO DESDE LA NUBE ---
         Papa.parse("TIENDA.csv", {
             download: true,
             header: false,
@@ -66,6 +72,7 @@
             }
         });
 
+        // --- LÓGICA DE BÚSQUEDA ---
         function buscarEnInventario(eanEscaneado) {
             const divResultado = document.getElementById('resultado');
 
@@ -107,24 +114,20 @@
             setTimeout(() => { ultimoEscan = ""; }, 2000);
         }
 
-        const inputLaser = document.getElementById('inputLaser');
-        inputLaser.addEventListener('keypress', function(evento) {
+        // --- CONFIGURACIÓN DEL TECLADO/LÁSER ---
+        const inputCodigo = document.getElementById('inputCodigo');
+        
+        inputCodigo.addEventListener('keypress', function(evento) {
+            // Detecta la pulsación de la tecla 'Enter'
             if (evento.key === 'Enter') {
-                let codigoLeido = inputLaser.value.trim(); 
+                let codigoLeido = inputCodigo.value.trim(); 
                 if (codigoLeido !== "") {
-                    buscarEnInventario(codigoLeido);
-                    inputLaser.value = ""; 
+                    buscarEnInventario(codigoLeido); // Busca el artículo
+                    inputCodigo.value = ""; // Vacía la caja
+                    inputCodigo.focus(); // Mantiene el cursor en la caja para seguir escaneando sin volver a tocar
                 }
             }
         });
-
-        // --- CÁMARA RESTAURADA A LA VERSIÓN ORIGINAL CON CORCHETES VERDES ---
-        let escaner = new Html5QrcodeScanner(
-            "lector",
-            { fps: 10, qrbox: { width: 250, height: 100 } },
-            false
-        );
-        escaner.render(buscarEnInventario, function(){});
     </script>
 </body>
 </html>
