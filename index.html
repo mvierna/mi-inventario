@@ -1,22 +1,19 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lector de Inventario en la Nube</title>
     
-    <!-- Importación de librerías -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     
-    <!-- Estilos visuales -->
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
         #lector { width: 100%; max-width: 400px; margin: 0 auto; }
         .resultado { margin-top: 20px; padding: 15px; border: 2px solid #333; border-radius: 8px; background-color: #f4f4f4; }
         #estado { color: blue; font-weight: bold; margin-bottom: 10px; }
         
-        /* Estilos para la nueva caja del lector láser */
         .caja-laser { margin: 20px 0; padding: 15px; background-color: #e9ecef; border-radius: 8px; }
         #inputLaser { padding: 10px; font-size: 18px; width: 80%; max-width: 300px; text-align: center; border: 2px solid #007bff; border-radius: 4px; }
     </style>
@@ -26,20 +23,17 @@
     
     <div id="estado">Conectando con la nube...</div>
 
-    <!-- NUEVO: Sección para el lector láser o entrada manual -->
     <div class="caja-laser">
-        <h3>1. Lector Láser (o teclado)</h3>
+        <h3>1. Lector Láser</h3>
         <p style="font-size: 12px; margin-top: 0;">Toca la caja de abajo para que el cursor parpadee y dispara el láser.</p>
         <input type="text" id="inputLaser" placeholder="Escanea aquí con el láser..." autofocus>
     </div>
 
-    <!-- Sección de la cámara -->
     <div>
         <h3>2. O escanea con la cámara</h3>
         <div id="lector"></div>
     </div>
 
-    <!-- Resultados -->
     <div id="resultado" class="resultado">
         Esperando a que escanees un código...
     </div>
@@ -48,7 +42,6 @@
         let inventario = [];
         let ultimoEscan = ""; 
 
-        // --- SISTEMA DE AUDIO (BEEP) ---
         function reproducirBeep(frecuencia = 800, duracion = 0.1) {
             const contextoAudio = new (window.AudioContext || window.webkitAudioContext)();
             const oscilador = contextoAudio.createOscillator();
@@ -59,8 +52,6 @@
             oscilador.stop(contextoAudio.currentTime + duracion);
         }
 
-        // --- CARGA DEL INVENTARIO DESDE LA NUBE ---
-        // Asegúrate de que tu archivo se llama TIENDA.csv
         Papa.parse("TIENDA.csv", {
             download: true,
             header: false,
@@ -75,8 +66,6 @@
             }
         });
 
-        // --- LÓGICA DE BÚSQUEDA ---
-        // Esta función ahora es usada tanto por la cámara como por el láser
         function buscarEnInventario(eanEscaneado) {
             const divResultado = document.getElementById('resultado');
 
@@ -118,35 +107,21 @@
             setTimeout(() => { ultimoEscan = ""; }, 2000);
         }
 
-        // --- NUEVO: CONFIGURACIÓN DEL LECTOR LÁSER ---
         const inputLaser = document.getElementById('inputLaser');
-        
-        // Escuchamos cada vez que se presiona una tecla en la caja de texto
         inputLaser.addEventListener('keypress', function(evento) {
-            // Si la tecla presionada es "Enter" (que es lo que manda el láser al final)
             if (evento.key === 'Enter') {
-                // Obtenemos el texto y quitamos espacios en blanco
                 let codigoLeido = inputLaser.value.trim(); 
-                
                 if (codigoLeido !== "") {
-                    buscarEnInventario(codigoLeido); // Buscamos el artículo
-                    inputLaser.value = ""; // Vaciamos la caja para el siguiente escaneo
+                    buscarEnInventario(codigoLeido);
+                    inputLaser.value = ""; 
                 }
             }
         });
 
-        // --- CONFIGURACIÓN DE LA CÁMARA ---
+        // --- CÁMARA RESTAURADA A LA VERSIÓN ORIGINAL CON CORCHETES VERDES ---
         let escaner = new Html5QrcodeScanner(
             "lector",
-            { 
-                fps: 20, 
-                qrbox: { width: 320, height: 120 },
-                rememberLastUsedCamera: false,
-                videoConstraints: {
-                    facingMode: "environment",
-                    advanced: [{ focusMode: "continuous" }]
-                }
-            },
+            { fps: 10, qrbox: { width: 250, height: 100 } },
             false
         );
         escaner.render(buscarEnInventario, function(){});
