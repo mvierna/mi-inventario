@@ -19,7 +19,6 @@
 <body>
     <h1>Inventario Hipermercado</h1>
     
-    <!-- Aquí mostraremos el recuento de los 50.000 artículos -->
     <div id="estado">Conectando con la base de datos...</div>
 
     <div id="resultado" class="resultado">
@@ -35,7 +34,6 @@
         let inventario = [];
         let ultimoEscan = ""; 
 
-        // Emite el sonido de éxito o error
         function reproducirBeep(frecuencia = 800, duracion = 0.1) {
             const contextoAudio = new (window.AudioContext || window.webkitAudioContext)();
             const oscilador = contextoAudio.createOscillator();
@@ -46,14 +44,12 @@
             oscilador.stop(contextoAudio.currentTime + duracion);
         }
 
-        // Descarga automáticamente TIENDA.csv al abrir la página
         Papa.parse("TIENDA.csv", {
             download: true,
             header: false,
-            skipEmptyLines: true, // Ignora filas vacías al final del Excel
+            skipEmptyLines: true,
             complete: function(resultados) {
                 inventario = resultados.data;
-                // Muestra la cantidad exacta de artículos cargados
                 document.getElementById('estado').innerText = "¡Base de datos lista: " + inventario.length + " artículos!";
                 document.getElementById('estado').style.color = "green";
             },
@@ -63,7 +59,6 @@
             }
         });
 
-        // Lógica de búsqueda con limpieza de datos
         function buscarEnInventario(eanEscaneado) {
             const divResultado = document.getElementById('resultado');
 
@@ -72,7 +67,6 @@
                 return;
             }
 
-            // Elimina cualquier símbolo o letra extra del escáner
             let escaneadoLimpio = String(eanEscaneado).replace(/[^0-9]/g, '');
 
             if (escaneadoLimpio === ultimoEscan) return;
@@ -82,9 +76,11 @@
                 let fila = inventario[i];
                 
                 if (fila.length > 0) {
-                    // Elimina cualquier símbolo o letra extra de la base de datos
                     let eanCSV = String(fila[0]).replace(/[^0-9]/g, '');
                     let descripcion = fila[1] ? fila[1].trim() : "Sin descripción";
+                    
+                    // IMPORTANTE: Si arreglaste tu Excel, deja fila[2]. 
+                    // Si dejaste la columna en medio en tu Excel, cambia fila[2] por fila[3]
                     let stock = fila[2] ? fila[2].trim() : "0";
 
                     if (eanCSV === escaneadoLimpio && escaneadoLimpio !== "") {
@@ -101,7 +97,6 @@
                 }
             }
 
-            // Muestra en pantalla exactamente qué número buscó para facilitar el diagnóstico
             reproducirBeep(300, 0.3);
             divResultado.innerHTML = `
                 <h3 style="color: red; margin-top: 0;">No encontrado</h3>
@@ -110,7 +105,6 @@
             setTimeout(() => { ultimoEscan = ""; }, 2000);
         }
 
-        // Detecta la tecla Enter del teclado virtual o láser
         const inputCodigo = document.getElementById('inputCodigo');
         
         inputCodigo.addEventListener('keypress', function(evento) {
