@@ -8,38 +8,35 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+        body { font-family: Arial, sans-serif; padding: 15px; text-align: center; }
         #estado { color: blue; font-weight: bold; margin-bottom: 20px; }
-        
-        /* Resultados: Le damos un poco más de tamaño a las letras para leerlo rápido */
         .resultado { margin-bottom: 20px; padding: 15px; border: 2px solid #333; border-radius: 8px; background-color: #f4f4f4; font-size: 18px; }
         
-        .caja-escaneo { margin: 20px 0; padding: 20px; background-color: #e9ecef; border-radius: 8px; }
-        #inputCodigo { 
-            padding: 15px; 
-            font-size: 22px; 
-            width: 90%; 
-            max-width: 350px; 
-            text-align: center; 
-            border: 3px solid #007bff; 
-            border-radius: 8px; 
-        }
+        .caja-interfaz { margin: 15px 0; padding: 15px; background-color: #e9ecef; border-radius: 8px; }
+        #selectorArchivo { padding: 10px; font-size: 16px; width: 90%; max-width: 350px; margin-bottom: 10px; border-radius: 4px; }
+        #inputCodigo { padding: 15px; font-size: 22px; width: 85%; max-width: 350px; text-align: center; border: 3px solid #007bff; border-radius: 8px; }
     </style>
 </head>
 <body>
     <h1>Buscador de Artículos</h1>
     
-    <div id="estado">Conectando con la nube...</div>
+    <div id="estado">Esperando selección...</div>
 
-    <!-- 1. EL RECUADRO DE RESULTADOS AHORA ESTÁ ARRIBA -->
     <div id="resultado" class="resultado">
         Esperando a que escanees un código...
     </div>
 
-    <!-- 2. LA CAJA DE ESCANEO AHORA ESTÁ ABAJO -->
-    <div class="caja-escaneo">
-        <h3>Toca la caja para escanear</h3>
-        <p style="font-size: 14px; margin-top: 0;">Usa tu teclado especial o el lector láser.</p>
+    <!-- Menú para seleccionar el archivo CSV (Puedes cambiar los nombres a los tuyos) -->
+    <div class="caja-interfaz">
+        <h3 style="margin-top: 0;">1. Elige la sección</h3>
+        <select id="selectorArchivo" onchange="cargarInventario()">
+            <option value="NO_ALIMENTACION.csv">No Alimentación</option>
+            <option value="ALIMENTACION.csv">Alimentación</option>
+        </select>
+    </div>
+
+    <div class="caja-interfaz">
+        <h3 style="margin-top: 0;">2. Toca la caja para escanear</h3>
         <input type="text" id="inputCodigo" inputmode="numeric" placeholder="Escanea el código aquí...">
     </div>
 
@@ -57,19 +54,30 @@
             oscilador.stop(contextoAudio.currentTime + duracion);
         }
 
-        Papa.parse("TIENDA.csv", {
-            download: true,
-            header: false,
-            complete: function(resultados) {
-                inventario = resultados.data;
-                document.getElementById('estado').innerText = "¡Inventario cargado exitosamente!";
-                document.getElementById('estado').style.color = "green";
-            },
-            error: function() {
-                document.getElementById('estado').innerText = "Error: No se encontró TIENDA.csv.";
-                document.getElementById('estado').style.color = "red";
-            }
-        });
+        function cargarInventario() {
+            const archivoSeleccionado = document.getElementById('selectorArchivo').value;
+            
+            document.getElementById('estado').innerText = "Cargando " + archivoSeleccionado + "...";
+            document.getElementById('estado').style.color = "blue";
+            inventario = []; 
+
+            Papa.parse(archivoSeleccionado, {
+                download: true,
+                header: false,
+                skipEmptyLines: true, // Le decimos a la librería que ignore líneas en blanco al final del archivo
+                complete: function(resultados) {
+                    inventario = resultados.data;
+                    document.getElementById('estado').innerText = "¡" + archivoSeleccionado + " cargado con éxito!";
+                    document.getElementById('estado').style.color = "green";
+                },
+                error: function() {
+                    document.getElementById('estado').innerText = "Error: No se encontró " + archivoSeleccionado;
+                    document.getElementById('estado').style.color = "red";
+                }
+            });
+        }
+
+        cargarInventario();
 
         function buscarEnInventario(eanEscaneado) {
             const divResultado = document.getElementById('resultado');
@@ -79,22 +87,29 @@
                 return;
             }
 
-            if (eanEscaneado === ultimoEscan) return;
-            ultimoEscan = eanEscaneado;
+            // LIMPIEZA DEL DATO ESCANEADO: Eliminamos todo lo que no sea un número (del 0 al 9)
+            let escaneadoLimpio = String(eanEscaneado).replace(/[^0-9]/g, '');
 
-            for (let i = 1; i < inventario.length; i++) {
+            if (escaneadoLimpio === ultimoEscan) return;
+            ultimoEscan = escaneadoLimpio;
+
+            for (let i = 0; i < inventario.length; i++) {
                 let fila = inventario[i];
                 
-                if (fila.length >= 3) {
-                    let ean = fila[0].trim();
-                    let descripcion = fila[1].trim();
-                    let stock = fila[2].trim();
+                // Si la fila tiene datos
+                if (fila.length > 0) {
+                    // LIMPIEZA DEL DATO DEL CSV: Eliminamos todo lo que no sea un número en la columna del EAN
+                    let eanCSV = String(fila[0]).replace(/[^0-9]/g, '');
+                    
+                    let descripcion = fila[1] ? fila[1].trim() : "Sin descripción";
+                    let stock = fila[2] ? fila[2].trim() : "0";
 
-                    if (ean === eanEscaneado) {
+                    // Comparamos los dos números ya completamente limpios
+                    if (eanCSV === escaneadoLimpio && escaneadoLimpio !== "") {
                         reproducirBeep(800, 0.15); 
                         divResultado.innerHTML = `
                             <h3 style="color: green; margin-top: 0;">¡Artículo encontrado!</h3>
-                            <p><b>EAN:</b> ${eanEscaneado}</p>
+                            <p><b>EAN:</b> ${escaneadoLimpio}</p>
                             <p><b>Descriptivo:</b> ${descripcion}</p>
                             <p><b>Stock:</b> ${stock}</p>
                         `;
@@ -104,10 +119,12 @@
                 }
             }
 
+            // Si falla, mostramos el código limpio que hemos intentado buscar para hacer diagnóstico
             reproducirBeep(300, 0.3);
             divResultado.innerHTML = `
                 <h3 style="color: red; margin-top: 0;">No encontrado</h3>
-                <p>El código <b>${eanEscaneado}</b> no está en la lista.</p>
+                <p>El escáner leyó el código: <b>${escaneadoLimpio}</b>, pero no está en el CSV actual.</p>
+                <p style="font-size: 12px; color: gray;">(Asegúrate de que Excel no guardó este número en formato científico)</p>
             `;
             setTimeout(() => { ultimoEscan = ""; }, 2000);
         }
@@ -116,12 +133,10 @@
         
         inputCodigo.addEventListener('keypress', function(evento) {
             if (evento.key === 'Enter') {
-                let codigoLeido = inputCodigo.value.trim(); 
+                let codigoLeido = inputCodigo.value; 
                 if (codigoLeido !== "") {
                     buscarEnInventario(codigoLeido);
                     inputCodigo.value = ""; 
-                    
-                    // Esta es la instrucción que cierra el teclado automáticamente
                     inputCodigo.blur(); 
                 }
             }
