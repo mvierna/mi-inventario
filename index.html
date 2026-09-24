@@ -5,19 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventario Hipermercado</title>
     
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007bff">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     
     <style>
         body { font-family: Arial, sans-serif; padding: 15px; text-align: center; }
-        #estado { color: blue; font-weight: bold; margin-bottom: 20px; }
+        #estado { color: blue; font-weight: bold; margin-bottom: 15px; }
         .resultado { margin-bottom: 20px; padding: 15px; border: 2px solid #333; border-radius: 8px; background-color: #f4f4f4; font-size: 18px; }
-        
         .caja-interfaz { margin: 15px 0; padding: 15px; background-color: #e9ecef; border-radius: 8px; }
         #inputCodigo { padding: 15px; font-size: 22px; width: 85%; max-width: 350px; text-align: center; border: 3px solid #007bff; border-radius: 8px; }
+        
+        /* Diseño del nuevo botón de sincronización */
+        .btn-actualizar { padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; width: 85%; max-width: 350px; margin-bottom: 10px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-actualizar:active { background-color: #218838; transform: translateY(2px); }
     </style>
 </head>
 <body>
     <h1>Inventario Hipermercado</h1>
+    
+    <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar Datos Ahora</button>
     
     <div id="estado">Conectando con la base de datos...</div>
 
@@ -31,6 +39,11 @@
     </div>
 
     <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log("Service Worker registrado."));
+        }
+
         let inventario = [];
         let ultimoEscan = ""; 
 
@@ -44,20 +57,32 @@
             oscilador.stop(contextoAudio.currentTime + duracion);
         }
 
-        Papa.parse("TIENDA.csv", {
-            download: true,
-            header: false,
-            skipEmptyLines: true,
-            complete: function(resultados) {
-                inventario = resultados.data;
-                document.getElementById('estado').innerText = "¡Base de datos lista: " + inventario.length + " artículos!";
-                document.getElementById('estado').style.color = "green";
-            },
-            error: function() {
-                document.getElementById('estado').innerText = "Error: No se encontró TIENDA.csv";
-                document.getElementById('estado').style.color = "red";
-            }
-        });
+        // FUNCIÓN DE CARGA: Ahora se ejecuta al abrir la app Y al tocar el botón
+        function cargarInventario() {
+            document.getElementById('estado').innerText = "Descargando última versión...";
+            document.getElementById('estado').style.color = "orange";
+            
+            // Genera un sello de tiempo nuevo cada vez que tocas el botón para romper la caché
+            const urlSinCache = "TIENDA.csv?v=" + new Date().getTime();
+
+            Papa.parse(urlSinCache, {
+                download: true,
+                header: false,
+                skipEmptyLines: true,
+                complete: function(resultados) {
+                    inventario = resultados.data;
+                    document.getElementById('estado').innerText = "¡Base de datos lista: " + inventario.length + " artículos!";
+                    document.getElementById('estado').style.color = "green";
+                },
+                error: function() {
+                    document.getElementById('estado').innerText = "Error: No se encontró TIENDA.csv";
+                    document.getElementById('estado').style.color = "red";
+                }
+            });
+        }
+
+        // Ejecutar por primera vez al abrir la app
+        cargarInventario();
 
         function buscarEnInventario(eanEscaneado) {
             const divResultado = document.getElementById('resultado');
@@ -78,9 +103,6 @@
                 if (fila.length > 0) {
                     let eanCSV = String(fila[0]).replace(/[^0-9]/g, '');
                     let descripcion = fila[1] ? fila[1].trim() : "Sin descripción";
-                    
-                    // IMPORTANTE: Si arreglaste tu Excel, deja fila[2]. 
-                    // Si dejaste la columna en medio en tu Excel, cambia fila[2] por fila[3]
                     let stock = fila[2] ? fila[2].trim() : "0";
 
                     if (eanCSV === escaneadoLimpio && escaneadoLimpio !== "") {
