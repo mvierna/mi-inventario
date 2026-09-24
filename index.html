@@ -4,141 +4,131 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventario Hipermercado</title>
-    
+
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#007bff">
-    
+    <meta name="theme-color" content="#28a745">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Inventario">
+    <link rel="apple-touch-icon" href="icono.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    
+
     <style>
-        body { font-family: Arial, sans-serif; padding: 15px; text-align: center; }
-        #estado { color: blue; font-weight: bold; margin-bottom: 15px; }
-        .resultado { margin-bottom: 20px; padding: 15px; border: 2px solid #333; border-radius: 8px; background-color: #f4f4f4; font-size: 18px; }
-        .caja-interfaz { margin: 15px 0; padding: 15px; background-color: #e9ecef; border-radius: 8px; }
-        #inputCodigo { padding: 15px; font-size: 22px; width: 85%; max-width: 350px; text-align: center; border: 3px solid #007bff; border-radius: 8px; }
-        
-        /* Diseño del nuevo botón de sincronización */
+        body { font-family: Arial, sans-serif; padding: 15px; text-align: center; background-color: #ffffff; margin: 0; }
+        h1 { margin-top: 10px; font-size: 28px; }
+        #estado { font-weight: bold; margin-bottom: 15px; font-size: 16px; }
+        .resultado { margin-bottom: 20px; padding: 15px; border: 2px solid #333; border-radius: 8px; background-color: #f8f9fa; font-size: 18px; min-height: 80px; display: flex; flex-direction: column; justify-content: center;}
+        .caja-interfaz { margin: 15px 0; padding: 20px; background-color: #e9ecef; border-radius: 8px; }
+        #inputCodigo { padding: 15px; font-size: 22px; width: 85%; max-width: 350px; text-align: center; border: 3px solid #007bff; border-radius: 8px; outline: none; }
+        #inputCodigo:focus { border-color: #0056b3; }
+
+        /* Diseño del botón de sincronización */
         .btn-actualizar { padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; width: 85%; max-width: 350px; margin-bottom: 10px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .btn-actualizar:active { background-color: #218838; transform: translateY(2px); }
+        
+        p { margin: 8px 0; }
     </style>
 </head>
 <body>
-    <h1>Inventario Hipermercado</h1>
-    
+    <h1>Inventario<br>Hipermercado</h1>
+
     <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar Datos Ahora</button>
-    
-    <div id="estado">Conectando con la base de datos...</div>
+
+    <div id="estado" style="color: blue;">Conectando con la base de datos...</div>
 
     <div id="resultado" class="resultado">
         Esperando a que escanees un código...
     </div>
 
     <div class="caja-interfaz">
-        <h3 style="margin-top: 0;">Toca la caja para escanear</h3>
-        <input type="text" id="inputCodigo" inputmode="numeric" placeholder="Escanea el código aquí...">
+        <p style="font-weight: bold; font-size: 18px; margin-bottom: 15px;">Toca la caja para escanear</p>
+        <input type="text" id="inputCodigo" placeholder="Escanea el código aquí..." autocomplete="off">
     </div>
 
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(() => console.log("Service Worker registrado."));
-        }
+        let inventario = {};
+        const inputCodigo = document.getElementById('inputCodigo');
+        const resultadoDiv = document.getElementById('resultado');
+        const estadoDiv = document.getElementById('estado');
 
-        let inventario = [];
-        let ultimoEscan = ""; 
-
-        function reproducirBeep(frecuencia = 800, duracion = 0.1) {
-            const contextoAudio = new (window.AudioContext || window.webkitAudioContext)();
-            const oscilador = contextoAudio.createOscillator();
-            oscilador.type = 'sine';
-            oscilador.frequency.setValueAtTime(frecuencia, contextoAudio.currentTime);
-            oscilador.connect(contextoAudio.destination);
-            oscilador.start();
-            oscilador.stop(contextoAudio.currentTime + duracion);
-        }
-
-        // FUNCIÓN DE CARGA: Ahora se ejecuta al abrir la app Y al tocar el botón
+        // Función para leer el CSV y cargar los datos en memoria
         function cargarInventario() {
-            document.getElementById('estado').innerText = "Descargando última versión...";
-            document.getElementById('estado').style.color = "orange";
-            
-            // Genera un sello de tiempo nuevo cada vez que tocas el botón para romper la caché
-            const urlSinCache = "TIENDA.csv?v=" + new Date().getTime();
+            estadoDiv.innerText = "Sincronizando con la base de datos...";
+            estadoDiv.style.color = "blue";
+            resultadoDiv.innerHTML = "Esperando a que escanees un código...";
 
-            Papa.parse(urlSinCache, {
+            // Añadimos la fecha actual a la URL para forzar al móvil a descargar la última versión y evitar la caché
+            const url = 'TIENDA.csv?' + new Date().getTime();
+
+            Papa.parse(url, {
                 download: true,
-                header: false,
+                header: false, // El archivo de Python viene limpio sin cabeceras
+                delimiter: ";",
                 skipEmptyLines: true,
-                complete: function(resultados) {
-                    inventario = resultados.data;
-                    document.getElementById('estado').innerText = "¡Base de datos lista: " + inventario.length + " artículos!";
-                    document.getElementById('estado').style.color = "green";
+                complete: function(results) {
+                    inventario = {};
+                    let contador = 0;
+                    
+                    results.data.forEach(fila => {
+                        if(fila.length >= 3) {
+                            let ean = fila[0] ? fila[0].trim() : "";
+                            let desc = fila[1] ? fila[1].trim() : "";
+                            let stock = fila[2] ? fila[2].trim() : "";
+                            
+                            if(ean) {
+                                inventario[ean] = { descripcion: desc, stock: stock };
+                                contador++;
+                            }
+                        }
+                    });
+                    
+                    estadoDiv.innerText = "¡Base de datos lista: " + contador + " artículos!";
+                    estadoDiv.style.color = "green";
+                    
+                    // Mantener el foco en la caja para poder seguir disparando
+                    inputCodigo.focus();
                 },
-                error: function() {
-                    document.getElementById('estado').innerText = "Error: No se encontró TIENDA.csv";
-                    document.getElementById('estado').style.color = "red";
+                error: function(err) {
+                    estadoDiv.innerText = "Error al cargar la base de datos.";
+                    estadoDiv.style.color = "red";
+                    console.error("Fallo al leer el CSV:", err);
                 }
             });
         }
 
-        // Ejecutar por primera vez al abrir la app
-        cargarInventario();
-
-        function buscarEnInventario(eanEscaneado) {
-            const divResultado = document.getElementById('resultado');
-
-            if (inventario.length === 0) {
-                divResultado.innerHTML = "<p style='color: red;'>El inventario aún no está listo.</p>";
-                return;
-            }
-
-            let escaneadoLimpio = String(eanEscaneado).replace(/[^0-9]/g, '');
-
-            if (escaneadoLimpio === ultimoEscan) return;
-            ultimoEscan = escaneadoLimpio;
-
-            for (let i = 0; i < inventario.length; i++) {
-                let fila = inventario[i];
+        // Lógica de escaneo cuando la pistola pulsa la tecla "Enter"
+        inputCodigo.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                let codigoEscaneado = inputCodigo.value.trim();
                 
-                if (fila.length > 0) {
-                    let eanCSV = String(fila[0]).replace(/[^0-9]/g, '');
-                    let descripcion = fila[1] ? fila[1].trim() : "Sin descripción";
-                    let stock = fila[2] ? fila[2].trim() : "0";
+                if (codigoEscaneado === "") return;
 
-                    if (eanCSV === escaneadoLimpio && escaneadoLimpio !== "") {
-                        reproducirBeep(800, 0.15); 
-                        divResultado.innerHTML = `
-                            <h3 style="color: green; margin-top: 0;">¡Artículo encontrado!</h3>
-                            <p><b>EAN:</b> ${escaneadoLimpio}</p>
-                            <p><b>Descriptivo:</b> ${descripcion}</p>
-                            <p><b>Stock:</b> ${stock}</p>
-                        `;
-                        setTimeout(() => { ultimoEscan = ""; }, 2000);
-                        return;
-                    }
+                // Buscar el artículo en la base de datos cargada
+                if (inventario.hasOwnProperty(codigoEscaneado)) {
+                    let articulo = inventario[codigoEscaneado];
+                    resultadoDiv.innerHTML = `
+                        <h3 style="color: green; margin-top: 0; margin-bottom: 15px; font-size: 22px;">¡Artículo encontrado!</h3>
+                        <p style="font-size: 18px;"><strong>EAN:</strong> ${codigoEscaneado}</p>
+                        <p style="font-size: 18px;"><strong>Descriptivo:</strong> ${articulo.descripcion}</p>
+                        <p style="font-size: 18px;"><strong>Stock:</strong> ${articulo.stock}</p>
+                    `;
+                } else {
+                    resultadoDiv.innerHTML = `
+                        <h3 style="color: red; margin-top: 0; margin-bottom: 15px; font-size: 22px;">No encontrado</h3>
+                        <p style="font-size: 18px;">El código <strong>${codigoEscaneado}</strong> no está en el hipermercado.</p>
+                    `;
                 }
-            }
-
-            reproducirBeep(300, 0.3);
-            divResultado.innerHTML = `
-                <h3 style="color: red; margin-top: 0;">No encontrado</h3>
-                <p>El código <b>${escaneadoLimpio}</b> no está en el hipermercado.</p>
-            `;
-            setTimeout(() => { ultimoEscan = ""; }, 2000);
-        }
-
-        const inputCodigo = document.getElementById('inputCodigo');
-        
-        inputCodigo.addEventListener('keypress', function(evento) {
-            if (evento.key === 'Enter') {
-                let codigoLeido = inputCodigo.value; 
-                if (codigoLeido !== "") {
-                    buscarEnInventario(codigoLeido);
-                    inputCodigo.value = ""; 
-                    inputCodigo.blur(); 
-                }
+                
+                // Vaciar la caja automáticamente para el siguiente escaneo
+                inputCodigo.value = "";
+                inputCodigo.focus();
             }
         });
+
+        // Cargar los datos automáticamente al abrir la aplicación
+        window.onload = cargarInventario;
     </script>
 </body>
 </html>
