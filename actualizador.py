@@ -2,66 +2,56 @@ import pandas as pd
 import os
 import subprocess
 
-def limpiar_codigo(val):
-    """
-    Limpia el código de barras convirtiéndolo a texto plano
-    y eliminando decimales de Excel/Pandas (.0).
-    """
-    if pd.isna(val):
-        return ""
-    return str(val).split('.')[0].strip()
-
-def procesar_inventario_dual():
+def procesar_fichero_tienda():
     archivo_origen = 'TIENDA.csv'
-    archivo_destino = 'TIENDA_LIMPIO.csv' # O 'TIENDA.csv' si la app lee directamente el mismo nombre
-
+    
     if not os.path.exists(archivo_origen):
         print(f"[ERROR] No se encuentra el archivo {archivo_origen}")
         return
 
-    print("1. Cargando datos de TIENDA.csv...")
-    # Leemos el archivo asegurando que todo se trate como texto (dtype=str)
-    df = pd.read_csv(archivo_origen, sep=';', dtype=str, encoding='latin1')
+    print("1. Leyendo datos de TIENDA.csv...")
+    # Leemos el CSV asignando nombres de columnas temporales o respetando los existentes
+    # header=None asegura que no interprete la primera fila como encabezado si no lo tiene
+    df = pd.read_csv(archivo_origen, sep=';', dtype=str, encoding='latin1', header=None)
 
-    # Identificamos la primera columna (donde está el código EAN)
-    col_ean = df.columns[0]
-    print(f"Columna de códigos identificada: '{col_ean}'")
+    # Si por error hay más de 3 columnas, nos quedamos solo con las 3 primeras (EAN, Nombre, Stock)
+    df = df.iloc[:, :3]
+    df.columns = ['EAN', 'DESCRIPCION', 'STOCK']
 
-    # Limpiamos espacios y decimales
-    df[col_ean] = df[col_ean].apply(limpiar_codigo)
+    print("2. Limpiando códigos de barras y eliminando decimales...")
+    # Convertimos a texto y quitamos espacios
+    df['EAN'] = df['EAN'].astype(str).str.replace('.0', '', regex=False).str.strip()
 
-    print("2. Generando referencias dobles (12 y 13 dígitos)...")
+    print("3. Generando ceros a la izquierda (13 dígitos)...")
+    # Creamos una copia de los registros que tienen menos de 13 dígitos
+    df_13 = df.copy()
+    # zfill(13) convierte '606707508872' -> '0606707508872'
+    df_13['EAN'] = df_13['EAN'].str.zfill(13)
+
+    # Creamos también la versión de 12 dígitos (sin el cero inicial)
+    df_12 = df_13.copy()
+    df_12['EAN'] = df_12['EAN'].apply(lambda x: x[1:] if len(x) == 13 and x.startswith('0') else x)
+
+    # Combinamos ambas listas para que funcionen tanto con 12 como con 13 dígitos
+    df_final = pd.concat([df_13, df_12], ignore_index=True)
     
-    # Buscamos los códigos de 13 dígitos que empiezan por '0'
-    filtro_13_ceros = (df[col_ean].str.len() == 13) & (df[col_ean].str.startswith('0'))
-    
-    # Creamos un duplicado de esos productos
-    duplicados_12 = df[filtro_13_ceros].copy()
-    
-    # A la copia le quitamos el '0' inicial (convertimos 0606707508872 -> 606707508872)
-    duplicados_12[col_ean] = duplicados_12[col_ean].str[1:]
+    # Eliminamos duplicados exactos
+    df_final = df_final.drop_duplicates(subset=['EAN'])
 
-    # Unimos la lista original con los duplicados de 12 dígitos
-    df_final = pd.concat([df, duplicados_12], ignore_index=True)
+    print(f"Total de referencias listas: {len(df_final)}")
 
-    # Eliminamos posibles registros exactamente idénticos
-    df_final = df_final.drop_duplicates(subset=[col_ean])
+    print("4. Guardando 'TIENDA.csv' formateado de forma limpia...")
+    # Guardamos sin índice (index=False) y sin encabezados (header=False) para mantener la compatibilidad original
+    df_final.to_csv('TIENDA.csv', index=False, header=False, sep=';', encoding='utf-8')
 
-    print(f"Total de productos en la base de datos optimizada: {len(df_final)}")
-
-    # Guardamos el archivo procesado
-    df_final.to_csv(archivo_destino, index=False, sep=';', encoding='utf-8')
-    print(f"3. Archivo guardado con éxito como '{archivo_destino}'.")
-
-    # 4. Sincronización automática con GitHub
+    print("5. Sincronizando con GitHub...")
     try:
-        print("4. Subiendo actualización a GitHub Pages...")
         subprocess.run(['git', 'add', '.'], check=True)
-        subprocess.run(['git', 'commit', '-m', 'Soporte dual de EAN 12 y 13 digitos'], check=True)
+        subprocess.run(['git', 'commit', '-m', 'Formato de archivo TIENDA reestructurado'], check=True)
         subprocess.run(['git', 'push'], check=True)
-        print("\n¡[ÉXITO] Base de datos actualizada en la nube!")
+        print("\n¡[ÉXITO] Base de datos corregida y subida a la nube!")
     except Exception as e:
-        print(f"\n[ERROR] Falló la sincronización con Git: {e}")
+        print(f"\n[ERROR] Error durante la subida Git: {e}")
 
 if __name__ == '__main__':
-    procesar_inventario_dual()
+    procesar_fichero_tienda()
