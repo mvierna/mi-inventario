@@ -23,34 +23,65 @@
         #inputCodigo { padding: 15px; font-size: 22px; width: 85%; max-width: 350px; text-align: center; border: 3px solid #007bff; border-radius: 8px; outline: none; }
         #inputCodigo:focus { border-color: #0056b3; }
 
-        /* Diseño del botón de sincronización */
+        /* Botón de sincronización */
         .btn-actualizar { padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; width: 85%; max-width: 350px; margin-bottom: 10px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .btn-actualizar:active { background-color: #218838; transform: translateY(2px); }
-        
-        /* Estilos añadidos para resaltar el stock */
+
+        /* Panel secundario para precio, fecha y ventas (más pequeños y ordenados arriba) */
+        .panel-secundario {
+            display: flex;
+            justify-content: space-around;
+            gap: 8px;
+            margin: 15px 0 10px 0;
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+        }
+        .item-secundario {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+        .etiqueta-secundaria {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #6c757d;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .valor-secundario {
+            font-size: 15px;
+            font-weight: bold;
+            color: #212529;
+        }
+
+        /* Caja principal del Stock destacada en grande abajo */
         .caja-stock {
-            margin-top: 15px;
-            padding: 12px;
+            margin-top: 10px;
+            padding: 14px;
             background-color: #28a745;
             color: #ffffff;
             border-radius: 8px;
             text-align: center;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
         }
         .etiqueta-stock {
-            font-size: 14px;
+            font-size: 13px;
             text-transform: uppercase;
             letter-spacing: 1px;
             margin: 0;
-            opacity: 0.9;
+            opacity: 0.95;
         }
         .numero-stock {
-            font-size: 42px;
+            font-size: 46px;
             font-weight: bold;
-            margin: 5px 0 0 0;
+            margin: 4px 0 0 0;
             line-height: 1;
         }
 
-        p { margin: 8px 0; }
+        p { margin: 6px 0; }
     </style>
 </head>
 <body>
@@ -81,12 +112,11 @@
             estadoDiv.style.color = "blue";
             resultadoDiv.innerHTML = "Esperando a que escanees un código...";
 
-            // Añadimos la fecha actual a la URL para forzar al móvil a descargar la última versión y evitar la caché
             const url = 'TIENDA.csv?' + new Date().getTime();
 
             Papa.parse(url, {
                 download: true,
-                header: false, // El archivo de Python viene limpio sin cabeceras
+                header: false,
                 delimiter: ";",
                 skipEmptyLines: true,
                 complete: function(results) {
@@ -94,13 +124,23 @@
                     let contador = 0;
                     
                     results.data.forEach(fila => {
+                        // Verificamos que la fila tenga al menos los datos básicos
                         if(fila.length >= 3) {
                             let ean = fila[0] ? fila[0].trim() : "";
                             let desc = fila[1] ? fila[1].trim() : "";
                             let stock = fila[2] ? fila[2].trim() : "";
+                            let precio = fila[3] ? fila[3].trim() : "-";
+                            let fecha = fila[4] ? fila[4].trim() : "-";
+                            let ventas = fila[5] ? fila[5].trim() : "0";
                             
                             if(ean) {
-                                inventario[ean] = { descripcion: desc, stock: stock };
+                                inventario[ean] = { 
+                                    descripcion: desc, 
+                                    stock: stock,
+                                    precio: precio,
+                                    fecha: fecha,
+                                    ventas: ventas
+                                };
                                 contador++;
                             }
                         }
@@ -109,7 +149,6 @@
                     estadoDiv.innerText = "¡Base de datos lista: " + contador + " artículos!";
                     estadoDiv.style.color = "green";
                     
-                    // Mantener el foco en la caja para poder seguir disparando
                     inputCodigo.focus();
                 },
                 error: function(err) {
@@ -120,7 +159,7 @@
             });
         }
 
-        // Lógica de escaneo cuando la pistola/teclado pulsa la tecla "Enter"
+        // Lógica de escaneo con la tecla "Enter"
         inputCodigo.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -128,14 +167,32 @@
                 
                 if (codigoEscaneado === "") return;
 
-                // Buscar el artículo en la base de datos cargada
+                // Buscar el artículo en el inventario cargado
                 if (inventario.hasOwnProperty(codigoEscaneado)) {
                     let articulo = inventario[codigoEscaneado];
+                    
                     resultadoDiv.innerHTML = `
-                        <h3 style="color: green; margin-top: 0; margin-bottom: 10px; font-size: 22px;">¡Artículo encontrado!</h3>
-                        <p style="font-size: 16px; color: #555;"><strong>EAN:</strong> ${codigoEscaneado}</p>
-                        <p style="font-size: 18px;"><strong>Descriptivo:</strong> ${articulo.descripcion}</p>
-                        
+                        <h3 style="color: green; margin-top: 0; margin-bottom: 8px; font-size: 20px;">¡Artículo encontrado!</h3>
+                        <p style="font-size: 15px; color: #555;"><strong>EAN:</strong> ${codigoEscaneado}</p>
+                        <p style="font-size: 17px; font-weight: bold;">${articulo.descripcion}</p>
+
+                        <!-- Panel secundario con Precio, Última Recepción y Ventas -->
+                        <div class="panel-secundario">
+                            <div class="item-secundario">
+                                <span class="etiqueta-secundaria">P.V.P.</span>
+                                <span class="valor-secundario">${articulo.precio}</span>
+                            </div>
+                            <div class="item-secundario">
+                                <span class="etiqueta-secundaria">Últ. Recep.</span>
+                                <span class="valor-secundario">${articulo.fecha}</span>
+                            </div>
+                            <div class="item-secundario">
+                                <span class="etiqueta-secundaria">Ventas Recep.</span>
+                                <span class="valor-secundario">${articulo.ventas} u.</span>
+                            </div>
+                        </div>
+
+                        <!-- Bloque de Stock destacado en grande -->
                         <div class="caja-stock">
                             <p class="etiqueta-stock">Stock Disponible</p>
                             <p class="numero-stock">${articulo.stock}</p>
@@ -148,13 +205,11 @@
                     `;
                 }
                 
-                // Vaciar la caja automáticamente para el siguiente escaneo
                 inputCodigo.value = "";
                 inputCodigo.focus();
             }
         });
 
-        // Cargar los datos automáticamente al abrir la aplicación
         window.onload = cargarInventario;
     </script>
 </body>
