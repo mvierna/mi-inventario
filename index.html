@@ -23,12 +23,17 @@
             box-sizing: border-box;
         }
 
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
         body { 
             font-family: Arial, sans-serif; 
             padding: 6px; 
             text-align: center; 
             background-color: #ffffff; 
-            margin: 0; 
             display: flex;
             flex-direction: column;
             min-height: 100vh;
@@ -73,39 +78,40 @@
             margin-top: 1px;
         }
 
-        /* Tarjeta de resultados (Textos grandes y legibles) */
+        /* Tarjeta de resultados (Ocupa el espacio disponible) */
         .resultado { 
-            margin: 4px 0; 
-            padding: 8px; 
+            margin: 2px 0; 
+            padding: 6px; 
             border: 2px solid #222222; 
             border-radius: 8px; 
             background-color: #f8f9fa; 
             display: flex; 
             flex-direction: column; 
-            justify-content: center;
+            justify-content: space-around;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex: 1;
         }
 
         .titulo-encontrado {
             color: #28a745; 
             margin: 0; 
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
         }
 
         .texto-ean {
             font-size: 12px; 
             color: #555; 
-            margin: 1px 0 2px 0;
+            margin: 1px 0;
         }
 
-        /* Descripción clara y de buen tamaño */
+        /* Descripción clara */
         .descripcion-producto {
-            font-size: 19px; 
+            font-size: 18px; 
             font-weight: 800; 
             line-height: 1.2; 
             color: #000000;
-            margin: 2px 0 6px 0;
+            margin: 2px 0;
             text-transform: uppercase;
         }
 
@@ -116,24 +122,24 @@
             gap: 2px;
             margin: 4px 0;
             background-color: #ffffff;
-            padding: 6px 2px;
+            padding: 4px 2px;
             border-radius: 6px;
             border: 1px solid #ced4da;
         }
         .item-secundario { display: flex; flex-direction: column; align-items: center; flex: 1; }
         .etiqueta-secundaria { font-size: 10px; text-transform: uppercase; color: #6c757d; font-weight: bold; }
-        .valor-secundario { font-size: 17px; font-weight: 800; color: #000000; }
+        .valor-secundario { font-size: 16px; font-weight: 800; color: #000000; }
 
         /* Tarjeta de Stock GIGANTE */
         .caja-stock { 
-            margin-top: 4px; 
-            padding: 4px 6px; 
+            margin-top: 2px; 
+            padding: 4px; 
             background-color: #28a745; 
             color: #ffffff; 
             border-radius: 6px; 
         }
         .etiqueta-stock { font-size: 11px; text-transform: uppercase; margin: 0; font-weight: bold; letter-spacing: 0.5px; opacity: 0.95; }
-        .numero-stock { font-size: 50px; font-weight: 900; margin: 0; line-height: 1; }
+        .numero-stock { font-size: 46px; font-weight: 900; margin: 0; line-height: 1; }
 
         /* Visor para la cámara iOS */
         #lectorCamara {
@@ -145,7 +151,7 @@
             display: none;
         }
 
-        /* Interfaz inferior */
+        /* Interfaz inferior fija */
         .caja-interfaz { 
             margin-top: auto; 
             padding: 6px; 
@@ -194,7 +200,7 @@
 
         p { margin: 2px 0; }
 
-        /* Oculta únicamente el título superior si el teclado está desplegado para ganar espacio */
+        /* Oculta el encabezado cuando el teclado está activo para maximizar el área de resultado */
         body.modo-teclado .cabecera-top,
         body.modo-teclado #estado {
             display: none !important;
@@ -302,7 +308,6 @@
                                 <span class="texto-fecha">Actualizado: ${fechaFormateada}</span>
                             `;
                             estadoDiv.style.color = "green";
-                            // NOTA: Se elimina la llamada automática a focus() para evitar ocultar el botón de cámara al inicio
                         }
                     });
                 })
@@ -350,6 +355,9 @@
             }
 
             inputCodigo.value = "";
+
+            /* Desplaza automáticamente la pantalla hacia arriba para mostrar el resultado completo */
+            resultadoDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         async function alternarCamaraiOS() {
