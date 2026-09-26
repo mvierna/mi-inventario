@@ -19,16 +19,19 @@
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body { 
             font-family: Arial, sans-serif; 
-            padding: 8px; 
+            padding: 4px; 
             text-align: center; 
             background-color: #ffffff; 
             margin: 0; 
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            box-sizing: border-box;
         }
 
         /* Encabezado superior */
@@ -37,82 +40,106 @@
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-            margin-bottom: 4px;
-            transition: all 0.2s ease;
+            margin-bottom: 2px;
         }
 
         h1 { 
             margin: 0; 
-            font-size: 22px; 
+            font-size: 20px; 
         }
 
         .btn-actualizar { 
-            padding: 8px 12px; 
+            padding: 6px 10px; 
             background-color: #28a745; 
             color: white; 
             border: none; 
             border-radius: 6px; 
-            font-size: 13px; 
+            font-size: 12px; 
             font-weight: bold; 
             cursor: pointer; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         #estado { 
             font-weight: bold; 
-            font-size: 13px; 
-            margin-bottom: 6px; 
-            transition: all 0.2s ease;
+            font-size: 12px; 
+            margin-bottom: 4px; 
         }
         
         .texto-fecha { 
-            font-size: 12px; 
+            font-size: 11px; 
             color: #333333; 
             font-weight: bold; 
-            display: block; 
-            margin-top: 2px;
+            display: inline-block; 
+            margin-top: 1px;
         }
 
-        /* Tarjeta de resultados */
+        /* Tarjeta de resultados (Ajustada verticalmente con datos GIGANTES) */
         .resultado { 
-            margin: 4px 0 8px 0; 
-            padding: 12px; 
+            margin: 2px 0; 
+            padding: 8px; 
             border: 2px solid #222222; 
-            border-radius: 10px; 
+            border-radius: 8px; 
             background-color: #f8f9fa; 
-            font-size: 16px; 
-            min-height: 80px; 
             display: flex; 
             flex-direction: column; 
             justify-content: center;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .titulo-encontrado {
+            color: #28a745; 
+            margin: 0; 
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .texto-ean {
+            font-size: 12px; 
+            color: #555; 
+            margin: 1px 0 2px 0;
+        }
+
+        /* Descripción del producto BIEN GRANDE Y CLARA */
+        .descripcion-producto {
+            font-size: 20px; 
+            font-weight: 800; 
+            line-height: 1.15; 
+            color: #000000;
+            margin: 2px 0 4px 0;
+            text-transform: uppercase;
         }
 
         /* Panel secundario de datos (PVP, Recep., Ventas) */
         .panel-secundario {
             display: flex;
             justify-content: space-around;
-            gap: 4px;
-            margin: 8px 0 6px 0;
+            gap: 2px;
+            margin: 4px 0;
             background-color: #ffffff;
-            padding: 6px 4px;
-            border-radius: 8px;
+            padding: 4px 2px;
+            border-radius: 6px;
             border: 1px solid #ced4da;
         }
         .item-secundario { display: flex; flex-direction: column; align-items: center; flex: 1; }
         .etiqueta-secundaria { font-size: 10px; text-transform: uppercase; color: #6c757d; font-weight: bold; }
-        .valor-secundario { font-size: 16px; font-weight: bold; color: #111111; }
+        .valor-secundario { font-size: 18px; font-weight: 800; color: #000000; }
 
-        /* Tarjeta de Stock */
-        .caja-stock { margin-top: 6px; padding: 8px; background-color: #28a745; color: #ffffff; border-radius: 8px; }
-        .etiqueta-stock { font-size: 11px; text-transform: uppercase; margin: 0; opacity: 0.95; font-weight: bold; letter-spacing: 0.5px; }
-        .numero-stock { font-size: 42px; font-weight: bold; margin: 2px 0 0 0; line-height: 1; }
+        /* Tarjeta de Stock GIGANTE */
+        .caja-stock { 
+            margin-top: 4px; 
+            padding: 4px 6px; 
+            background-color: #28a745; 
+            color: #ffffff; 
+            border-radius: 6px; 
+        }
+        .etiqueta-stock { font-size: 11px; text-transform: uppercase; margin: 0; font-weight: bold; letter-spacing: 0.5px; opacity: 0.95; }
+        .numero-stock { font-size: 52px; font-weight: 900; margin: 0; line-height: 1; }
 
         /* Visor para la cámara iOS */
         #lectorCamara {
             width: 100%;
             max-width: 320px;
-            margin: 5px auto;
+            margin: 4px auto;
             border-radius: 6px;
             overflow: hidden;
             display: none;
@@ -121,50 +148,49 @@
         /* Interfaz inferior (zona del pulgar) */
         .caja-interfaz { 
             margin-top: auto; 
-            padding: 8px; 
+            padding: 4px; 
             background-color: #e9ecef; 
-            border-radius: 8px; 
+            border-radius: 6px; 
         }
 
         #inputCodigo { 
-            padding: 10px; 
+            padding: 8px; 
             font-size: 18px; 
-            width: 90%; 
+            width: 100%; 
             max-width: 350px; 
             text-align: center; 
             border: 3px solid #007bff; 
             border-radius: 6px; 
             outline: none; 
             box-sizing: border-box;
+            font-weight: bold;
         }
         #inputCodigo:focus { border-color: #0056b3; }
 
         .btn-camara {
-            padding: 8px 12px;
+            padding: 6px 10px;
             background-color: #17a2b8;
             color: white;
             border: none;
             border-radius: 6px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
             cursor: pointer;
-            margin-bottom: 6px;
-            width: 90%;
+            margin-bottom: 4px;
+            width: 100%;
             max-width: 350px;
         }
 
         .texto-instruccion {
             font-weight: bold; 
-            font-size: 12px; 
-            margin: 0 0 4px 0; 
+            font-size: 11px; 
+            margin: 0 0 2px 0; 
             color: #495057;
         }
 
-        p { margin: 3px 0; }
+        p { margin: 2px 0; }
 
-        /* ==========================================================================
-           REGLAS ESPECIALES PARA CUANDO EL TECLADO ESTÁ ABIERTO / PANTALLA BAJA
-           ========================================================================== */
+        /* OCULTAR CABECERA INNECESARIA SI EL TECLADO ESTÁ ABIERTO */
         body.modo-teclado .cabecera-top,
         body.modo-teclado #estado,
         body.modo-teclado .btn-camara,
@@ -172,7 +198,7 @@
             display: none !important;
         }
 
-        @media (max-height: 540px) {
+        @media (max-height: 580px) {
             .cabecera-top,
             #estado,
             .btn-camara,
@@ -180,29 +206,7 @@
                 display: none !important;
             }
             body {
-                padding: 4px !important;
-            }
-            .resultado {
-                margin: 2px 0 4px 0 !important;
-                padding: 8px !important;
-            }
-            .panel-secundario {
-                margin: 4px 0 !important;
-                padding: 4px 2px !important;
-            }
-            .caja-stock {
-                margin-top: 4px !important;
-                padding: 6px !important;
-            }
-            .numero-stock {
-                font-size: 36px !important;
-            }
-            .caja-interfaz {
-                padding: 4px !important;
-            }
-            #inputCodigo {
-                padding: 8px !important;
-                font-size: 16px !important;
+                padding: 2px !important;
             }
         }
     </style>
@@ -241,7 +245,7 @@
         const resultadoDiv = document.getElementById('resultado');
         const estadoDiv = document.getElementById('estado');
 
-        /* Control dinámico del modo teclado para liberar espacio */
+        /* Ocultar elementos superiores al enfocar para dar espacio al teclado */
         inputCodigo.addEventListener('focus', () => {
             document.body.classList.add('modo-teclado');
         });
@@ -260,7 +264,7 @@
         }
 
         function cargarInventario() {
-            estadoDiv.innerHTML = "Sincronizando con la base de datos...";
+            estadoDiv.innerHTML = "Sincronizando...";
             estadoDiv.style.color = "blue";
 
             const url = 'TIENDA.csv?' + new Date().getTime();
@@ -304,8 +308,8 @@
                             
                             const fechaFormateada = formatearFechaHora(fechaRealArchivo);
                             estadoDiv.innerHTML = `
-                                ¡Base de datos lista: ${contador} artículos!
-                                <span class="texto-fecha">Actualizado el ${fechaFormateada}</span>
+                                ¡Base de datos lista: ${contador} arts.!
+                                <span class="texto-fecha">Actualizado: ${fechaFormateada}</span>
                             `;
                             estadoDiv.style.color = "green";
                             inputCodigo.focus();
@@ -313,7 +317,7 @@
                     });
                 })
                 .catch(err => {
-                    estadoDiv.innerText = "Error al cargar la base de datos.";
+                    estadoDiv.innerText = "Error al cargar datos.";
                     estadoDiv.style.color = "red";
                 });
         }
@@ -324,9 +328,9 @@
             if (inventario.hasOwnProperty(codigoEscaneado)) {
                 let articulo = inventario[codigoEscaneado];
                 resultadoDiv.innerHTML = `
-                    <h3 style="color: #28a745; margin: 0 0 2px 0; font-size: 18px;">¡Artículo encontrado!</h3>
-                    <p style="font-size: 13px; color: #555; margin-bottom: 2px;"><strong>EAN:</strong> ${codigoEscaneado}</p>
-                    <p style="font-size: 17px; font-weight: bold; line-height: 1.2; color: #111111;">${articulo.descripcion}</p>
+                    <p class="titulo-encontrado">¡Artículo encontrado!</p>
+                    <p class="texto-ean"><strong>EAN:</strong> ${codigoEscaneado}</p>
+                    <div class="descripcion-producto">${articulo.descripcion}</div>
 
                     <div class="panel-secundario">
                         <div class="item-secundario">
@@ -358,7 +362,6 @@
             inputCodigo.value = "";
             inputCodigo.focus();
 
-            // Garantiza que la parte superior del resultado se mantenga visible
             resultadoDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
