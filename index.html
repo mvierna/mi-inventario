@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventario Hipermercado</title>
 
-    <!-- Configuración para PWA / Acceso directo en pantalla de inicio -->
+    <!-- Configuración PWA / Pantalla de inicio -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#28a745">
 
@@ -14,127 +14,166 @@
     <meta name="apple-mobile-web-app-title" content="Inventario">
     <link rel="apple-touch-icon" href="icono.png">
 
-    <!-- Librerías JavaScript externas -->
+    <!-- Librerías externas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
     <style>
-        body { font-family: Arial, sans-serif; padding: 15px; text-align: center; background-color: #ffffff; margin: 0; }
-        h1 { margin-top: 10px; font-size: 28px; }
-        
-        /* Estilos del área de estado y fecha */
-        #estado { font-weight: bold; margin-bottom: 5px; font-size: 16px; }
-        .texto-fecha { font-size: 12px; color: #6c757d; font-weight: normal; margin-top: 3px; display: block; }
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 10px; 
+            text-align: center; 
+            background-color: #ffffff; 
+            margin: 0; 
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
 
+        /* Encabezado compacto superior */
+        .cabecera-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        h1 { 
+            margin: 0; 
+            font-size: 22px; 
+        }
+
+        .btn-actualizar { 
+            padding: 8px 12px; 
+            background-color: #28a745; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            font-size: 13px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #estado { 
+            font-weight: bold; 
+            font-size: 12px; 
+            margin-bottom: 8px; 
+        }
+        
+        .texto-fecha { 
+            font-size: 11px; 
+            color: #6c757d; 
+            font-weight: normal; 
+            display: block; 
+        }
+
+        /* Área central de resultados */
         .resultado { 
-            margin-bottom: 20px; 
-            padding: 15px; 
+            margin: 5px 0 15px 0; 
+            padding: 12px; 
             border: 2px solid #333; 
             border-radius: 8px; 
             background-color: #f8f9fa; 
-            font-size: 18px; 
-            min-height: 80px; 
+            font-size: 15px; 
+            min-height: 70px; 
             display: flex; 
             flex-direction: column; 
             justify-content: center;
         }
 
-        .caja-interfaz { margin: 15px 0; padding: 20px; background-color: #e9ecef; border-radius: 8px; }
-
-        #inputCodigo { 
-            padding: 15px; 
-            font-size: 22px; 
-            width: 85%; 
-            max-width: 350px; 
-            text-align: center; 
-            border: 3px solid #007bff; 
-            border-radius: 8px; 
-            outline: none; 
+        /* Panel secundario compacto (PVP, Recep., Ventas) */
+        .panel-secundario {
+            display: flex;
+            justify-content: space-around;
+            gap: 4px;
+            margin: 8px 0 6px 0;
+            background-color: #ffffff;
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid #ced4da;
         }
-        #inputCodigo:focus { border-color: #0056b3; }
+        .item-secundario { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .etiqueta-secundaria { font-size: 10px; text-transform: uppercase; color: #6c757d; font-weight: bold; }
+        .valor-secundario { font-size: 14px; font-weight: bold; color: #212529; }
 
-        .btn-actualizar { 
-            padding: 12px; 
-            background-color: #28a745; 
-            color: white; 
-            border: none; 
-            border-radius: 8px; 
-            font-size: 16px; 
-            width: 85%; 
-            max-width: 350px; 
-            margin-bottom: 10px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
+        /* Tarjeta de Stock destacado */
+        .caja-stock { margin-top: 6px; padding: 8px; background-color: #28a745; color: #ffffff; border-radius: 6px; }
+        .etiqueta-stock { font-size: 11px; text-transform: uppercase; margin: 0; opacity: 0.95; }
+        .numero-stock { font-size: 38px; font-weight: bold; margin: 2px 0 0 0; line-height: 1; }
 
-        /* Botón táctil para escanear mediante la cámara en iPhone */
-        .btn-camara {
-            padding: 15px;
-            background-color: #17a2b8;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
-            width: 85%;
-            max-width: 350px;
-            margin-bottom: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .btn-camara:active { background-color: #117a8b; }
-
-        /* Visor de vídeo para lectura óptica de la cámara */
+        /* Visor de cámara en iOS */
         #lectorCamara {
             width: 100%;
-            max-width: 350px;
-            margin: 10px auto;
-            border-radius: 8px;
+            max-width: 320px;
+            margin: 5px auto;
+            border-radius: 6px;
             overflow: hidden;
             display: none;
         }
 
-        /* Panel superior secundario: PVP, Última recepción y Ventas */
-        .panel-secundario {
-            display: flex;
-            justify-content: space-around;
-            gap: 8px;
-            margin: 15px 0 10px 0;
-            background-color: #e9ecef;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #ced4da;
+        /* Interfaz de entrada ubicada en la parte inferior para uso con pulgar */
+        .caja-interfaz { 
+            margin-top: auto; 
+            padding: 12px; 
+            background-color: #e9ecef; 
+            border-radius: 8px; 
         }
-        .item-secundario { display: flex; flex-direction: column; align-items: center; flex: 1; }
-        .etiqueta-secundaria { font-size: 11px; text-transform: uppercase; color: #6c757d; font-weight: bold; margin-bottom: 4px; }
-        .valor-secundario { font-size: 15px; font-weight: bold; color: #212529; }
 
-        /* Tarjeta principal para la visualización destacada del Stock */
-        .caja-stock { margin-top: 10px; padding: 14px; background-color: #28a745; color: #ffffff; border-radius: 8px; }
-        .etiqueta-stock { font-size: 13px; text-transform: uppercase; margin: 0; opacity: 0.95; }
-        .numero-stock { font-size: 46px; font-weight: bold; margin: 4px 0 0 0; line-height: 1; }
+        #inputCodigo { 
+            padding: 12px; 
+            font-size: 20px; 
+            width: 90%; 
+            max-width: 350px; 
+            text-align: center; 
+            border: 3px solid #007bff; 
+            border-radius: 6px; 
+            outline: none; 
+            box-sizing: border-box;
+        }
+        #inputCodigo:focus { border-color: #0056b3; }
 
-        p { margin: 6px 0; }
+        .btn-camara {
+            padding: 10px 12px;
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 8px;
+            width: 90%;
+            max-width: 350px;
+        }
+
+        p { margin: 3px 0; }
     </style>
 </head>
 <body>
-    <h1>Inventario<br>Hipermercado</h1>
 
-    <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar Datos Ahora</button>
-
-    <div id="estado" style="color: blue;">Conectando con la base de datos...</div>
-
-    <div id="resultado" class="resultado">
-        Esperando a que escanees un código...
+    <!-- Cabecera superior -->
+    <div class="cabecera-top">
+        <h1>Inventario</h1>
+        <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar</button>
     </div>
 
-    <!-- Visor de la cámara en vivo para iOS -->
+    <div id="estado" style="color: blue;">Conectando...</div>
+
+    <!-- Resultados en la zona media -->
+    <div id="resultado" class="resultado">
+        Esperando código...
+    </div>
+
+    <!-- Visor de la cámara iOS -->
     <div id="lectorCamara"></div>
 
+    <!-- Caja de entrada al final de la pantalla (zona del pulgar) -->
     <div class="caja-interfaz">
         <button class="btn-camara" onclick="alternarCamaraiOS()">📷 Escanear con Cámara (iPhone)</button>
-        <p style="font-weight: bold; font-size: 15px; margin: 10px 0 8px 0; color: #495057;">o usa tu teclado escáner / lectura manual:</p>
+        <p style="font-weight: bold; font-size: 13px; margin: 0 0 6px 0; color: #495057;">o usa tu teclado escáner / lectura manual:</p>
         <input type="text" id="inputCodigo" placeholder="Escanea el código aquí..." autocomplete="off">
     </div>
 
@@ -147,7 +186,6 @@
         const resultadoDiv = document.getElementById('resultado');
         const estadoDiv = document.getElementById('estado');
 
-        // Función auxiliar para obtener fecha y hora formateadas en español
         function obtenerFechaHoraActual() {
             const ahora = new Date();
             const opcionesFecha = { day: 'numeric', month: 'long' };
@@ -158,7 +196,6 @@
             return `${fechaTexto} a las ${horas}:${minutos} h`;
         }
 
-        // Carga y parseo del archivo CSV con parámetros anti-caché
         function cargarInventario() {
             estadoDiv.innerHTML = "Sincronizando con la base de datos...";
             estadoDiv.style.color = "blue";
@@ -197,8 +234,6 @@
                     });
                     
                     const fechaActualizacion = obtenerFechaHoraActual();
-                    
-                    // Inyección de HTML con el recuento y la fecha en pequeño
                     estadoDiv.innerHTML = `
                         ¡Base de datos lista: ${contador} artículos!
                         <span class="texto-fecha">Actualizado el ${fechaActualizacion}</span>
@@ -213,16 +248,15 @@
             });
         }
 
-        // Búsqueda del producto e inyección en el DOM HTML
         function buscarCodigo(codigoEscaneado) {
             if (!codigoEscaneado) return;
 
             if (inventario.hasOwnProperty(codigoEscaneado)) {
                 let articulo = inventario[codigoEscaneado];
                 resultadoDiv.innerHTML = `
-                    <h3 style="color: green; margin-top: 0; margin-bottom: 8px; font-size: 20px;">¡Artículo encontrado!</h3>
-                    <p style="font-size: 15px; color: #555;"><strong>EAN:</strong> ${codigoEscaneado}</p>
-                    <p style="font-size: 17px; font-weight: bold;">${articulo.descripcion}</p>
+                    <h3 style="color: green; margin: 0 0 4px 0; font-size: 17px;">¡Artículo encontrado!</h3>
+                    <p style="font-size: 13px; color: #555;"><strong>EAN:</strong> ${codigoEscaneado}</p>
+                    <p style="font-size: 15px; font-weight: bold;">${articulo.descripcion}</p>
 
                     <div class="panel-secundario">
                         <div class="item-secundario">
@@ -246,16 +280,18 @@
                 `;
             } else {
                 resultadoDiv.innerHTML = `
-                    <h3 style="color: red; margin-top: 0; margin-bottom: 15px; font-size: 22px;">No encontrado</h3>
-                    <p style="font-size: 18px;">El código <strong>${codigoEscaneado}</strong> no está en el hipermercado.</p>
+                    <h3 style="color: red; margin: 0 0 6px 0; font-size: 18px;">No encontrado</h3>
+                    <p style="font-size: 15px;">El código <strong>${codigoEscaneado}</strong> no está en la base de datos.</p>
                 `;
             }
 
             inputCodigo.value = "";
             inputCodigo.focus();
+
+            // Desplaza suavemente la pantalla para enfocar la tarjeta de resultados sobre el teclado
+            resultadoDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
-        // Controlador de cámara para iOS usando Html5Qrcode
         async function alternarCamaraiOS() {
             const visorDiv = document.getElementById('lectorCamara');
 
@@ -271,7 +307,7 @@
 
                 const configuracion = { 
                     fps: 15, 
-                    qrbox: { width: 250, height: 150 },
+                    qrbox: { width: 220, height: 130 },
                     aspectRatio: 1.0
                 };
 
@@ -290,15 +326,13 @@
                     );
                     camaraEncendida = true;
                 } catch (err) {
-                    alert("Error al encender la cámara en iOS. Asegúrate de permitir el acceso en Safari.");
-                    console.error("Error de cámara:", err);
+                    alert("Error al encender la cámara en iOS.");
                     visorDiv.style.display = "none";
                     camaraEncendida = false;
                 }
             }
         }
 
-        // Listener para lectura de teclado / escáner en Android
         inputCodigo.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
