@@ -61,10 +61,18 @@ def limpiar_datos():
 def subir_a_github():
     print("Iniciando sincronización con GitHub...")
     try:
-        # Usamos '.' en vez de 'TIENDA.csv' para registrar index.html y cualquier otro cambio
+        # 1. Preparar todos los archivos modificados
         subprocess.run(['git', 'add', '.'], check=True)
-        subprocess.run(['git', 'commit', '-m', 'Actualizacion automatica de interfaz y stock por RPA'])
-        subprocess.run(['git', 'push'], check=True)
+        
+        # 2. Crear el commit local (check=False evita que falle si no hay cambios)
+        subprocess.run(['git', 'commit', '-m', 'Actualizacion automatica de interfaz y stock por RPA'], check=False)
+        
+        # 3. Traer cambios remotos y reordenar el historial antes de subir
+        print("Sincronizando con los datos remotos de GitHub...")
+        subprocess.run(['git', 'pull', '--rebase', 'origin', 'main'], check=False)
+        
+        # 4. Enviar los cambios finales a la nube
+        subprocess.run(['git', 'push', 'origin', 'main'], check=True)
         print("¡Sincronización completada! Todos los archivos (web y datos) ya están en la nube.")
     except Exception as e:
         print(f"Error al intentar subir los datos a GitHub: {e}")
