@@ -21,7 +21,7 @@
     <style>
         body { 
             font-family: Arial, sans-serif; 
-            padding: 10px; 
+            padding: 8px; 
             text-align: center; 
             background-color: #ffffff; 
             margin: 0; 
@@ -31,7 +31,7 @@
             box-sizing: border-box;
         }
 
-        /* Encabezado compacto superior */
+        /* Encabezado superior */
         .cabecera-top {
             display: flex;
             align-items: center;
@@ -59,52 +59,54 @@
 
         #estado { 
             font-weight: bold; 
-            font-size: 12px; 
+            font-size: 13px; 
             margin-bottom: 8px; 
         }
         
         .texto-fecha { 
-            font-size: 11px; 
-            color: #6c757d; 
-            font-weight: normal; 
+            font-size: 12px; 
+            color: #333333; 
+            font-weight: bold; 
             display: block; 
+            margin-top: 2px;
         }
 
-        /* Área central de resultados */
+        /* Tarjeta de resultados ampliada */
         .resultado { 
-            margin: 5px 0 15px 0; 
-            padding: 12px; 
-            border: 2px solid #333; 
-            border-radius: 8px; 
+            margin: 5px 0 10px 0; 
+            padding: 14px; 
+            border: 2px solid #222222; 
+            border-radius: 10px; 
             background-color: #f8f9fa; 
-            font-size: 15px; 
-            min-height: 70px; 
+            font-size: 16px; 
+            min-height: 90px; 
             display: flex; 
             flex-direction: column; 
             justify-content: center;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
         }
 
-        /* Panel secundario compacto (PVP, Recep., Ventas) */
+        /* Panel secundario de datos ampliados (PVP, Recep., Ventas) */
         .panel-secundario {
             display: flex;
             justify-content: space-around;
-            gap: 4px;
-            margin: 8px 0 6px 0;
+            gap: 6px;
+            margin: 10px 0 8px 0;
             background-color: #ffffff;
-            padding: 6px;
-            border-radius: 6px;
+            padding: 8px 4px;
+            border-radius: 8px;
             border: 1px solid #ced4da;
         }
         .item-secundario { display: flex; flex-direction: column; align-items: center; flex: 1; }
-        .etiqueta-secundaria { font-size: 10px; text-transform: uppercase; color: #6c757d; font-weight: bold; }
-        .valor-secundario { font-size: 14px; font-weight: bold; color: #212529; }
+        .etiqueta-secundaria { font-size: 11px; text-transform: uppercase; color: #6c757d; font-weight: bold; }
+        .valor-secundario { font-size: 17px; font-weight: bold; color: #111111; }
 
-        /* Tarjeta de Stock destacado */
-        .caja-stock { margin-top: 6px; padding: 8px; background-color: #28a745; color: #ffffff; border-radius: 6px; }
-        .etiqueta-stock { font-size: 11px; text-transform: uppercase; margin: 0; opacity: 0.95; }
-        .numero-stock { font-size: 38px; font-weight: bold; margin: 2px 0 0 0; line-height: 1; }
+        /* Tarjeta de Stock muy destacada */
+        .caja-stock { margin-top: 8px; padding: 10px; background-color: #28a745; color: #ffffff; border-radius: 8px; }
+        .etiqueta-stock { font-size: 12px; text-transform: uppercase; margin: 0; opacity: 0.95; font-weight: bold; letter-spacing: 0.5px; }
+        .numero-stock { font-size: 46px; font-weight: bold; margin: 2px 0 0 0; line-height: 1; }
 
-        /* Visor de cámara en iOS */
+        /* Visor para la cámara iOS */
         #lectorCamara {
             width: 100%;
             max-width: 320px;
@@ -114,7 +116,7 @@
             display: none;
         }
 
-        /* Interfaz de entrada ubicada en la parte inferior para uso con pulgar */
+        /* Interfaz inferior (zona del pulgar) */
         .caja-interfaz { 
             margin-top: auto; 
             padding: 12px; 
@@ -162,15 +164,15 @@
 
     <div id="estado" style="color: blue;">Conectando...</div>
 
-    <!-- Resultados en la zona media -->
+    <!-- Módulo de Resultados -->
     <div id="resultado" class="resultado">
         Esperando código...
     </div>
 
-    <!-- Visor de la cámara iOS -->
+    <!-- Visor de cámara -->
     <div id="lectorCamara"></div>
 
-    <!-- Caja de entrada al final de la pantalla (zona del pulgar) -->
+    <!-- Entrada de datos inferior -->
     <div class="caja-interfaz">
         <button class="btn-camara" onclick="alternarCamaraiOS()">📷 Escanear con Cámara (iPhone)</button>
         <p style="font-weight: bold; font-size: 13px; margin: 0 0 6px 0; color: #495057;">o usa tu teclado escáner / lectura manual:</p>
@@ -186,12 +188,11 @@
         const resultadoDiv = document.getElementById('resultado');
         const estadoDiv = document.getElementById('estado');
 
-        function obtenerFechaHoraActual() {
-            const ahora = new Date();
+        function formatearFechaHora(objetoFecha) {
             const opcionesFecha = { day: 'numeric', month: 'long' };
-            const fechaTexto = ahora.toLocaleDateString('es-ES', opcionesFecha);
-            const horas = String(ahora.getHours()).padStart(2, '0');
-            const minutos = String(ahora.getMinutes()).padStart(2, '0');
+            const fechaTexto = objetoFecha.toLocaleDateString('es-ES', opcionesFecha);
+            const horas = String(objetoFecha.getHours()).padStart(2, '0');
+            const minutos = String(objetoFecha.getMinutes()).padStart(2, '0');
             
             return `${fechaTexto} a las ${horas}:${minutos} h`;
         }
@@ -202,50 +203,60 @@
 
             const url = 'TIENDA.csv?' + new Date().getTime();
 
-            Papa.parse(url, {
-                download: true,
-                header: false,
-                delimiter: ";",
-                skipEmptyLines: true,
-                complete: function(results) {
-                    inventario = {};
-                    let contador = 0;
+            // Petición fetch para extraer la fecha real de modificación en el servidor (Last-Modified)
+            fetch(url)
+                .then(response => {
+                    const lastModifiedHeader = response.headers.get('Last-Modified');
+                    // Si el servidor devuelve la cabecera, usamos esa fecha; de lo contrario, la actual
+                    const fechaRealArchivo = lastModifiedHeader ? new Date(lastModifiedHeader) : new Date();
                     
-                    results.data.forEach(fila => {
-                        if(fila.length >= 3) {
-                            let ean = fila[0] ? fila[0].trim() : "";
-                            let desc = fila[1] ? fila[1].trim() : "";
-                            let stock = fila[2] ? fila[2].trim() : "";
-                            let precio = fila[3] ? fila[3].trim() : "-";
-                            let fecha = fila[4] ? fila[4].trim() : "-";
-                            let ventas = fila[5] ? fila[5].trim() : "0";
+                    return response.text().then(textoCsv => ({ textoCsv, fechaRealArchivo }));
+                })
+                .then(({ textoCsv, fechaRealArchivo }) => {
+                    Papa.parse(textoCsv, {
+                        header: false,
+                        delimiter: ";",
+                        skipEmptyLines: true,
+                        complete: function(results) {
+                            inventario = {};
+                            let contador = 0;
                             
-                            if(ean) {
-                                inventario[ean] = { 
-                                    descripcion: desc, 
-                                    stock: stock,
-                                    precio: precio,
-                                    fecha: fecha,
-                                    ventas: ventas
-                                };
-                                contador++;
-                            }
+                            results.data.forEach(fila => {
+                                if(fila.length >= 3) {
+                                    let ean = fila[0] ? fila[0].trim() : "";
+                                    let desc = fila[1] ? fila[1].trim() : "";
+                                    let stock = fila[2] ? fila[2].trim() : "";
+                                    let precio = fila[3] ? fila[3].trim() : "-";
+                                    let fecha = fila[4] ? fila[4].trim() : "-";
+                                    let ventas = fila[5] ? fila[5].trim() : "0";
+                                    
+                                    if(ean) {
+                                        inventario[ean] = { 
+                                            descripcion: desc, 
+                                            stock: stock,
+                                            precio: precio,
+                                            fecha: fecha,
+                                            ventas: ventas
+                                        };
+                                        contador++;
+                                    }
+                                }
+                            });
+                            
+                            const fechaFormateada = formatearFechaHora(fechaRealArchivo);
+                            estadoDiv.innerHTML = `
+                                ¡Base de datos lista: ${contador} artículos!
+                                <span class="texto-fecha">Actualizado el ${fechaFormateada}</span>
+                            `;
+                            estadoDiv.style.color = "green";
+                            inputCodigo.focus();
                         }
                     });
-                    
-                    const fechaActualizacion = obtenerFechaHoraActual();
-                    estadoDiv.innerHTML = `
-                        ¡Base de datos lista: ${contador} artículos!
-                        <span class="texto-fecha">Actualizado el ${fechaActualizacion}</span>
-                    `;
-                    estadoDiv.style.color = "green";
-                    inputCodigo.focus();
-                },
-                error: function(err) {
+                })
+                .catch(err => {
                     estadoDiv.innerText = "Error al cargar la base de datos.";
                     estadoDiv.style.color = "red";
-                }
-            });
+                });
         }
 
         function buscarCodigo(codigoEscaneado) {
@@ -254,9 +265,9 @@
             if (inventario.hasOwnProperty(codigoEscaneado)) {
                 let articulo = inventario[codigoEscaneado];
                 resultadoDiv.innerHTML = `
-                    <h3 style="color: green; margin: 0 0 4px 0; font-size: 17px;">¡Artículo encontrado!</h3>
-                    <p style="font-size: 13px; color: #555;"><strong>EAN:</strong> ${codigoEscaneado}</p>
-                    <p style="font-size: 15px; font-weight: bold;">${articulo.descripcion}</p>
+                    <h3 style="color: #28a745; margin: 0 0 4px 0; font-size: 19px;">¡Artículo encontrado!</h3>
+                    <p style="font-size: 14px; color: #555; margin-bottom: 4px;"><strong>EAN:</strong> ${codigoEscaneado}</p>
+                    <p style="font-size: 18px; font-weight: bold; line-height: 1.25; color: #111111;">${articulo.descripcion}</p>
 
                     <div class="panel-secundario">
                         <div class="item-secundario">
@@ -274,21 +285,20 @@
                     </div>
 
                     <div class="caja-stock">
-                        <p class="etiqueta-stock">Stock Disponible</p>
+                        <p class="etiqueta-stock">STOCK DISPONIBLE</p>
                         <p class="numero-stock">${articulo.stock}</p>
                     </div>
                 `;
             } else {
                 resultadoDiv.innerHTML = `
-                    <h3 style="color: red; margin: 0 0 6px 0; font-size: 18px;">No encontrado</h3>
-                    <p style="font-size: 15px;">El código <strong>${codigoEscaneado}</strong> no está en la base de datos.</p>
+                    <h3 style="color: #dc3545; margin: 0 0 6px 0; font-size: 20px;">No encontrado</h3>
+                    <p style="font-size: 16px;">El código <strong>${codigoEscaneado}</strong> no está en la base de datos.</p>
                 `;
             }
 
             inputCodigo.value = "";
             inputCodigo.focus();
 
-            // Desplaza suavemente la pantalla para enfocar la tarjeta de resultados sobre el teclado
             resultadoDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
