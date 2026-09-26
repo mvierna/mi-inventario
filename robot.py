@@ -1,26 +1,33 @@
 import pyautogui
 import time
-import subprocess
 import os
 
-def clic_visual(nombre_imagen, tiempo_espera=2, precision=0.85, clics=1):
+def clic_visual(nombre_imagen, tiempo_espera=2, precision=0.8, clics=1, timeout=10):
     """
     Busca una imagen en pantalla y hace clic en su centro.
-    Soporta múltiples clics mediante el parámetro 'clics'.
+    Soporta múltiples clics y tiene un bucle que espera hasta 10 segundos 
+    a que la imagen aparezca en pantalla.
     """
     print(f"Buscando en pantalla: {nombre_imagen}...")
-    try:
-        coordenadas = pyautogui.locateCenterOnScreen(nombre_imagen, confidence=precision)
-        if coordenadas is not None:
-            pyautogui.click(coordenadas, clicks=clics)
-            time.sleep(tiempo_espera)
-            return True
-        else:
-            print(f"-> No se encontró la imagen '{nombre_imagen}'.")
-            return False
-    except Exception as e:
-        print(f"-> Error técnico buscando '{nombre_imagen}': {e}")
-        return False
+    tiempo_inicio = time.time()
+    
+    while time.time() - tiempo_inicio < timeout:
+        try:
+            coordenadas = pyautogui.locateCenterOnScreen(nombre_imagen, confidence=precision)
+            if coordenadas is not None:
+                pyautogui.click(coordenadas, clicks=clics)
+                time.sleep(tiempo_espera)
+                return True
+        except Exception as e:
+            if "read" in str(e).lower() or "missing" in str(e).lower():
+                print(f"-> Error técnico: Falta el archivo de imagen '{nombre_imagen}'.")
+                return False
+            pass 
+            
+        time.sleep(0.5) 
+        
+    print(f"-> Se agotó el tiempo. No se encontró la imagen '{nombre_imagen}'.")
+    return False
 
 def ejecutar_robot():
     pyautogui.FAILSAFE = True
@@ -33,17 +40,28 @@ def ejecutar_robot():
         except Exception:
             pass
 
-    print("\n[INICIO] Tienes 5 segundos para maximizar Abaco...")
-    time.sleep(5)
+    print("\n[INICIO] Iniciando automatización completa...")
 
     try:
-        # 2. Navegación inicial por los menús
+        # ---------------------------------------------------------
+        # 2. APERTURA DEL PROGRAMA ABACO DESDE EL ESCRITORIO
+        # ---------------------------------------------------------
+        print("Abriendo aplicación desde la barra de tareas...")
+        if not clic_visual('carpeta_inicio.png', tiempo_espera=2): return
+
+        print("Haciendo doble clic en Miguel para abrir Abaco...")
+        if not clic_visual('icono_miguel.png', tiempo_espera=15, clics=2): return
+
+
+        # ---------------------------------------------------------
+        # 3. NAVEGACIÓN INICIAL POR LOS MENÚS
+        # ---------------------------------------------------------
         if not clic_visual('boton_stocks.png', tiempo_espera=3): return
         if not clic_visual('ANALISIS.png', tiempo_espera=3): return
         if not clic_visual('FILTRO.png', tiempo_espera=2): return
         if not clic_visual('FILTRO 2.png', tiempo_espera=2): return
 
-        # 3. Introducción del modelo (Cambiado a 101)
+        # 4. Introducción del modelo
         print("Escribiendo el modelo '101'...")
         pyautogui.write('101', interval=0.2)
         time.sleep(0.5)
@@ -53,7 +71,7 @@ def ejecutar_robot():
         time.sleep(1.5) 
 
         # ---------------------------------------------------------
-        # 4. SECUENCIA DE EXPORTACIÓN EN ABACO
+        # 5. SECUENCIA DE EXPORTACIÓN EN ABACO
         # ---------------------------------------------------------
         print("Navegando por filtros de Abaco...")
         pyautogui.press('tab', presses=7, interval=0.3)
@@ -83,7 +101,7 @@ def ejecutar_robot():
         time.sleep(2)
         
         # ---------------------------------------------------------
-        # 5. RUTA DE GUARDADO VISUAL EN ABACO
+        # 6. RUTA DE GUARDADO VISUAL EN ABACO
         # ---------------------------------------------------------
         print("Escribiendo nombre del archivo en MAYÚSCULAS...")
         pyautogui.write('TIENDA', interval=0.1)
@@ -106,7 +124,7 @@ def ejecutar_robot():
         time.sleep(8)
         
         # ---------------------------------------------------------
-        # 6. EXTRACCIÓN VISUAL EN WINDOWS
+        # 7. EXTRACCIÓN VISUAL EN WINDOWS
         # ---------------------------------------------------------
         print("Pulsando Démarrer...")
         clic_visual('DEMARRER.png', tiempo_espera=2)
@@ -139,11 +157,13 @@ def ejecutar_robot():
         time.sleep(2)
 
         # ---------------------------------------------------------
-        # 7. SINCRONIZACIÓN FINAL
+        # 8. SINCRONIZACIÓN FINAL VISUAL
         # ---------------------------------------------------------
-        print("\n¡Proceso finalizado con éxito!")
-        print("Lanzando actualizador.py para sincronizar con GitHub...")
-        subprocess.run(['python', 'actualizador.py'], check=True)
+        print("\n¡Proceso de Abaco finalizado con éxito!")
+        print("Ejecutando actualizador.py visualmente...")
+        if not clic_visual('actualizador.png', tiempo_espera=5, clics=2): return
+        
+        print("¡Sincronización lanzada correctamente!")
 
     except pyautogui.FailSafeException:
         print("\n[ALERTA] Robot detenido de emergencia por el usuario (ratón en la esquina superior izquierda).")
