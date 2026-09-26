@@ -32,7 +32,7 @@
 
         body { 
             font-family: Arial, sans-serif; 
-            padding: 4px; 
+            padding: 6px; 
             text-align: center; 
             background-color: #f4f6f8; 
             display: flex;
@@ -65,7 +65,7 @@
             cursor: pointer; 
         }
 
-        /* Barra de estado superior estilo compacto */
+        /* Barra de estado */
         #estado { 
             font-weight: bold; 
             font-size: 11px; 
@@ -80,41 +80,41 @@
             display: block;
         }
 
-        /* Tarjeta de resultados (Alineada al fondo junto al stock) */
+        /* Tarjeta de resultados compacta y anclada abajo */
         .resultado { 
-            margin: 2px 0; 
-            padding: 8px; 
+            margin-top: auto; /* Empuja la tarjeta para apoyarse sobre el escáner */
+            margin-bottom: 4px;
+            padding: 6px 8px; 
             border: 2px solid #222222; 
-            border-radius: 14px; 
+            border-radius: 12px; 
             background-color: #ffffff; 
             display: flex; 
             flex-direction: column; 
-            justify-content: flex-end; /* Agrupa toda la información abajo pegada al stock */
-            gap: 4px; /* Espaciado uniforme y compacto */
-            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-            flex: 1; 
+            gap: 3px; /* Mantiene la información agrupada sin huecos libres */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+            height: auto; /* Evita que la tarjeta se estire artificialmente */
         }
 
         .bloque-info-superior {
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 1px;
         }
 
         .titulo-encontrado {
             color: #28a745; 
             margin: 0; 
-            font-size: 15px;
+            font-size: 14px;
             font-weight: bold;
         }
 
         .texto-ean {
             font-size: 11px; 
-            color: #666; 
+            color: #555; 
             margin: 0;
         }
 
-        /* Nombre / Descripción del producto */
+        /* Descripción del producto */
         .descripcion-producto {
             font-size: 15px; 
             font-weight: 800; 
@@ -124,15 +124,15 @@
             text-transform: uppercase;
         }
 
-        /* Tabla de PVP, Recep., Ventas */
+        /* Panel secundario de datos */
         .panel-secundario {
             display: flex;
             justify-content: space-around;
-            gap: 4px;
+            gap: 2px;
             margin: 2px 0;
             background-color: #f8f9fa;
-            padding: 4px;
-            border-radius: 8px;
+            padding: 3px;
+            border-radius: 6px;
             border: 1px solid #e2e8f0;
         }
 
@@ -158,24 +158,24 @@
 
         /* Bloque verde de Stock */
         .caja-stock { 
-            margin-top: 2px; 
-            padding: 6px 4px; 
+            margin-top: 1px; 
+            padding: 4px; 
             background-color: #28a745; 
             color: #ffffff; 
-            border-radius: 10px; 
+            border-radius: 8px; 
         }
 
         .etiqueta-stock { 
-            font-size: 11px; 
+            font-size: 10px; 
             text-transform: uppercase; 
-            margin: 0 0 2px 0; 
+            margin: 0; 
             font-weight: bold; 
             letter-spacing: 0.5px; 
             opacity: 0.95; 
         }
 
         .numero-stock { 
-            font-size: 44px; 
+            font-size: 38px; 
             font-weight: 900; 
             margin: 0; 
             line-height: 1; 
@@ -193,7 +193,6 @@
 
         /* Interfaz inferior */
         .caja-interfaz { 
-            margin-top: auto; 
             padding: 4px; 
             background-color: #ffffff; 
             border-top: 1px solid #dee2e6;
@@ -217,12 +216,12 @@
         }
 
         .btn-camara {
-            padding: 8px 12px;
+            padding: 7px 10px;
             background-color: #17a2b8;
             color: white;
             border: none;
             border-radius: 6px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
             cursor: pointer;
             width: 100%;
@@ -232,15 +231,16 @@
 
         .texto-instruccion {
             font-weight: bold; 
-            font-size: 11px; 
+            font-size: 10px; 
             margin: 0; 
             color: #495057;
         }
 
         p { margin: 2px 0; }
 
-        /* Ocultar cabecera cuando el teclado se activa */
-        body.modo-teclado .cabecera-top {
+        /* Oculta elementos superiores al activar el teclado para maximizar el área visible */
+        body.modo-teclado .cabecera-top,
+        body.modo-teclado #estado {
             display: none !important;
         }
     </style>
@@ -255,7 +255,7 @@
 
     <div id="estado">Conectando...</div>
 
-    <!-- Módulo de Resultados estilo tarjeta -->
+    <!-- Módulo de Resultados compacto -->
     <div id="resultado" class="resultado">
         Esperando código...
     </div>
@@ -388,8 +388,8 @@
                 `;
             } else {
                 resultadoDiv.innerHTML = `
-                    <h3 style="color: #dc3545; margin: 0 0 4px 0; font-size: 18px;">No encontrado</h3>
-                    <p style="font-size: 15px;">El código <strong>${codigoEscaneado}</strong> no está en la base de datos.</p>
+                    <h3 style="color: #dc3545; margin: 0 0 4px 0; font-size: 16px;">No encontrado</h3>
+                    <p style="font-size: 14px;">El código <strong>${codigoEscaneado}</strong> no está en la base de datos.</p>
                 `;
             }
 
