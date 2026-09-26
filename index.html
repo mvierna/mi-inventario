@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Inventario Hipermercado</title>
 
     <!-- Configuración PWA / Pantalla de inicio -->
@@ -38,6 +38,7 @@
             justify-content: space-between;
             gap: 8px;
             margin-bottom: 4px;
+            transition: all 0.2s ease;
         }
 
         h1 { 
@@ -60,7 +61,8 @@
         #estado { 
             font-weight: bold; 
             font-size: 13px; 
-            margin-bottom: 8px; 
+            margin-bottom: 6px; 
+            transition: all 0.2s ease;
         }
         
         .texto-fecha { 
@@ -71,40 +73,40 @@
             margin-top: 2px;
         }
 
-        /* Tarjeta de resultados ampliada */
+        /* Tarjeta de resultados */
         .resultado { 
-            margin: 5px 0 10px 0; 
-            padding: 14px; 
+            margin: 4px 0 8px 0; 
+            padding: 12px; 
             border: 2px solid #222222; 
             border-radius: 10px; 
             background-color: #f8f9fa; 
             font-size: 16px; 
-            min-height: 90px; 
+            min-height: 80px; 
             display: flex; 
             flex-direction: column; 
             justify-content: center;
             box-shadow: 0 3px 6px rgba(0,0,0,0.1);
         }
 
-        /* Panel secundario de datos ampliados (PVP, Recep., Ventas) */
+        /* Panel secundario de datos (PVP, Recep., Ventas) */
         .panel-secundario {
             display: flex;
             justify-content: space-around;
-            gap: 6px;
-            margin: 10px 0 8px 0;
+            gap: 4px;
+            margin: 8px 0 6px 0;
             background-color: #ffffff;
-            padding: 8px 4px;
+            padding: 6px 4px;
             border-radius: 8px;
             border: 1px solid #ced4da;
         }
         .item-secundario { display: flex; flex-direction: column; align-items: center; flex: 1; }
-        .etiqueta-secundaria { font-size: 11px; text-transform: uppercase; color: #6c757d; font-weight: bold; }
-        .valor-secundario { font-size: 17px; font-weight: bold; color: #111111; }
+        .etiqueta-secundaria { font-size: 10px; text-transform: uppercase; color: #6c757d; font-weight: bold; }
+        .valor-secundario { font-size: 16px; font-weight: bold; color: #111111; }
 
-        /* Tarjeta de Stock muy destacada */
-        .caja-stock { margin-top: 8px; padding: 10px; background-color: #28a745; color: #ffffff; border-radius: 8px; }
-        .etiqueta-stock { font-size: 12px; text-transform: uppercase; margin: 0; opacity: 0.95; font-weight: bold; letter-spacing: 0.5px; }
-        .numero-stock { font-size: 46px; font-weight: bold; margin: 2px 0 0 0; line-height: 1; }
+        /* Tarjeta de Stock */
+        .caja-stock { margin-top: 6px; padding: 8px; background-color: #28a745; color: #ffffff; border-radius: 8px; }
+        .etiqueta-stock { font-size: 11px; text-transform: uppercase; margin: 0; opacity: 0.95; font-weight: bold; letter-spacing: 0.5px; }
+        .numero-stock { font-size: 42px; font-weight: bold; margin: 2px 0 0 0; line-height: 1; }
 
         /* Visor para la cámara iOS */
         #lectorCamara {
@@ -119,14 +121,14 @@
         /* Interfaz inferior (zona del pulgar) */
         .caja-interfaz { 
             margin-top: auto; 
-            padding: 12px; 
+            padding: 8px; 
             background-color: #e9ecef; 
             border-radius: 8px; 
         }
 
         #inputCodigo { 
-            padding: 12px; 
-            font-size: 20px; 
+            padding: 10px; 
+            font-size: 18px; 
             width: 90%; 
             max-width: 350px; 
             text-align: center; 
@@ -138,20 +140,71 @@
         #inputCodigo:focus { border-color: #0056b3; }
 
         .btn-camara {
-            padding: 10px 12px;
+            padding: 8px 12px;
             background-color: #17a2b8;
             color: white;
             border: none;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             cursor: pointer;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             width: 90%;
             max-width: 350px;
         }
 
+        .texto-instruccion {
+            font-weight: bold; 
+            font-size: 12px; 
+            margin: 0 0 4px 0; 
+            color: #495057;
+        }
+
         p { margin: 3px 0; }
+
+        /* ==========================================================================
+           REGLAS ESPECIALES PARA CUANDO EL TECLADO ESTÁ ABIERTO / PANTALLA BAJA
+           ========================================================================== */
+        body.modo-teclado .cabecera-top,
+        body.modo-teclado #estado,
+        body.modo-teclado .btn-camara,
+        body.modo-teclado .texto-instruccion {
+            display: none !important;
+        }
+
+        @media (max-height: 540px) {
+            .cabecera-top,
+            #estado,
+            .btn-camara,
+            .texto-instruccion {
+                display: none !important;
+            }
+            body {
+                padding: 4px !important;
+            }
+            .resultado {
+                margin: 2px 0 4px 0 !important;
+                padding: 8px !important;
+            }
+            .panel-secundario {
+                margin: 4px 0 !important;
+                padding: 4px 2px !important;
+            }
+            .caja-stock {
+                margin-top: 4px !important;
+                padding: 6px !important;
+            }
+            .numero-stock {
+                font-size: 36px !important;
+            }
+            .caja-interfaz {
+                padding: 4px !important;
+            }
+            #inputCodigo {
+                padding: 8px !important;
+                font-size: 16px !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -175,7 +228,7 @@
     <!-- Entrada de datos inferior -->
     <div class="caja-interfaz">
         <button class="btn-camara" onclick="alternarCamaraiOS()">📷 Escanear con Cámara (iPhone)</button>
-        <p style="font-weight: bold; font-size: 13px; margin: 0 0 6px 0; color: #495057;">o usa tu teclado escáner / lectura manual:</p>
+        <p class="texto-instruccion">o usa tu teclado escáner / lectura manual:</p>
         <input type="text" id="inputCodigo" placeholder="Escanea el código aquí..." autocomplete="off">
     </div>
 
@@ -187,6 +240,15 @@
         const inputCodigo = document.getElementById('inputCodigo');
         const resultadoDiv = document.getElementById('resultado');
         const estadoDiv = document.getElementById('estado');
+
+        /* Control dinámico del modo teclado para liberar espacio */
+        inputCodigo.addEventListener('focus', () => {
+            document.body.classList.add('modo-teclado');
+        });
+
+        inputCodigo.addEventListener('blur', () => {
+            document.body.classList.remove('modo-teclado');
+        });
 
         function formatearFechaHora(objetoFecha) {
             const opcionesFecha = { day: 'numeric', month: 'long' };
@@ -203,13 +265,10 @@
 
             const url = 'TIENDA.csv?' + new Date().getTime();
 
-            // Petición fetch para extraer la fecha real de modificación en el servidor (Last-Modified)
             fetch(url)
                 .then(response => {
                     const lastModifiedHeader = response.headers.get('Last-Modified');
-                    // Si el servidor devuelve la cabecera, usamos esa fecha; de lo contrario, la actual
                     const fechaRealArchivo = lastModifiedHeader ? new Date(lastModifiedHeader) : new Date();
-                    
                     return response.text().then(textoCsv => ({ textoCsv, fechaRealArchivo }));
                 })
                 .then(({ textoCsv, fechaRealArchivo }) => {
@@ -265,9 +324,9 @@
             if (inventario.hasOwnProperty(codigoEscaneado)) {
                 let articulo = inventario[codigoEscaneado];
                 resultadoDiv.innerHTML = `
-                    <h3 style="color: #28a745; margin: 0 0 4px 0; font-size: 19px;">¡Artículo encontrado!</h3>
-                    <p style="font-size: 14px; color: #555; margin-bottom: 4px;"><strong>EAN:</strong> ${codigoEscaneado}</p>
-                    <p style="font-size: 18px; font-weight: bold; line-height: 1.25; color: #111111;">${articulo.descripcion}</p>
+                    <h3 style="color: #28a745; margin: 0 0 2px 0; font-size: 18px;">¡Artículo encontrado!</h3>
+                    <p style="font-size: 13px; color: #555; margin-bottom: 2px;"><strong>EAN:</strong> ${codigoEscaneado}</p>
+                    <p style="font-size: 17px; font-weight: bold; line-height: 1.2; color: #111111;">${articulo.descripcion}</p>
 
                     <div class="panel-secundario">
                         <div class="item-secundario">
@@ -291,15 +350,16 @@
                 `;
             } else {
                 resultadoDiv.innerHTML = `
-                    <h3 style="color: #dc3545; margin: 0 0 6px 0; font-size: 20px;">No encontrado</h3>
-                    <p style="font-size: 16px;">El código <strong>${codigoEscaneado}</strong> no está en la base de datos.</p>
+                    <h3 style="color: #dc3545; margin: 0 0 4px 0; font-size: 18px;">No encontrado</h3>
+                    <p style="font-size: 15px;">El código <strong>${codigoEscaneado}</strong> no está en la base de datos.</p>
                 `;
             }
 
             inputCodigo.value = "";
             inputCodigo.focus();
 
-            resultadoDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Garantiza que la parte superior del resultado se mantenga visible
+            resultadoDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         async function alternarCamaraiOS() {
