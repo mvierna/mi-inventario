@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventario Hipermercado</title>
 
+    <!-- Configuración para PWA / Acceso directo en pantalla de inicio -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#28a745">
 
@@ -12,22 +13,89 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Inventario">
     <link rel="apple-touch-icon" href="icono.png">
+
+    <!-- Librerías JavaScript externas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
     <style>
         body { font-family: Arial, sans-serif; padding: 15px; text-align: center; background-color: #ffffff; margin: 0; }
         h1 { margin-top: 10px; font-size: 28px; }
-        #estado { font-weight: bold; margin-bottom: 15px; font-size: 16px; }
-        .resultado { margin-bottom: 20px; padding: 15px; border: 2px solid #333; border-radius: 8px; background-color: #f8f9fa; font-size: 18px; min-height: 80px; display: flex; flex-direction: column; justify-content: center;}
+        
+        /* Estilos del área de estado y fecha */
+        #estado { font-weight: bold; margin-bottom: 5px; font-size: 16px; }
+        .texto-fecha { font-size: 12px; color: #6c757d; font-weight: normal; margin-top: 3px; display: block; }
+
+        .resultado { 
+            margin-bottom: 20px; 
+            padding: 15px; 
+            border: 2px solid #333; 
+            border-radius: 8px; 
+            background-color: #f8f9fa; 
+            font-size: 18px; 
+            min-height: 80px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center;
+        }
+
         .caja-interfaz { margin: 15px 0; padding: 20px; background-color: #e9ecef; border-radius: 8px; }
-        #inputCodigo { padding: 15px; font-size: 22px; width: 85%; max-width: 350px; text-align: center; border: 3px solid #007bff; border-radius: 8px; outline: none; }
+
+        #inputCodigo { 
+            padding: 15px; 
+            font-size: 22px; 
+            width: 85%; 
+            max-width: 350px; 
+            text-align: center; 
+            border: 3px solid #007bff; 
+            border-radius: 8px; 
+            outline: none; 
+        }
         #inputCodigo:focus { border-color: #0056b3; }
 
-        /* Botón de sincronización */
-        .btn-actualizar { padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; width: 85%; max-width: 350px; margin-bottom: 10px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .btn-actualizar:active { background-color: #218838; transform: translateY(2px); }
+        .btn-actualizar { 
+            padding: 12px; 
+            background-color: #28a745; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            width: 85%; 
+            max-width: 350px; 
+            margin-bottom: 10px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
 
-        /* Panel secundario para precio, fecha y ventas (más pequeños y ordenados arriba) */
+        /* Botón táctil para escanear mediante la cámara en iPhone */
+        .btn-camara {
+            padding: 15px;
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            width: 85%;
+            max-width: 350px;
+            margin-bottom: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn-camara:active { background-color: #117a8b; }
+
+        /* Visor de vídeo para lectura óptica de la cámara */
+        #lectorCamara {
+            width: 100%;
+            max-width: 350px;
+            margin: 10px auto;
+            border-radius: 8px;
+            overflow: hidden;
+            display: none;
+        }
+
+        /* Panel superior secundario: PVP, Última recepción y Ventas */
         .panel-secundario {
             display: flex;
             justify-content: space-around;
@@ -38,48 +106,14 @@
             border-radius: 8px;
             border: 1px solid #ced4da;
         }
-        .item-secundario {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex: 1;
-        }
-        .etiqueta-secundaria {
-            font-size: 11px;
-            text-transform: uppercase;
-            color: #6c757d;
-            font-weight: bold;
-            margin-bottom: 4px;
-        }
-        .valor-secundario {
-            font-size: 15px;
-            font-weight: bold;
-            color: #212529;
-        }
+        .item-secundario { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .etiqueta-secundaria { font-size: 11px; text-transform: uppercase; color: #6c757d; font-weight: bold; margin-bottom: 4px; }
+        .valor-secundario { font-size: 15px; font-weight: bold; color: #212529; }
 
-        /* Caja principal del Stock destacada en grande abajo */
-        .caja-stock {
-            margin-top: 10px;
-            padding: 14px;
-            background-color: #28a745;
-            color: #ffffff;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
-        }
-        .etiqueta-stock {
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 0;
-            opacity: 0.95;
-        }
-        .numero-stock {
-            font-size: 46px;
-            font-weight: bold;
-            margin: 4px 0 0 0;
-            line-height: 1;
-        }
+        /* Tarjeta principal para la visualización destacada del Stock */
+        .caja-stock { margin-top: 10px; padding: 14px; background-color: #28a745; color: #ffffff; border-radius: 8px; }
+        .etiqueta-stock { font-size: 13px; text-transform: uppercase; margin: 0; opacity: 0.95; }
+        .numero-stock { font-size: 46px; font-weight: bold; margin: 4px 0 0 0; line-height: 1; }
 
         p { margin: 6px 0; }
     </style>
@@ -95,22 +129,39 @@
         Esperando a que escanees un código...
     </div>
 
+    <!-- Visor de la cámara en vivo para iOS -->
+    <div id="lectorCamara"></div>
+
     <div class="caja-interfaz">
-        <p style="font-weight: bold; font-size: 18px; margin-bottom: 15px;">Toca la caja para escanear</p>
+        <button class="btn-camara" onclick="alternarCamaraiOS()">📷 Escanear con Cámara (iPhone)</button>
+        <p style="font-weight: bold; font-size: 15px; margin: 10px 0 8px 0; color: #495057;">o usa tu teclado escáner / lectura manual:</p>
         <input type="text" id="inputCodigo" placeholder="Escanea el código aquí..." autocomplete="off">
     </div>
 
     <script>
         let inventario = {};
+        let html5QrCode = null;
+        let camaraEncendida = false;
+
         const inputCodigo = document.getElementById('inputCodigo');
         const resultadoDiv = document.getElementById('resultado');
         const estadoDiv = document.getElementById('estado');
 
-        // Función para leer el CSV y cargar los datos en memoria
+        // Función auxiliar para obtener fecha y hora formateadas en español
+        function obtenerFechaHoraActual() {
+            const ahora = new Date();
+            const opcionesFecha = { day: 'numeric', month: 'long' };
+            const fechaTexto = ahora.toLocaleDateString('es-ES', opcionesFecha);
+            const horas = String(ahora.getHours()).padStart(2, '0');
+            const minutos = String(ahora.getMinutes()).padStart(2, '0');
+            
+            return `${fechaTexto} a las ${horas}:${minutos} h`;
+        }
+
+        // Carga y parseo del archivo CSV con parámetros anti-caché
         function cargarInventario() {
-            estadoDiv.innerText = "Sincronizando con la base de datos...";
+            estadoDiv.innerHTML = "Sincronizando con la base de datos...";
             estadoDiv.style.color = "blue";
-            resultadoDiv.innerHTML = "Esperando a que escanees un código...";
 
             const url = 'TIENDA.csv?' + new Date().getTime();
 
@@ -124,7 +175,6 @@
                     let contador = 0;
                     
                     results.data.forEach(fila => {
-                        // Verificamos que la fila tenga al menos los datos básicos
                         if(fila.length >= 3) {
                             let ean = fila[0] ? fila[0].trim() : "";
                             let desc = fila[1] ? fila[1].trim() : "";
@@ -146,67 +196,113 @@
                         }
                     });
                     
-                    estadoDiv.innerText = "¡Base de datos lista: " + contador + " artículos!";
-                    estadoDiv.style.color = "green";
+                    const fechaActualizacion = obtenerFechaHoraActual();
                     
+                    // Inyección de HTML con el recuento y la fecha en pequeño
+                    estadoDiv.innerHTML = `
+                        ¡Base de datos lista: ${contador} artículos!
+                        <span class="texto-fecha">Actualizado el ${fechaActualizacion}</span>
+                    `;
+                    estadoDiv.style.color = "green";
                     inputCodigo.focus();
                 },
                 error: function(err) {
                     estadoDiv.innerText = "Error al cargar la base de datos.";
                     estadoDiv.style.color = "red";
-                    console.error("Fallo al leer el CSV:", err);
                 }
             });
         }
 
-        // Lógica de escaneo con la tecla "Enter"
+        // Búsqueda del producto e inyección en el DOM HTML
+        function buscarCodigo(codigoEscaneado) {
+            if (!codigoEscaneado) return;
+
+            if (inventario.hasOwnProperty(codigoEscaneado)) {
+                let articulo = inventario[codigoEscaneado];
+                resultadoDiv.innerHTML = `
+                    <h3 style="color: green; margin-top: 0; margin-bottom: 8px; font-size: 20px;">¡Artículo encontrado!</h3>
+                    <p style="font-size: 15px; color: #555;"><strong>EAN:</strong> ${codigoEscaneado}</p>
+                    <p style="font-size: 17px; font-weight: bold;">${articulo.descripcion}</p>
+
+                    <div class="panel-secundario">
+                        <div class="item-secundario">
+                            <span class="etiqueta-secundaria">P.V.P.</span>
+                            <span class="valor-secundario">${articulo.precio}</span>
+                        </div>
+                        <div class="item-secundario">
+                            <span class="etiqueta-secundaria">Últ. Recep.</span>
+                            <span class="valor-secundario">${articulo.fecha}</span>
+                        </div>
+                        <div class="item-secundario">
+                            <span class="etiqueta-secundaria">Ventas Recep.</span>
+                            <span class="valor-secundario">${articulo.ventas} u.</span>
+                        </div>
+                    </div>
+
+                    <div class="caja-stock">
+                        <p class="etiqueta-stock">Stock Disponible</p>
+                        <p class="numero-stock">${articulo.stock}</p>
+                    </div>
+                `;
+            } else {
+                resultadoDiv.innerHTML = `
+                    <h3 style="color: red; margin-top: 0; margin-bottom: 15px; font-size: 22px;">No encontrado</h3>
+                    <p style="font-size: 18px;">El código <strong>${codigoEscaneado}</strong> no está en el hipermercado.</p>
+                `;
+            }
+
+            inputCodigo.value = "";
+            inputCodigo.focus();
+        }
+
+        // Controlador de cámara para iOS usando Html5Qrcode
+        async function alternarCamaraiOS() {
+            const visorDiv = document.getElementById('lectorCamara');
+
+            if (camaraEncendida) {
+                if (html5QrCode) {
+                    await html5QrCode.stop();
+                }
+                visorDiv.style.display = "none";
+                camaraEncendida = false;
+            } else {
+                visorDiv.style.display = "block";
+                html5QrCode = new Html5Qrcode("lectorCamara");
+
+                const configuracion = { 
+                    fps: 15, 
+                    qrbox: { width: 250, height: 150 },
+                    aspectRatio: 1.0
+                };
+
+                try {
+                    await html5QrCode.start(
+                        { facingMode: "environment" },
+                        configuracion,
+                        (codigoTexto) => {
+                            buscarCodigo(codigoTexto.trim());
+                            html5QrCode.stop().then(() => {
+                                visorDiv.style.display = "none";
+                                camaraEncendida = false;
+                            });
+                        },
+                        (mensajeError) => {}
+                    );
+                    camaraEncendida = true;
+                } catch (err) {
+                    alert("Error al encender la cámara en iOS. Asegúrate de permitir el acceso en Safari.");
+                    console.error("Error de cámara:", err);
+                    visorDiv.style.display = "none";
+                    camaraEncendida = false;
+                }
+            }
+        }
+
+        // Listener para lectura de teclado / escáner en Android
         inputCodigo.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                let codigoEscaneado = inputCodigo.value.trim();
-                
-                if (codigoEscaneado === "") return;
-
-                // Buscar el artículo en el inventario cargado
-                if (inventario.hasOwnProperty(codigoEscaneado)) {
-                    let articulo = inventario[codigoEscaneado];
-                    
-                    resultadoDiv.innerHTML = `
-                        <h3 style="color: green; margin-top: 0; margin-bottom: 8px; font-size: 20px;">¡Artículo encontrado!</h3>
-                        <p style="font-size: 15px; color: #555;"><strong>EAN:</strong> ${codigoEscaneado}</p>
-                        <p style="font-size: 17px; font-weight: bold;">${articulo.descripcion}</p>
-
-                        <!-- Panel secundario con Precio, Última Recepción y Ventas -->
-                        <div class="panel-secundario">
-                            <div class="item-secundario">
-                                <span class="etiqueta-secundaria">P.V.P.</span>
-                                <span class="valor-secundario">${articulo.precio}</span>
-                            </div>
-                            <div class="item-secundario">
-                                <span class="etiqueta-secundaria">Últ. Recep.</span>
-                                <span class="valor-secundario">${articulo.fecha}</span>
-                            </div>
-                            <div class="item-secundario">
-                                <span class="etiqueta-secundaria">Ventas U.Recep.</span>
-                                <span class="valor-secundario">${articulo.ventas} u.</span>
-                            </div>
-                        </div>
-
-                        <!-- Bloque de Stock destacado en grande -->
-                        <div class="caja-stock">
-                            <p class="etiqueta-stock">Stock Disponible</p>
-                            <p class="numero-stock">${articulo.stock}</p>
-                        </div>
-                    `;
-                } else {
-                    resultadoDiv.innerHTML = `
-                        <h3 style="color: red; margin-top: 0; margin-bottom: 15px; font-size: 22px;">No encontrado</h3>
-                        <p style="font-size: 18px;">El código <strong>${codigoEscaneado}</strong> no está en el hipermercado.</p>
-                    `;
-                }
-                
-                inputCodigo.value = "";
-                inputCodigo.focus();
+                buscarCodigo(inputCodigo.value.trim());
             }
         });
 
