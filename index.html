@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Inventario Hipermercado</title>
 
-    <!-- Configuración PWA / Pantalla de inicio -->
+    <!-- Configuración PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#28a745">
 
@@ -27,13 +27,14 @@
             height: 100%;
             margin: 0;
             padding: 0;
+            overflow: hidden; /* Evita desplazamientos innecesarios */
         }
 
         body { 
             font-family: Arial, sans-serif; 
             padding: 6px; 
             text-align: center; 
-            background-color: #ffffff; 
+            background-color: #f4f6f8; 
             display: flex;
             flex-direction: column;
             min-height: 100vh;
@@ -50,11 +51,11 @@
 
         h1 { 
             margin: 0; 
-            font-size: 20px; 
+            font-size: 18px; 
         }
 
         .btn-actualizar { 
-            padding: 6px 10px; 
+            padding: 5px 10px; 
             background-color: #28a745; 
             color: white; 
             border: none; 
@@ -64,82 +65,114 @@
             cursor: pointer; 
         }
 
+        /* Barra de estado superior estilo compacto */
         #estado { 
             font-weight: bold; 
             font-size: 12px; 
-            margin-bottom: 4px; 
-        }
-        
-        .texto-fecha { 
-            font-size: 11px; 
-            color: #333333; 
-            font-weight: bold; 
-            display: inline-block; 
-            margin-top: 1px;
+            color: #28a745;
+            margin-bottom: 4px;
         }
 
-        /* Tarjeta de resultados (Ocupa el espacio disponible) */
+        .texto-fecha { 
+            font-size: 11px; 
+            color: #555555; 
+            font-weight: normal; 
+            display: block;
+        }
+
+        /* Tarjeta de resultados (Réplica del diseño de la imagen) */
         .resultado { 
             margin: 2px 0; 
-            padding: 6px; 
+            padding: 10px; 
             border: 2px solid #222222; 
-            border-radius: 8px; 
-            background-color: #f8f9fa; 
+            border-radius: 14px; 
+            background-color: #ffffff; 
             display: flex; 
             flex-direction: column; 
-            justify-content: space-around;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            flex: 1;
+            justify-content: space-between;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            flex: 1; /* Ocupa todo el espacio vertical disponible */
         }
 
         .titulo-encontrado {
             color: #28a745; 
             margin: 0; 
-            font-size: 15px;
+            font-size: 16px;
             font-weight: bold;
         }
 
         .texto-ean {
             font-size: 12px; 
-            color: #555; 
-            margin: 1px 0;
+            color: #666; 
+            margin: 2px 0 4px 0;
         }
 
-        /* Descripción clara */
+        /* Nombre / Descripción del producto */
         .descripcion-producto {
-            font-size: 18px; 
+            font-size: 17px; 
             font-weight: 800; 
-            line-height: 1.2; 
+            line-height: 1.25; 
             color: #000000;
-            margin: 2px 0;
+            margin: 4px 0;
             text-transform: uppercase;
         }
 
-        /* Panel secundario de datos (PVP, Recep., Ventas) */
+        /* Tabla de PVP, Recep., Ventas */
         .panel-secundario {
             display: flex;
             justify-content: space-around;
-            gap: 2px;
-            margin: 4px 0;
-            background-color: #ffffff;
-            padding: 4px 2px;
-            border-radius: 6px;
-            border: 1px solid #ced4da;
+            gap: 4px;
+            margin: 6px 0;
+            background-color: #f8f9fa;
+            padding: 6px 4px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
         }
-        .item-secundario { display: flex; flex-direction: column; align-items: center; flex: 1; }
-        .etiqueta-secundaria { font-size: 10px; text-transform: uppercase; color: #6c757d; font-weight: bold; }
-        .valor-secundario { font-size: 16px; font-weight: 800; color: #000000; }
 
-        /* Tarjeta de Stock GIGANTE */
+        .item-secundario { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            flex: 1; 
+        }
+
+        .etiqueta-secundaria { 
+            font-size: 10px; 
+            text-transform: uppercase; 
+            color: #6c757d; 
+            font-weight: bold; 
+        }
+
+        .valor-secundario { 
+            font-size: 15px; 
+            font-weight: 800; 
+            color: #111111; 
+        }
+
+        /* Bloque verde de Stock */
         .caja-stock { 
-            margin-top: 2px; 
-            padding: 4px; 
+            margin-top: 4px; 
+            padding: 8px 4px; 
             background-color: #28a745; 
             color: #ffffff; 
-            border-radius: 6px; 
+            border-radius: 10px; 
         }
-        .etiqueta-stock { font-size: 11px; text-transform: uppercase; margin: 0; font-weight: bold; letter-spacing: 0.5px; opacity: 0.95; }
-        .numero-stock { font-size: 46px; font-weight: 900; margin: 0; line-height: 1; }
+
+        .etiqueta-stock { 
+            font-size: 11px; 
+            text-transform: uppercase; 
+            margin: 0 0 2px 0; 
+            font-weight: bold; 
+            letter-spacing: 0.5px; 
+            opacity: 0.95; 
+        }
+
+        .numero-stock { 
+            font-size: 48px; 
+            font-weight: 900; 
+            margin: 0; 
+            line-height: 1; 
+        }
 
         /* Visor para la cámara iOS */
         #lectorCamara {
@@ -151,12 +184,12 @@
             display: none;
         }
 
-        /* Interfaz inferior fija */
+        /* Interfaz inferior */
         .caja-interfaz { 
             margin-top: auto; 
             padding: 6px; 
-            background-color: #e9ecef; 
-            border-radius: 6px; 
+            background-color: #ffffff; 
+            border-top: 1px solid #dee2e6;
             display: flex;
             flex-direction: column;
             gap: 4px;
@@ -169,13 +202,12 @@
             width: 100%; 
             max-width: 350px; 
             text-align: center; 
-            border: 3px solid #007bff; 
+            border: 2px solid #007bff; 
             border-radius: 6px; 
             outline: none; 
             box-sizing: border-box;
             font-weight: bold;
         }
-        #inputCodigo:focus { border-color: #0056b3; }
 
         .btn-camara {
             padding: 8px 12px;
@@ -200,9 +232,8 @@
 
         p { margin: 2px 0; }
 
-        /* Oculta el encabezado cuando el teclado está activo para maximizar el área de resultado */
-        body.modo-teclado .cabecera-top,
-        body.modo-teclado #estado {
+        /* Al desplegar el teclado se oculta la cabecera para maximizar el área de resultado */
+        body.modo-teclado .cabecera-top {
             display: none !important;
         }
     </style>
@@ -215,9 +246,9 @@
         <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar</button>
     </div>
 
-    <div id="estado" style="color: blue;">Conectando...</div>
+    <div id="estado">Conectando...</div>
 
-    <!-- Módulo de Resultados -->
+    <!-- Módulo de Resultados estilo tarjeta -->
     <div id="resultado" class="resultado">
         Esperando código...
     </div>
@@ -241,7 +272,6 @@
         const resultadoDiv = document.getElementById('resultado');
         const estadoDiv = document.getElementById('estado');
 
-        /* Control visual al enfocar/desenfocar la caja de texto */
         inputCodigo.addEventListener('focus', () => {
             document.body.classList.add('modo-teclado');
         });
@@ -304,10 +334,10 @@
                             
                             const fechaFormateada = formatearFechaHora(fechaRealArchivo);
                             estadoDiv.innerHTML = `
-                                ¡Base de datos lista: ${contador} arts.!
-                                <span class="texto-fecha">Actualizado: ${fechaFormateada}</span>
+                                ¡Base de datos lista: ${contador} artículos!
+                                <span class="texto-fecha">Actualizado el ${fechaFormateada}</span>
                             `;
-                            estadoDiv.style.color = "green";
+                            estadoDiv.style.color = "#28a745";
                         }
                     });
                 })
@@ -323,9 +353,11 @@
             if (inventario.hasOwnProperty(codigoEscaneado)) {
                 let articulo = inventario[codigoEscaneado];
                 resultadoDiv.innerHTML = `
-                    <p class="titulo-encontrado">¡Artículo encontrado!</p>
-                    <p class="texto-ean"><strong>EAN:</strong> ${codigoEscaneado}</p>
-                    <div class="descripcion-producto">${articulo.descripcion}</div>
+                    <div>
+                        <p class="titulo-encontrado">¡Artículo encontrado!</p>
+                        <p class="texto-ean"><strong>EAN:</strong> ${codigoEscaneado}</p>
+                        <div class="descripcion-producto">${articulo.descripcion}</div>
+                    </div>
 
                     <div class="panel-secundario">
                         <div class="item-secundario">
@@ -355,9 +387,6 @@
             }
 
             inputCodigo.value = "";
-
-            /* Desplaza automáticamente la pantalla hacia arriba para mostrar el resultado completo */
-            resultadoDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         async function alternarCamaraiOS() {
