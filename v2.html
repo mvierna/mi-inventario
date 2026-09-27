@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario V2 - Entorno de Pruebas</title>
+
+    <!-- Librería PapaParse: Para procesar el archivo TIENDA.csv -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+
+    <style>
+        * { box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { margin: 0; padding: 10px; background-color: #f0f4f8; }
+
+        .banner-pruebas {
+            background-color: #dd6b20;
+            color: white;
+            text-align: center;
+            padding: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        /* Menú de Navegación */
+        .nav-bar {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            background-color: #2d3748;
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .btn-tab {
+            padding: 8px 10px;
+            background-color: #4a5568;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-tab.activo { background-color: #3182ce; }
+
+        /* Módulos */
+        .modulo {
+            display: none;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .modulo.activo { display: block; }
+
+        .caja-busqueda {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+            border: 2px solid #cbd5e0;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        /* Tarjeta de Producto */
+        .tarjeta-producto {
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 10px;
+            background-color: #f7fafc;
+        }
+
+        .tarjeta-producto h4 { margin: 0 0 6px 0; color: #2b6cb0; }
+        .tarjeta-producto p { margin: 3px 0; font-size: 13px; color: #4a5568; }
+
+        /* Selector de cantidad y botón de añadir */
+        .contenedor-cantidad {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #e2e8f0;
+        }
+
+        .input-cantidad {
+            width: 80px;
+            padding: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            border: 2px solid #3182ce;
+            border-radius: 6px;
+        }
+
+        .btn-agregar {
+            flex: 1;
+            padding: 10px;
+            background-color: #38a169;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Tabla de lista acumulada */
+        .tabla-reposicion {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 12px;
+        }
+
+        .tabla-reposicion th, .tabla-reposicion td {
+            border: 1px solid #e2e8f0;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .tabla-reposicion th { background-color: #edf2f7; }
+
+        .btn-borrar-item {
+            background-color: #e53e3e;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-vaciar {
+            width: 100%;
+            padding: 10px;
+            background-color: #e53e3e;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        .estado-carga { font-size: 12px; color: #718096; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+
+    <div class="banner-pruebas">🧪 VERSIÓN V2 DE PRUEBAS - Feedback de Sonido y Vibración Activos</div>
+
+    <!-- Menú de Navegación -->
+    <nav class="nav-bar">
+        <button class="btn-tab activo" onclick="cambiarPestana('inventario', event)">📦 Consulta</button>
+        <button class="btn-tab" onclick="cambiarPestana('reposicion', event)">📋 Reposición</button>
+        <button class="btn-tab" onclick="cambiarPestana('chequeo', event)">🔍 Chequeo</button>
+        <button class="btn-tab" onclick="cambiarPestana('presupuestos', event)">📄 Presupuesto</button>
+    </nav>
+
+    <!-- Módulo 1: Consulta de Inventario -->
+    <section id="mod-inventario" class="modulo activo">
+        <h3>📦 Consulta de Inventario</h3>
+        <div id="estado-csv" class="estado-carga">Cargando TIENDA.csv...</div>
+        <input type="text" id="input-buscar-consulta" class="caja-busqueda" placeholder="Buscar por EAN o descripción..." oninput="buscarProductos('consulta')">
+        <div id="resultados-consulta"></div>
+    </section>
+
+    <!-- Módulo 2: Reposición y Pedidos -->
+    <section id="mod-reposicion" class="modulo">
+        <h3>📋 Crear Lista de Reposición</h3>
+        <p style="font-size: 12px; color: #4a5568;">Busca un producto e introduce las unidades a reponer:</p>
+        
+        <input type="text" id="input-buscar-reposicion" class="caja-busqueda" placeholder="Escribe EAN o nombre del artículo..." oninput="buscarProductos('reposicion')">
+        
+        <div id="resultados-reposicion"></div>
+
+        <h4 style="margin-top: 20px; color: #2d3748;">Lista de Faltas Acumulada</h4>
+        <table class="tabla-reposicion">
+            <thead>
+                <tr>
+                    <th>Descripción</th>
+                    <th>Cant.</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="cuerpo-tabla-reposicion">
+                <tr><td colspan="3" style="text-align:center; color:#a0aec0;">No hay artículos en la lista.</td></tr>
+            </tbody>
+        </table>
+
+        <button class="btn-vaciar" onclick="vaciarListaReposicion()">🗑️ Vaciar Lista de Reposición</button>
+    </section>
+
+    <!-- Módulo 3: Chequeo -->
+    <section id="mod-chequeo" class="modulo">
+        <h3>🔍 Chequeo de Precios</h3>
+        <p>Módulo reservado para escáner + OCR.</p>
+    </section>
+
+    <!-- Módulo 4: Presupuestos -->
+    <section id="mod-presupuestos" class="modulo">
+        <h3>📄 Presupuestos</h3>
+        <p>Módulo reservado para cálculo de presupuestos.</p>
+    </section>
+
+    <script>
+        let baseDatosProductos = [];
+        let listaReposicion = [];
+
+        // 1. Cargar archivo TIENDA.csv
+        function cargarBaseDatos() {
+            Papa.parse('TIENDA.csv', {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                delimiter: ";",
+                complete: function(results) {
+                    baseDatosProductos = results.data;
+                    document.getElementById('estado-csv').innerText = `✅ Base de datos cargada (${baseDatosProductos.length} arts).`;
+                    document.getElementById('estado-csv').style.color = "#2f855a";
+                }
+            });
+
+            const listaGuardada = localStorage.getItem('lista_reposicion_v2');
+            if (listaGuardada) {
+                listaReposicion = JSON.parse(listaGuardada);
+                renderizarTablaReposicion();
+            }
+        }
+
+        // 2. Función de Audio + Vibración para confirmación de guardado
+        function emitirFeedbackConfirmacion() {
+            // A) Vibración del dispositivo (100 ms)
+            if ("vibrate" in navigator) {
+                navigator.vibrate(100);
+            }
+
+            // B) Pitido sintético con Web Audio API
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) {
+                    const ctx = new AudioCtx();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+
+                    osc.type = "sine";
+                    osc.frequency.setValueAtTime(880, ctx.currentTime); // Tono de 880 Hz
+                    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.15); // Duración: 0.15s
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.15);
+                }
+            } catch (e) {
+                // Silencioso en navegadores sin soporte de audio
+            }
+        }
+
+        // 3. Buscador multipropósito
+        function buscarProductos(origen) {
+            const inputId = origen === 'consulta' ? 'input-buscar-consulta' : 'input-buscar-reposicion';
+            const contenedorId = origen === 'consulta' ? 'resultados-consulta' : 'resultados-reposicion';
+            
+            const texto = document.getElementById(inputId).value.toLowerCase().trim();
+            const contenedor = document.getElementById(contenedorId);
+            contenedor.innerHTML = "";
+
+            if (texto.length < 2) return;
+
+            const coincidencias = baseDatosProductos.filter(prod => {
+                const ean = (prod.EAN || prod.ean || "").toLowerCase();
+                const desc = (prod.Descripción || prod.descripcion || prod.DESCRIPCION || "").toLowerCase();
+                return ean.includes(texto) || desc.includes(texto);
+            }).slice(0, 5);
+
+            coincidencias.forEach((prod, index) => {
+                const ean = prod.EAN || prod.ean || "N/A";
+                const desc = prod.Descripción || prod.descripcion || prod.DESCRIPCION || "Sin descripción";
+                const stock = prod.Stock || prod.stock || "0";
+                const pvp = prod.PVP || prod.pvp || "0.00";
+
+                let htmlTarjeta = `
+                    <div class="tarjeta-producto">
+                        <h4>${desc}</h4>
+                        <p><strong>EAN:</strong> ${ean} | <strong>Stock:</strong> ${stock} u. | <strong>PVP:</strong> ${pvp} €</p>
+                `;
+
+                if (origen === 'reposicion') {
+                    // La casilla viene con valor '1' y se selecciona al hacer clic para facilitar la edición rápida
+                    htmlTarjeta += `
+                        <div class="contenedor-cantidad">
+                            <label style="font-size:12px; font-weight:bold;">Reponer:</label>
+                            <input type="number" id="cant-${index}" class="input-cantidad" value="1" min="1" onclick="this.select()">
+                            <button class="btn-agregar" onclick="agregarAReposicion('${ean}', '${desc.replace(/'/g, "")}', 'cant-${index}')">➕ Añadir a lista</button>
+                        </div>
+                    `;
+                }
+
+                htmlTarjeta += `</div>`;
+                contenedor.innerHTML += htmlTarjeta;
+            });
+        }
+
+        // 4. Añadir artículo a la lista de reposición
+        function agregarAReposicion(ean, descripcion, inputId) {
+            const inputCantidad = document.getElementById(inputId);
+            const cantidad = parseInt(inputCantidad.value) || 1;
+
+            const existeIndex = listaReposicion.findIndex(item => item.ean === ean);
+
+            if (existeIndex !== -1) {
+                listaReposicion[existeIndex].cantidad += cantidad;
+            } else {
+                listaReposicion.push({ ean: ean, descripcion: descripcion, cantidad: cantidad });
+            }
+
+            // Ejecutamos la vibración y el tono de confirmación
+            emitirFeedbackConfirmacion();
+
+            guardarYActualizar();
+
+            document.getElementById('resultados-reposicion').innerHTML = "";
+            document.getElementById('input-buscar-reposicion').value = "";
+        }
+
+        // 5. Eliminar un elemento individual
+        function eliminarDeReposicion(index) {
+            listaReposicion.splice(index, 1);
+            guardarYActualizar();
+        }
+
+        // 6. Vaciar toda la lista
+        function vaciarListaReposicion() {
+            if (confirm("¿Estás seguro de que deseas borrar toda la lista de reposición?")) {
+                listaReposicion = [];
+                guardarYActualizar();
+            }
+        }
+
+        function guardarYActualizar() {
+            localStorage.setItem('lista_reposicion_v2', JSON.stringify(listaReposicion));
+            renderizarTablaReposicion();
+        }
+
+        // 7. Dibujar la tabla acumulada
+        function renderizarTablaReposicion() {
+            const cuerpo = document.getElementById('cuerpo-tabla-reposicion');
+            
+            if (listaReposicion.length === 0) {
+                cuerpo.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#a0aec0;">No hay artículos en la lista.</td></tr>`;
+                return;
+            }
+
+            cuerpo.innerHTML = "";
+            listaReposicion.forEach((item, idx) => {
+                cuerpo.innerHTML += `
+                    <tr>
+                        <td><strong>${item.descripcion}</strong><br><small style="color:#718096;">EAN: ${item.ean}</small></td>
+                        <td style="font-size:14px; font-weight:bold; color:#2b6cb0;">${item.cantidad} u.</td>
+                        <td style="text-align:center;">
+                            <button class="btn-borrar-item" onclick="eliminarDeReposicion(${idx})">❌</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Navegación entre pestañas
+        function cambiarPestana(idModulo, evento) {
+            document.querySelectorAll('.modulo').forEach(m => m.classList.remove('activo'));
+            document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('activo'));
+
+            document.getElementById(`mod-${idModulo}`).classList.add('activo');
+            evento.currentTarget.classList.add('activo');
+        }
+
+        window.onload = cargarBaseDatos;
+    </script>
+</body>
+</html>

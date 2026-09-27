@@ -38,7 +38,6 @@ def limpiar_datos():
             return False
 
         # COMPROBACIÓN INTELIGENTE: ¿El archivo ya está limpio para la PWA?
-        # Si tiene 6 columnas y la primera columna (fila[0]) es numérica/EAN, ya está procesado.
         if len(fila_muestra) == 6 and (fila_muestra[0].strip().isdigit() or len(fila_muestra[0].strip()) >= 8):
             print("--> El archivo TIENDA.csv YA está limpio y preparado para la PWA.")
             print("--> Se conservará el archivo intacto sin modificar la columna A.")
@@ -46,7 +45,7 @@ def limpiar_datos():
 
         print("--> Se ha detectado una exportación nueva de Ábaco. Iniciando limpieza...")
 
-        # Processar la exportación bruta de Ábaco
+        # Procesar la exportación bruta de Ábaco
         for fila in lector:
             if len(fila) > 2:
                 ean = fila[1].strip()
