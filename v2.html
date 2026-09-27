@@ -6,41 +6,26 @@
     <title>Sistema de Inventario y Reposición v2</title>
 
     <style>
-        /* RESETEO Y ESTILOS BASE */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #f4f6f9; color: #333; padding-bottom: 30px; }
-
-        /* ENCABEZADO */
         header { background-color: #d32f2f; color: white; padding: 12px; text-align: center; font-size: 14px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
-
-        /* NAVEGACIÓN EN PESTAÑAS */
         nav { display: flex; background-color: #004085; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        nav button { flex: 1; padding: 12px 2px; border: none; background: none; color: white; font-size: 13px; font-weight: bold; cursor: pointer; border-bottom: 4px solid transparent; transition: background-color 0.2s, border-color 0.2s; }
+        nav button { flex: 1; padding: 12px 2px; border: none; background: none; color: white; font-size: 13px; font-weight: bold; cursor: pointer; border-bottom: 4px solid transparent; }
         nav button.active { border-bottom-color: #ffc107; background-color: rgba(255, 255, 255, 0.15); }
-
-        /* CONTENEDOR PRINCIPAL */
         .container { padding: 15px; max-width: 600px; margin: 0 auto; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-
-        /* TARJETAS */
         .card { background: white; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
         .card h3 { font-size: 16px; color: #004085; margin-bottom: 10px; }
-
-        /* CAJA DE ESTADO DE CONEXIÓN */
-        .status-box { padding: 10px 12px; border-radius: 5px; font-size: 13px; margin-bottom: 12px; font-weight: bold; line-height: 1.4; }
+        .status-box { padding: 10px 12px; border-radius: 5px; font-size: 13px; margin-bottom: 12px; font-weight: bold; }
         .status-loading { background-color: #e3f2fd; color: #0d47a1; border: 1px solid #bbdefb; }
         .status-ok { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
         .status-error { background-color: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
-
-        /* FORMULARIOS E INPUTS */
         .input-group { display: flex; gap: 8px; margin-bottom: 12px; }
         input[type="text"] { flex: 1; padding: 12px; border: 2px solid #004085; border-radius: 6px; font-size: 16px; outline: none; }
         input[type="text"]:focus { border-color: #28a745; background-color: #f0fff4; }
         .btn-action { background-color: #004085; color: white; border: none; padding: 0 16px; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; }
         .btn-danger { background-color: #dc3545; color: white; border: none; padding: 10px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; font-size: 13px; }
-
-        /* RESULTADOS Y TABLAS */
         .result-card { background-color: #f8f9fa; border-left: 5px solid #28a745; padding: 12px; margin-top: 10px; border-radius: 4px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #ddd; }
@@ -59,11 +44,11 @@
     </nav>
 
     <div class="container">
-        <!-- 1. PESTAÑA CONSULTA -->
+        <!-- PESTAÑA CONSULTA -->
         <div id="tab-consulta" class="tab-content active">
             <div class="card">
                 <h3>📦 Búsqueda de Artículos</h3>
-                <div id="status-db" class="status-box status-loading">⏳ Iniciando aplicación...</div>
+                <div id="status-db" class="status-box status-loading">⏳ Cargando base de datos...</div>
 
                 <form id="form-consulta" onsubmit="event.preventDefault(); procesarConsulta();">
                     <div class="input-group">
@@ -76,7 +61,7 @@
             </div>
         </div>
 
-        <!-- 2. PESTAÑA REPOSICIÓN -->
+        <!-- PESTAÑA REPOSICIÓN -->
         <div id="tab-reposicion" class="tab-content">
             <div class="card">
                 <h3>📋 Gestión de Reposición</h3>
@@ -93,19 +78,19 @@
                     <tbody id="tabla-reposicion-body"></tbody>
                 </table>
                 <br>
-                <button class="btn-danger" onclick="vaciarListaReposicion()">🗑️ Vaciar Lista de Reposición</button>
+                <button class="btn-danger" onclick="vaciarListaReposicion()">🗑️ Vaciar Lista</button>
             </div>
         </div>
 
-        <!-- 3. PESTAÑA CHEQUEO -->
+        <!-- PESTAÑA CHEQUEO -->
         <div id="tab-chequeo" class="tab-content">
             <div class="card">
                 <h3>🔍 Chequeo de Precios</h3>
-                <p style="color: #666; font-size: 14px;">Módulo preparado para verificación de etiquetas en lineal.</p>
+                <p style="color: #666; font-size: 14px;">Módulo preparado para verificación de etiquetas.</p>
             </div>
         </div>
 
-        <!-- 4. PESTAÑA PRESUPUESTO -->
+        <!-- PESTAÑA PRESUPUESTO -->
         <div id="tab-presupuesto" class="tab-content">
             <div class="card">
                 <h3>📑 Calculadora de Presupuestos</h3>
@@ -114,235 +99,167 @@
         </div>
     </div>
 
-    <!-- SCRIPT ENVUELTO EN PROTECCIÓN TOTAL -->
     <script>
-        try {
-            // === 1. VARIABLES GLOBALES SEGURAS ===
-            window.articulos = [];
-            let listaReposicion = [];
-            
+        window.articulos = [];
+        let listaReposicion = JSON.parse(localStorage.getItem('reposicion_v2_data')) || [];
+
+        // Carga inmediata al abrir el script
+        async function cargarBaseDatos() {
+            const statusBox = document.getElementById('status-db');
             try {
-                const guardado = localStorage.getItem('reposicion_v2_data');
-                if (guardado) {
-                    listaReposicion = JSON.parse(guardado);
-                }
-            } catch (e) {
-                console.error("No se pudo cargar la lista guardada.");
-            }
+                const respuesta = await fetch('TIENDA.csv?v=' + Date.now());
+                if (!respuesta.ok) throw new Error("No se pudo cargar TIENDA.csv");
 
-            // === 2. LÓGICA DE CARGA DE DATOS ===
-            async function cargarBaseDatos() {
-                const statusBox = document.getElementById('status-db');
-                try {
-                    statusBox.innerHTML = "⏳ Conectando y descargando (TIENDA.csv)...";
-                    
-                    // Método clásico y universal para evitar la caché sin bloquear el navegador
-                    const urlSinCache = 'TIENDA.csv?v=' + new Date().getTime();
-                    const respuesta = await fetch(urlSinCache);
-
-                    if (!respuesta.ok) {
-                        throw new Error("HTTP " + respuesta.status + " - Archivo no encontrado.");
-                    }
-
-                    statusBox.innerHTML = "⏳ Procesando catálogo...";
-                    const texto = await respuesta.text();
-                    const lineas = texto.split(/\r?\n/);
-                    
-                    window.articulos = [];
-
-                    for (let i = 0; i < lineas.length; i++) {
-                        const linea = lineas[i];
-                        if (!linea) continue;
-
-                        const col = linea.split(';');
-                        if (col.length >= 2) {
-                            window.articulos.push({
-                                ean: col[0] ? col[0].replace(/^"|"$/g, '').trim() : '',
-                                descripcion: col[1] ? col[1].replace(/^"|"$/g, '').trim() : '',
-                                stock: col[2] ? col[2].replace(/^"|"$/g, '').trim() : '0',
-                                precio: col[3] ? col[3].replace(/^"|"$/g, '').trim() : ''
-                            });
-                        }
-                    }
-
-                    statusBox.className = "status-box status-ok";
-                    statusBox.innerHTML = `✅ Base de datos lista (${window.articulos.length} artículos)`;
-                    
-                    // Solo enfocamos si el input existe
-                    const inputC = document.getElementById('input-consulta');
-                    if (inputC) inputC.focus();
-
-                } catch (error) {
-                    statusBox.className = "status-box status-error";
-                    statusBox.innerHTML = "❌ Fallo al cargar datos: " + error.message;
-                }
-            }
-
-            // === 3. FUNCIONES COMPLEMENTARIAS ===
-            function confirmarEscaneo() {
-                try {
-                    if (navigator.vibrate) navigator.vibrate(100);
-                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                    if (AudioCtx) {
-                        const ctx = new AudioCtx();
-                        const osc = ctx.createOscillator();
-                        const gain = ctx.createGain();
-                        osc.type = 'sine';
-                        osc.frequency.setValueAtTime(880, ctx.currentTime);
-                        gain.gain.setValueAtTime(0.2, ctx.currentTime);
-                        osc.connect(gain);
-                        gain.connect(ctx.destination);
-                        osc.start();
-                        osc.stop(ctx.currentTime + 0.12);
-                    }
-                } catch (e) {
-                    // Silenciamos fallos de audio inofensivos
-                }
-            }
-
-            // Para hacer las funciones accesibles desde el HTML (onclick, onsubmit)
-            window.cambiarPestaña = function(nombreTab) {
-                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-                document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
-                document.getElementById('tab-' + nombreTab)?.classList.add('active');
-                document.getElementById('btn-tab-' + nombreTab)?.classList.add('active');
-            };
-
-            window.procesarConsulta = function() {
-                const input = document.getElementById('input-consulta');
-                const contenedor = document.getElementById('resultado-consulta');
-                if (!input || !contenedor) return;
-
-                const termino = input.value.trim().toLowerCase();
+                const texto = await respuesta.text();
+                const lineas = texto.split(/\r?\n/);
                 
-                if (!termino) {
-                    contenedor.innerHTML = `
-                        <div class="result-card" style="border-left-color: #ff9800; background-color: #fff3e0;">
-                            <p style="color: #e65100; font-size: 14px; font-weight: bold;">⚠️ Escribe un código o descripción antes de buscar.</p>
-                        </div>`;
-                    return;
+                window.articulos = [];
+                for (let i = 0; i < lineas.length; i++) {
+                    const linea = lineas[i].trim();
+                    if (!linea) continue;
+                    const col = linea.split(';');
+                    if (col.length >= 2) {
+                        window.articulos.push({
+                            ean: col[0] ? col[0].replace(/^"|"$/g, '').trim() : '',
+                            descripcion: col[1] ? col[1].replace(/^"|"$/g, '').trim() : '',
+                            stock: col[2] ? col[2].replace(/^"|"$/g, '').trim() : '0',
+                            precio: col[3] ? col[3].replace(/^"|"$/g, '').trim() : ''
+                        });
+                    }
                 }
 
-                confirmarEscaneo();
+                statusBox.className = "status-box status-ok";
+                statusBox.innerHTML = `✅ Base de datos lista (${window.articulos.length.toLocaleString('es-ES')} artículos)`;
+                document.getElementById('input-consulta')?.focus();
 
-                const producto = window.articulos.find(item => 
-                    item.ean.toLowerCase() === termino || item.descripcion.toLowerCase().includes(termino)
-                );
-
-                if (producto) {
-                    contenedor.innerHTML = `
-                        <div class="result-card">
-                            <h4 style="color: #1b5e20;">${producto.descripcion}</h4>
-                            <p style="font-size: 14px; margin-top: 5px;"><strong>EAN:</strong> ${producto.ean}</p>
-                            <p style="font-size: 14px;"><strong>Stock:</strong> ${producto.stock} Uds.</p>
-                            ${producto.precio ? `<p style="font-size: 14px;"><strong>Precio:</strong> ${producto.precio} €</p>` : ''}
-                        </div>
-                    `;
-                } else {
-                    contenedor.innerHTML = `
-                        <div class="result-card" style="border-left-color: #c62828; background-color: #ffebee;">
-                            <h4 style="color: #c62828;">❌ Sin coincidencias</h4>
-                            <p style="font-size: 13px; margin-top: 5px;">No se encontró "${termino}".</p>
-                        </div>
-                    `;
-                }
-            };
-
-            window.procesarReposicion = function() {
-                const input = document.getElementById('input-reposicion');
-                if (!input) return;
-                const termino = input.value.trim();
-                if (!termino) return;
-
-                const producto = window.articulos.find(item => 
-                    item.ean.toLowerCase() === termino.toLowerCase() || item.descripcion.toLowerCase().includes(termino.toLowerCase())
-                );
-
-                listaReposicion.push({
-                    id: Date.now(),
-                    descripcion: producto ? producto.descripcion : termino,
-                    cantidad: 1
-                });
-
-                localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
-                confirmarEscaneo();
-                input.value = '';
-                renderizarListaReposicion();
-            };
-
-            window.eliminarItemReposicion = function(id) {
-                listaReposicion = listaReposicion.filter(item => item.id !== id);
-                localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
-                renderizarListaReposicion();
-            };
-
-            window.vaciarListaReposicion = function() {
-                if (confirm("¿Deseas vaciar toda la lista?")) {
-                    listaReposicion = [];
-                    localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
-                    renderizarListaReposicion();
-                }
-            };
-
-            function renderizarListaReposicion() {
-                const tbody = document.getElementById('tabla-reposicion-body');
-                if (!tbody) return;
-                tbody.innerHTML = '';
-                
-                if (listaReposicion.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #888;">La lista está vacía.</td></tr>`;
-                    return;
-                }
-
-                listaReposicion.forEach(item => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td><strong>${item.descripcion}</strong></td>
-                        <td>${item.cantidad}</td>
-                        <td><button style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" onclick="eliminarItemReposicion(${item.id})">X</button></td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            }
-
-            function configurarLectoresDirectos() {
-                const inputC = document.getElementById('input-consulta');
-                if (inputC) {
-                    inputC.addEventListener('input', function() {
-                        const val = this.value.trim();
-                        if (/^\d{13}$/.test(val) \vert{}\vert{} /^\d{8}$/.test(val)) window.procesarConsulta();
-                    });
-                }
-                const inputR = document.getElementById('input-reposicion');
-                if (inputR) {
-                    inputR.addEventListener('input', function() {
-                        const val = this.value.trim();
-                        if (/^\d{13}$/.test(val) \vert{}\vert{} /^\d{8}$/.test(val)) window.procesarReposicion();
-                    });
-                }
-            }
-
-            // === 4. ARRANQUE PRINCIPAL DE LA APP ===
-            function iniciarApp() {
-                const statusBox = document.getElementById('status-db');
-                if (statusBox) statusBox.innerHTML = "⚙️ Comprobando sistema...";
-                
-                renderizarListaReposicion();
-                configurarLectoresDirectos();
-                cargarBaseDatos();
-            }
-
-            // Arrancamos todo directamente con un breve respiro para el móvil
-            setTimeout(iniciarApp, 100);
-
-        } catch (errorCritico) {
-            // Si el código falla por completo, mostramos el error rojo brillante
-            const cajaEstado = document.getElementById('status-db');
-            if (cajaEstado) {
-                cajaEstado.className = "status-box status-error";
-                cajaEstado.innerHTML = "❌ Error crítico general: " + errorCritico.message;
+            } catch (error) {
+                statusBox.className = "status-box status-error";
+                statusBox.innerHTML = `❌ Error: ${error.message}`;
             }
         }
+
+        function confirmarEscaneo() {
+            try {
+                if (navigator.vibrate) navigator.vibrate(100);
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) {
+                    const ctx = new AudioCtx();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.12);
+                }
+            } catch (e) {}
+        }
+
+        function cambiarPestaña(nombreTab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + nombreTab)?.classList.add('active');
+            document.getElementById('btn-tab-' + nombreTab)?.classList.add('active');
+            if(nombreTab === 'consulta') document.getElementById('input-consulta')?.focus();
+            if(nombreTab === 'reposicion') document.getElementById('input-reposicion')?.focus();
+        }
+
+        function procesarConsulta() {
+            const input = document.getElementById('input-consulta');
+            const contenedor = document.getElementById('resultado-consulta');
+            if (!input || !contenedor) return;
+
+            const termino = input.value.trim().toLowerCase();
+            if (!termino) {
+                contenedor.innerHTML = `<div class="result-card" style="border-left-color: #ff9800; background-color: #fff3e0;"><p style="color: #e65100; font-size: 14px; font-weight: bold;">⚠️ Escribe un código o descripción.</p></div>`;
+                return;
+            }
+
+            confirmarEscaneo();
+
+            const producto = window.articulos.find(item => 
+                item.ean.toLowerCase() === termino || item.descripcion.toLowerCase().includes(termino)
+            );
+
+            if (producto) {
+                contenedor.innerHTML = `
+                    <div class="result-card">
+                        <h4 style="color: #1b5e20;">${producto.descripcion}</h4>
+                        <p style="font-size: 14px; margin-top: 5px;"><strong>EAN:</strong> ${producto.ean}</p>
+                        <p style="font-size: 14px;"><strong>Stock:</strong> ${producto.stock} Uds.</p>
+                        ${producto.precio ? `<p style="font-size: 14px;"><strong>Precio:</strong> ${producto.precio} €</p>` : ''}
+                    </div>
+                `;
+            } else {
+                contenedor.innerHTML = `
+                    <div class="result-card" style="border-left-color: #c62828; background-color: #ffebee;">
+                        <h4 style="color: #c62828;">❌ Sin coincidencias</h4>
+                        <p style="font-size: 13px; margin-top: 5px;">No se encontró "${termino}".</p>
+                    </div>
+                `;
+            }
+        }
+
+        function procesarReposicion() {
+            const input = document.getElementById('input-reposicion');
+            if (!input) return;
+            const termino = input.value.trim();
+            if (!termino) return;
+
+            const producto = window.articulos.find(item => 
+                item.ean.toLowerCase() === termino.toLowerCase() || item.descripcion.toLowerCase().includes(termino.toLowerCase())
+            );
+
+            listaReposicion.push({
+                id: Date.now(),
+                descripcion: producto ? producto.descripcion : termino,
+                cantidad: 1
+            });
+
+            localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
+            confirmarEscaneo();
+            input.value = '';
+            renderizarListaReposicion();
+        }
+
+        window.eliminarItemReposicion = function(id) {
+            listaReposicion = listaReposicion.filter(item => item.id !== id);
+            localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
+            renderizarListaReposicion();
+        }
+
+        window.vaciarListaReposicion = function() {
+            if (confirm("¿Vaciar lista?")) {
+                listaReposicion = [];
+                localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
+                renderizarListaReposicion();
+            }
+        }
+
+        function renderizarListaReposicion() {
+            const tbody = document.getElementById('tabla-reposicion-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (listaReposicion.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #888;">La lista está vacía.</td></tr>`;
+                return;
+            }
+            listaReposicion.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${item.descripcion}</strong></td>
+                    <td>${item.cantidad}</td>
+                    <td><button style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" onclick="eliminarItemReposicion(${item.id})">X</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Ejecución directa al cargar el script
+        renderizarListaReposicion();
+        cargarBaseDatos();
     </script>
 </body>
 </html>
