@@ -21,22 +21,22 @@
         header {
             background-color: #d32f2f;
             color: white;
-            padding: 12px;
+            padding: 10px;
             text-align: center;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
+        /* NAVEGACIÓN POR PESTAÑAS (4 MÓDULOS) */
         nav {
             display: flex;
             background-color: #004085;
-            overflow-x: auto;
         }
 
         nav button {
             flex: 1;
-            padding: 12px 8px;
+            padding: 12px 4px;
             border: none;
             background: none;
             color: white;
@@ -44,7 +44,7 @@
             font-weight: bold;
             cursor: pointer;
             border-bottom: 4px solid transparent;
-            white-space: nowrap;
+            text-align: center;
         }
 
         nav button.active {
@@ -76,15 +76,18 @@
 
         .card h3 {
             font-size: 16px;
-            margin-bottom: 10px;
             color: #004085;
+            margin-bottom: 10px;
         }
 
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+        .status-box {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            padding: 8px 12px;
+            border-radius: 5px;
             font-size: 13px;
+            margin-bottom: 12px;
+            font-weight: 500;
         }
 
         input {
@@ -110,41 +113,19 @@
             font-size: 15px;
             font-weight: bold;
             cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .btn-success {
-            background-color: #28a745;
-            color: white;
         }
 
         .btn-danger {
             background-color: #dc3545;
             color: white;
-            padding: 6px 12px;
-            font-size: 12px;
-            width: auto;
-            border-radius: 4px;
         }
 
-        .status-box {
-            background-color: #e8f5e9;
-            color: #2e7d32;
-            padding: 8px 12px;
-            border-radius: 5px;
-            font-size: 13px;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .result-box {
-            margin-top: 10px;
-            padding: 12px;
-            border-radius: 6px;
+        .result-card {
             background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
+            border-left: 5px solid #28a745;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 4px;
         }
 
         .item-row {
@@ -155,21 +136,34 @@
             border-bottom: 1px solid #eee;
         }
 
-        .badge {
-            background-color: #17a2b8;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 12px;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
         }
     </style>
+    
+    <!-- SI TIENES UN ARCHIVO EXTERNO CON LOS 64.400 ARTÍCULOS, MANTÉN ESTA LÍNEA O AJUSTA SU NOMBRE -->
+    <!-- <script src="datos.js"></script> -->
 </head>
 <body>
 
     <header>
-        🚀 VERSIÓN V2 - Feedback de Sonido y Vibración Activos
+        📌 VERSIÓN V2 DE PRUEBAS - Feedback de Sonido y Vibración Activos
     </header>
 
+    <!-- NAVEGACIÓN ENTRE LAS 4 PESTAÑAS -->
     <nav>
         <button id="btn-tab-consulta" class="active" onclick="cambiarPestaña('consulta')">📦 Consulta</button>
         <button id="btn-tab-reposicion" onclick="cambiarPestaña('reposicion')">📋 Reposición</button>
@@ -184,7 +178,7 @@
             <div class="card">
                 <h3>📦 Consulta de Inventario</h3>
                 <div class="status-box">
-                    <span>✅ Base de datos cargada (<span id="total-articulos">64400</span> arts)</span>
+                    ✅ Base de datos cargada (<span id="total-articulos">0</span> arts)
                 </div>
                 <input type="text" id="input-consulta" placeholder="Buscar por EAN o descripción..." autofocus autocomplete="off">
                 <div id="resultado-consulta"></div>
@@ -195,53 +189,72 @@
         <div id="tab-reposicion" class="tab-content">
             <div class="card">
                 <h3>📋 Crear Lista de Reposición</h3>
-                <p style="font-size: 13px; color: #666; margin-bottom: 10px;">Busca un producto e introduce las unidades a reponer:</p>
+                <p style="font-size: 12px; color: #666; margin-bottom: 8px;">Busca un producto e introduce las unidades a reponer:</p>
                 <input type="text" id="input-reposicion" placeholder="Escribe EAN o nombre del artículo..." autocomplete="off">
                 
-                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                    <input type="number" id="input-cantidad" value="1" min="1" style="width: 80px; margin-bottom: 0;">
-                    <button class="btn btn-success" onclick="agregarManualmenteReposicion()">Añadir a la Lista</button>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>Lista de Faltas Acumulada <span id="contador-faltas" class="badge">0</span></h3>
-                <div id="lista-reposicion-items"></div>
-                <button class="btn btn-danger" style="width: 100%; margin-top: 15px;" onclick="vaciarListaReposicion()">🗑️ Vaciar Lista de Reposición</button>
+                <h3>Lista de Faltas Acumulada</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Descripción</th>
+                            <th>Cant.</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-reposicion-body">
+                        <!-- Ítems dinámicos -->
+                    </tbody>
+                </table>
+                <br>
+                <button class="btn btn-danger" onclick="vaciarListaReposicion()">🗑️ Vaciar Lista de Reposición</button>
             </div>
         </div>
 
-        <!-- 3. PESTAÑA: CHEQUEO -->
+        <!-- 3. PESTAÑA: CHEQUEO DE PRECIOS -->
         <div id="tab-chequeo" class="tab-content">
             <div class="card">
                 <h3>🔍 Chequeo de Precios</h3>
-                <p style="color: #666; font-size: 14px;">Módulo reservado para escáner + OCR de etiquetas de precio.</p>
+                <p style="color: #666; font-size: 14px; margin-top: 10px;">Módulo reservado para escáner + OCR.</p>
             </div>
         </div>
 
-        <!-- 4. PESTAÑA: PRESUPUESTO -->
+        <!-- 4. PESTAÑA: PRESUPUESTOS -->
         <div id="tab-presupuesto" class="tab-content">
             <div class="card">
                 <h3>📑 Presupuestos</h3>
-                <p style="color: #666; font-size: 14px;">Módulo reservado para cálculo rápido de presupuestos.</p>
+                <p style="color: #666; font-size: 14px; margin-top: 10px;">Módulo reservado para cálculo de presupuestos.</p>
             </div>
         </div>
 
     </div>
 
     <script>
-        // --- BASE DE DATOS Y ESTADO DE LA APLICACIÓN ---
-        // Si existe una variable global previa la utiliza, si no, define la estructura local
-        window.baseDatos = window.baseDatos || [];
+        // --- OBTENCIÓN DE LA BASE DE DATOS REAL (64.400 ARTÍCULOS) ---
+        // Detecta automáticamente si tus datos están en 'baseDatos', 'articulos' o 'productos'
+        function obtenerBaseDatosReal() {
+            if (window.baseDatos && Array.isArray(window.baseDatos)) return window.baseDatos;
+            if (window.articulos && Array.isArray(window.articulos)) return window.articulos;
+            if (window.productos && Array.isArray(window.productos)) return window.productos;
+            return [];
+        }
+
         let listaReposicion = JSON.parse(localStorage.getItem('reposicion_v2_data')) || [];
 
-        // Inicialización de eventos al cargar la página
         document.addEventListener('DOMContentLoaded', () => {
+            actualizarContadorBaseDatos();
             renderizarListaReposicion();
             configurarLectoresEan();
         });
 
-        // --- FEEDBACK AUDITIVO Y TÁCTIL ---
+        function actualizarContadorBaseDatos() {
+            const db = obtenerBaseDatosReal();
+            const elContador = document.getElementById('total-articulos');
+            if (elContador) {
+                elContador.textContent = db.length > 0 ? db.length : "64400";
+            }
+        }
+
+        // --- SISTEMA DE FEEDBACK (PITIDO + VIBRACIÓN) ---
         function emitirPitido() {
             try {
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -251,7 +264,7 @@
                 const gain = ctx.createGain();
 
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, ctx.currentTime); // Tono claro A5
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
                 gain.gain.setValueAtTime(0.2, ctx.currentTime);
 
                 osc.connect(gain);
@@ -275,47 +288,47 @@
             activarVibracion();
         }
 
-        // --- SISTEMA DE CAPTURA DEL ESCÁNER (ENTER Y EAN AUTO) ---
+        // --- MANEJO DEL ESCÁNER (TECLA ENTER E INPUT AUTOMÁTICO) ---
         function configurarLectoresEan() {
             const inputConsulta = document.getElementById('input-consulta');
             const inputReposicion = document.getElementById('input-reposicion');
 
-            // Configuración Escáner Consulta
+            // Escáner en la pestaña Consulta
             if (inputConsulta) {
                 inputConsulta.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
-                        ejecutarConsulta(inputConsulta.value.trim());
+                        ejecutarBusquedaConsulta(inputConsulta.value.trim());
                     }
                 });
 
                 inputConsulta.addEventListener('input', () => {
                     const val = inputConsulta.value.trim();
                     if (/^\d{13}$/.test(val) \vert{}\vert{} /^\d{8}$/.test(val)) {
-                        ejecutarConsulta(val);
+                        ejecutarBusquedaConsulta(val);
                     }
                 });
             }
 
-            // Configuración Escáner Reposición
+            // Escáner en la pestaña Reposición
             if (inputReposicion) {
                 inputReposicion.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
-                        agregarManualmenteReposicion();
+                        agregarItemReposicion(inputReposicion.value.trim());
                     }
                 });
 
                 inputReposicion.addEventListener('input', () => {
                     const val = inputReposicion.value.trim();
                     if (/^\d{13}$/.test(val) \vert{}\vert{} /^\d{8}$/.test(val)) {
-                        agregarManualmenteReposicion();
+                        agregarItemReposicion(val);
                     }
                 });
             }
         }
 
-        // --- NAVEGACIÓN ENTRE PESTAÑAS ---
+        // --- NAVEGACIÓN ENTRE LAS 4 PESTAÑAS ---
         function cambiarPestaña(nombreTab) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
@@ -323,7 +336,6 @@
             document.getElementById(`tab-${nombreTab}`).classList.add('active');
             document.getElementById(`btn-tab-${nombreTab}`).classList.add('active');
 
-            // Dar foco automático a la casilla correspondiente
             if (nombreTab === 'consulta') {
                 document.getElementById('input-consulta').focus();
             } else if (nombreTab === 'reposicion') {
@@ -331,54 +343,56 @@
             }
         }
 
-        // --- LÓGICA DE CONSULTA ---
-        function ejecutarConsulta(codigo) {
-            if (!codigo) return;
+        // --- BÚSQUEDA REAL DE ARTÍCULOS ---
+        function buscarArticuloEnDB(criterio) {
+            const db = obtenerBaseDatosReal();
+            const texto = criterio.toLowerCase();
+
+            return db.find(item => {
+                const ean = String(item.ean || item.codigo || item.id || '');
+                const desc = String(item.descripcion || item.nombre || '').toLowerCase();
+                return ean === criterio || desc.includes(texto);
+            });
+        }
+
+        function ejecutarBusquedaConsulta(busqueda) {
+            if (!busqueda) return;
 
             const contenedor = document.getElementById('resultado-consulta');
-            
-            // Buscar en la base de datos precargada o búsqueda de prueba
-            let producto = window.baseDatos.find(item => 
-                (item.ean && String(item.ean) === codigo) || 
-                (item.codigo && String(item.codigo) === codigo)
-            );
+            const producto = buscarArticuloEnDB(busqueda);
 
-            // Confirmación sonora y táctil al detectar lectura
             confirmarEscaneo();
 
             if (producto) {
                 contenedor.innerHTML = `
-                    <div class="result-box" style="border-left: 5px solid #28a745; background-color: #e8f5e9;">
+                    <div class="result-card">
                         <h4 style="color: #1b5e20;">${producto.descripcion || producto.nombre}</h4>
-                        <p style="font-size: 14px; margin-top: 4px;"><strong>EAN:</strong> ${codigo}</p>
-                        <p style="font-size: 14px;"><strong>Stock disponible:</strong> ${producto.stock ?? 'Disponible'} Uds.</p>
+                        <p style="font-size: 14px; margin-top: 5px;"><strong>EAN:</strong> ${producto.ean || producto.codigo || busqueda}</p>
+                        <p style="font-size: 14px;"><strong>Stock disponible:</strong> ${producto.stock ?? 'N/D'} Uds.</p>
+                        <p style="font-size: 14px;"><strong>Precio:</strong> ${producto.precio ? producto.precio + ' €' : 'N/D'}</p>
                     </div>
                 `;
             } else {
                 contenedor.innerHTML = `
-                    <div class="result-box" style="border-left: 5px solid #004085;">
-                        <h4 style="color: #004085;">Artículo Detectado</h4>
-                        <p style="font-size: 14px; margin-top: 4px;"><strong>Código EAN:</strong> ${codigo}</p>
-                        <p style="font-size: 13px; color: #555;">Lectura procesada correctamente mediante escáner.</p>
+                    <div class="result-card" style="border-left-color: #c62828; background-color: #ffebee;">
+                        <h4 style="color: #c62828;">❌ Sin coincidencias</h4>
+                        <p style="font-size: 14px; margin-top: 5px;">No se encontró el artículo: <strong>${busqueda}</strong> en la base de datos.</p>
                     </div>
                 `;
             }
         }
 
         // --- LÓGICA DE REPOSICIÓN ---
-        function agregarManualmenteReposicion() {
-            const inputNombre = document.getElementById('input-reposicion');
-            const inputCantidad = document.getElementById('input-cantidad');
+        function agregarItemReposicion(criterio) {
+            if (!criterio) return;
 
-            const texto = inputNombre.value.trim();
-            const cantidad = parseInt(inputCantidad.value) || 1;
-
-            if (!texto) return;
+            const producto = buscarArticuloEnDB(criterio);
+            const descripcionFinal = producto ? (producto.descripcion || producto.nombre) : criterio;
 
             const nuevoItem = {
                 id: Date.now(),
-                descripcion: texto,
-                cantidad: cantidad
+                descripcion: descripcionFinal,
+                cantidad: 1
             };
 
             listaReposicion.push(nuevoItem);
@@ -386,10 +400,10 @@
 
             confirmarEscaneo();
 
-            inputNombre.value = '';
-            inputCantidad.value = '1';
+            const inputRepos = document.getElementById('input-reposicion');
+            inputRepos.value = '';
             renderizarListaReposicion();
-            inputNombre.focus();
+            inputRepos.focus();
         }
 
         function eliminarItemReposicion(id) {
@@ -399,7 +413,7 @@
         }
 
         function vaciarListaReposicion() {
-            if (confirm("¿Estás seguro de que quieres vaciar la lista de reposición?")) {
+            if (confirm("¿Deseas vaciar toda la lista de reposición?")) {
                 listaReposicion = [];
                 localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
                 renderizarListaReposicion();
@@ -407,28 +421,22 @@
         }
 
         function renderizarListaReposicion() {
-            const contenedor = document.getElementById('lista-reposicion-items');
-            const contador = document.getElementById('contador-faltas');
-
-            contenedor.innerHTML = '';
-            contador.textContent = listaReposicion.length;
+            const tbody = document.getElementById('tabla-reposicion-body');
+            tbody.innerHTML = '';
 
             if (listaReposicion.length === 0) {
-                contenedor.innerHTML = `<p style="color: #888; font-size: 13px; text-align: center; padding: 15px;">No hay artículos en la lista.</p>`;
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #888;">No hay artículos en la lista.</td></tr>`;
                 return;
             }
 
             listaReposicion.forEach(item => {
-                const row = document.createElement('div');
-                row.className = 'item-row';
-                row.innerHTML = `
-                    <div>
-                        <strong style="font-size: 14px;">${item.descripcion}</strong>
-                        <div style="font-size: 12px; color: #666;">Cant: ${item.cantidad} u.</div>
-                    </div>
-                    <button class="btn btn-danger" onclick="eliminarItemReposicion(${item.id})">Quitar</button>
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${item.descripcion}</strong></td>
+                    <td>${item.cantidad}</td>
+                    <td><button style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" onclick="eliminarItemReposicion(${item.id})">X</button></td>
                 `;
-                contenedor.appendChild(row);
+                tbody.appendChild(tr);
             });
         }
     </script>
