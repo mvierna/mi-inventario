@@ -11,15 +11,11 @@
         body { background-color: #f4f6f9; color: #333; padding-bottom: 30px; }
 
         /* ENCABEZADO */
-        header {
-            background-color: #d32f2f; color: white; padding: 12px; text-align: center; font-size: 14px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-        }
+        header { background-color: #d32f2f; color: white; padding: 12px; text-align: center; font-size: 14px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
 
         /* NAVEGACIÓN EN PESTAÑAS */
         nav { display: flex; background-color: #004085; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        nav button {
-            flex: 1; padding: 12px 2px; border: none; background: none; color: white; font-size: 13px; font-weight: bold; cursor: pointer; border-bottom: 4px solid transparent; transition: background-color 0.2s, border-color 0.2s;
-        }
+        nav button { flex: 1; padding: 12px 2px; border: none; background: none; color: white; font-size: 13px; font-weight: bold; cursor: pointer; border-bottom: 4px solid transparent; transition: background-color 0.2s, border-color 0.2s; }
         nav button.active { border-bottom-color: #ffc107; background-color: rgba(255, 255, 255, 0.15); }
 
         /* CONTENEDOR PRINCIPAL */
@@ -39,11 +35,8 @@
 
         /* FORMULARIOS E INPUTS */
         .input-group { display: flex; gap: 8px; margin-bottom: 12px; }
-        input[type="text"] {
-            flex: 1; padding: 12px; border: 2px solid #004085; border-radius: 6px; font-size: 16px; outline: none;
-        }
+        input[type="text"] { flex: 1; padding: 12px; border: 2px solid #004085; border-radius: 6px; font-size: 16px; outline: none; }
         input[type="text"]:focus { border-color: #28a745; background-color: #f0fff4; }
-        
         .btn-action { background-color: #004085; color: white; border: none; padding: 0 16px; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; }
         .btn-danger { background-color: #dc3545; color: white; border: none; padding: 10px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; font-size: 13px; }
 
@@ -121,225 +114,234 @@
         </div>
     </div>
 
+    <!-- SCRIPT ENVUELTO EN PROTECCIÓN TOTAL -->
     <script>
-        // === 1. VARIABLES GLOBALES SEGURAS ===
-        window.articulos = [];
-        let listaReposicion = [];
         try {
-            // Intentamos cargar la lista guardada, si falla por datos corruptos, iniciamos vacía
-            listaReposicion = JSON.parse(localStorage.getItem('reposicion_v2_data')) || [];
-        } catch (e) {
-            console.error("Error al leer localStorage:", e);
-        }
-
-        // === 2. INICIALIZACIÓN BLINDADA ===
-        function iniciarApp() {
-            cargarBaseDatos();
-            renderizarListaReposicion();
-            configurarLectoresDirectos();
-        }
-
-        // Evita el fallo de "race condition" en navegadores móviles comprobando el estado del DOM
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', iniciarApp);
-        } else {
-            iniciarApp();
-        }
-
-        // === 3. CARGA DE BASE DE DATOS OPTIMIZADA ===
-        async function cargarBaseDatos() {
-            const statusBox = document.getElementById('status-db');
+            // === 1. VARIABLES GLOBALES SEGURAS ===
+            window.articulos = [];
+            let listaReposicion = [];
+            
             try {
-                statusBox.className = "status-box status-loading";
-                statusBox.innerHTML = "⏳ Conectando y descargando datos (TIENDA.csv)...";
+                const guardado = localStorage.getItem('reposicion_v2_data');
+                if (guardado) {
+                    listaReposicion = JSON.parse(guardado);
+                }
+            } catch (e) {
+                console.error("No se pudo cargar la lista guardada.");
+            }
 
-                // Forzamos la descarga sin usar caché, usando parámetros nativos de fetch
-                const respuesta = await fetch('TIENDA.csv', { 
-                    cache: 'no-store',
-                    headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
-                });
+            // === 2. LÓGICA DE CARGA DE DATOS ===
+            async function cargarBaseDatos() {
+                const statusBox = document.getElementById('status-db');
+                try {
+                    statusBox.innerHTML = "⏳ Conectando y descargando (TIENDA.csv)...";
+                    
+                    // Método clásico y universal para evitar la caché sin bloquear el navegador
+                    const urlSinCache = 'TIENDA.csv?v=' + new Date().getTime();
+                    const respuesta = await fetch(urlSinCache);
 
-                if (!respuesta.ok) throw new Error(`HTTP Error: ${respuesta.status} - No se encontró el archivo.`);
-
-                statusBox.innerHTML = "⏳ Procesando catálogo de artículos...";
-                const texto = await respuesta.text();
-                
-                const lineas = texto.split(/\r?\n/);
-                window.articulos = [];
-
-                // Bucle de procesamiento de datos
-                for (let i = 0; i < lineas.length; i++) {
-                    const linea = lineas[i];
-                    if (!linea) continue;
-
-                    const col = linea.split(';');
-                    if (col.length >= 2) {
-                        window.articulos.push({
-                            ean: col[0] ? col[0].replace(/^"|"$/g, '').trim() : '',
-                            descripcion: col[1] ? col[1].replace(/^"|"$/g, '').trim() : '',
-                            stock: col[2] ? col[2].replace(/^"|"$/g, '').trim() : '0',
-                            precio: col[3] ? col[3].replace(/^"|"$/g, '').trim() : ''
-                        });
+                    if (!respuesta.ok) {
+                        throw new Error("HTTP " + respuesta.status + " - Archivo no encontrado.");
                     }
+
+                    statusBox.innerHTML = "⏳ Procesando catálogo...";
+                    const texto = await respuesta.text();
+                    const lineas = texto.split(/\r?\n/);
+                    
+                    window.articulos = [];
+
+                    for (let i = 0; i < lineas.length; i++) {
+                        const linea = lineas[i];
+                        if (!linea) continue;
+
+                        const col = linea.split(';');
+                        if (col.length >= 2) {
+                            window.articulos.push({
+                                ean: col[0] ? col[0].replace(/^"|"$/g, '').trim() : '',
+                                descripcion: col[1] ? col[1].replace(/^"|"$/g, '').trim() : '',
+                                stock: col[2] ? col[2].replace(/^"|"$/g, '').trim() : '0',
+                                precio: col[3] ? col[3].replace(/^"|"$/g, '').trim() : ''
+                            });
+                        }
+                    }
+
+                    statusBox.className = "status-box status-ok";
+                    statusBox.innerHTML = `✅ Base de datos lista (${window.articulos.length} artículos)`;
+                    
+                    // Solo enfocamos si el input existe
+                    const inputC = document.getElementById('input-consulta');
+                    if (inputC) inputC.focus();
+
+                } catch (error) {
+                    statusBox.className = "status-box status-error";
+                    statusBox.innerHTML = "❌ Fallo al cargar datos: " + error.message;
+                }
+            }
+
+            // === 3. FUNCIONES COMPLEMENTARIAS ===
+            function confirmarEscaneo() {
+                try {
+                    if (navigator.vibrate) navigator.vibrate(100);
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) {
+                        const ctx = new AudioCtx();
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(880, ctx.currentTime);
+                        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start();
+                        osc.stop(ctx.currentTime + 0.12);
+                    }
+                } catch (e) {
+                    // Silenciamos fallos de audio inofensivos
+                }
+            }
+
+            // Para hacer las funciones accesibles desde el HTML (onclick, onsubmit)
+            window.cambiarPestaña = function(nombreTab) {
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+                document.getElementById('tab-' + nombreTab)?.classList.add('active');
+                document.getElementById('btn-tab-' + nombreTab)?.classList.add('active');
+            };
+
+            window.procesarConsulta = function() {
+                const input = document.getElementById('input-consulta');
+                const contenedor = document.getElementById('resultado-consulta');
+                if (!input || !contenedor) return;
+
+                const termino = input.value.trim().toLowerCase();
+                
+                if (!termino) {
+                    contenedor.innerHTML = `
+                        <div class="result-card" style="border-left-color: #ff9800; background-color: #fff3e0;">
+                            <p style="color: #e65100; font-size: 14px; font-weight: bold;">⚠️ Escribe un código o descripción antes de buscar.</p>
+                        </div>`;
+                    return;
                 }
 
-                statusBox.className = "status-box status-ok";
-                statusBox.innerHTML = `✅ Base de datos lista (${window.articulos.length.toLocaleString('es-ES')} artículos)`;
-                document.getElementById('input-consulta')?.focus();
+                confirmarEscaneo();
 
-            } catch (error) {
-                // Si ocurre CUALQUIER fallo, se mostrará aquí visualmente
-                statusBox.className = "status-box status-error";
-                statusBox.innerHTML = `❌ Error de carga: ${error.message} <br><small>Revisa tu conexión o vuelve a ejecutar el actualizador.</small>`;
-            }
-        }
+                const producto = window.articulos.find(item => 
+                    item.ean.toLowerCase() === termino || item.descripcion.toLowerCase().includes(termino)
+                );
 
-        // === 4. SISTEMA SENSORIAL ===
-        function confirmarEscaneo() {
-            try {
-                if ("vibrate" in navigator) navigator.vibrate(100);
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (!AudioCtx) return;
-                const ctx = new AudioCtx();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, ctx.currentTime);
-                gain.gain.setValueAtTime(0.2, ctx.currentTime);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.12);
-            } catch (e) {
-                // Silenciamos errores de audio si el navegador lo bloquea por permisos
-            }
-        }
+                if (producto) {
+                    contenedor.innerHTML = `
+                        <div class="result-card">
+                            <h4 style="color: #1b5e20;">${producto.descripcion}</h4>
+                            <p style="font-size: 14px; margin-top: 5px;"><strong>EAN:</strong> ${producto.ean}</p>
+                            <p style="font-size: 14px;"><strong>Stock:</strong> ${producto.stock} Uds.</p>
+                            ${producto.precio ? `<p style="font-size: 14px;"><strong>Precio:</strong> ${producto.precio} €</p>` : ''}
+                        </div>
+                    `;
+                } else {
+                    contenedor.innerHTML = `
+                        <div class="result-card" style="border-left-color: #c62828; background-color: #ffebee;">
+                            <h4 style="color: #c62828;">❌ Sin coincidencias</h4>
+                            <p style="font-size: 13px; margin-top: 5px;">No se encontró "${termino}".</p>
+                        </div>
+                    `;
+                }
+            };
 
-        // === 5. FUNCIONES DE INTERFAZ ===
-        function cambiarPestaña(nombreTab) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
-            document.getElementById(`tab-${nombreTab}`)?.classList.add('active');
-            document.getElementById(`btn-tab-${nombreTab}`)?.classList.add('active');
-        }
+            window.procesarReposicion = function() {
+                const input = document.getElementById('input-reposicion');
+                if (!input) return;
+                const termino = input.value.trim();
+                if (!termino) return;
 
-        function configurarLectoresDirectos() {
-            const inputConsulta = document.getElementById('input-consulta');
-            inputConsulta?.addEventListener('input', () => {
-                const val = inputConsulta.value.trim();
-                if (/^\d{13}$/.test(val) \vert{}\vert{} /^\d{8}$/.test(val)) procesarConsulta();
-            });
+                const producto = window.articulos.find(item => 
+                    item.ean.toLowerCase() === termino.toLowerCase() || item.descripcion.toLowerCase().includes(termino.toLowerCase())
+                );
 
-            const inputReposicion = document.getElementById('input-reposicion');
-            inputReposicion?.addEventListener('input', () => {
-                const val = inputReposicion.value.trim();
-                if (/^\d{13}$/.test(val) \vert{}\vert{} /^\d{8}$/.test(val)) procesarReposicion();
-            });
-        }
+                listaReposicion.push({
+                    id: Date.now(),
+                    descripcion: producto ? producto.descripcion : termino,
+                    cantidad: 1
+                });
 
-        function procesarConsulta() {
-            const input = document.getElementById('input-consulta');
-            const contenedor = document.getElementById('resultado-consulta');
-            if (!input || !contenedor) return;
+                localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
+                confirmarEscaneo();
+                input.value = '';
+                renderizarListaReposicion();
+            };
 
-            const termino = input.value.trim().toLowerCase();
-            
-            // Si el campo está vacío, avisamos al usuario (mejora aplicada)
-            if (!termino) {
-                contenedor.innerHTML = `
-                    <div class="result-card" style="border-left-color: #ff9800; background-color: #fff3e0;">
-                        <p style="color: #e65100; font-size: 14px; font-weight: bold;">⚠️ Escribe un código o descripción antes de buscar.</p>
-                    </div>`;
-                return;
-            }
-
-            confirmarEscaneo();
-
-            const producto = window.articulos.find(item => 
-                item.ean.toLowerCase() === termino || item.descripcion.toLowerCase().includes(termino)
-            );
-
-            if (producto) {
-                contenedor.innerHTML = `
-                    <div class="result-card">
-                        <h4 style="color: #1b5e20;">${producto.descripcion}</h4>
-                        <p style="font-size: 14px; margin-top: 5px;"><strong>EAN:</strong> ${producto.ean}</p>
-                        <p style="font-size: 14px;"><strong>Stock:</strong> ${producto.stock} Uds.</p>
-                        ${producto.precio ? `<p style="font-size: 14px;"><strong>Precio:</strong> ${producto.precio} €</p>` : ''}
-                    </div>
-                `;
-            } else {
-                contenedor.innerHTML = `
-                    <div class="result-card" style="border-left-color: #c62828; background-color: #ffebee;">
-                        <h4 style="color: #c62828;">❌ Sin coincidencias</h4>
-                        <p style="font-size: 13px; margin-top: 5px;">No se encontró "${termino}".</p>
-                    </div>
-                `;
-            }
-        }
-
-        function procesarReposicion() {
-            const input = document.getElementById('input-reposicion');
-            if (!input) return;
-
-            const termino = input.value.trim();
-            if (!termino) {
-                alert("Por favor, escribe un EAN o artículo para añadirlo.");
-                return;
-            }
-
-            const terminoLower = termino.toLowerCase();
-            const producto = window.articulos.find(item => 
-                item.ean.toLowerCase() === terminoLower || item.descripcion.toLowerCase().includes(terminoLower)
-            );
-
-            listaReposicion.push({
-                id: Date.now(),
-                descripcion: producto ? producto.descripcion : termino,
-                cantidad: 1
-            });
-
-            localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
-            confirmarEscaneo();
-
-            input.value = '';
-            renderizarListaReposicion();
-            input.focus();
-        }
-
-        function eliminarItemReposicion(id) {
-            listaReposicion = listaReposicion.filter(item => item.id !== id);
-            localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
-            renderizarListaReposicion();
-        }
-
-        function vaciarListaReposicion() {
-            if (confirm("¿Deseas vaciar toda la lista de reposición acumulada?")) {
-                listaReposicion = [];
+            window.eliminarItemReposicion = function(id) {
+                listaReposicion = listaReposicion.filter(item => item.id !== id);
                 localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
                 renderizarListaReposicion();
+            };
+
+            window.vaciarListaReposicion = function() {
+                if (confirm("¿Deseas vaciar toda la lista?")) {
+                    listaReposicion = [];
+                    localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
+                    renderizarListaReposicion();
+                }
+            };
+
+            function renderizarListaReposicion() {
+                const tbody = document.getElementById('tabla-reposicion-body');
+                if (!tbody) return;
+                tbody.innerHTML = '';
+                
+                if (listaReposicion.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #888;">La lista está vacía.</td></tr>`;
+                    return;
+                }
+
+                listaReposicion.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${item.descripcion}</strong></td>
+                        <td>${item.cantidad}</td>
+                        <td><button style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" onclick="eliminarItemReposicion(${item.id})">X</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
             }
-        }
 
-        function renderizarListaReposicion() {
-            const tbody = document.getElementById('tabla-reposicion-body');
-            if (!tbody) return;
-
-            tbody.innerHTML = '';
-            if (listaReposicion.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #888;">No hay artículos en la lista de faltas.</td></tr>`;
-                return;
+            function configurarLectoresDirectos() {
+                const inputC = document.getElementById('input-consulta');
+                if (inputC) {
+                    inputC.addEventListener('input', function() {
+                        const val = this.value.trim();
+                        if (/^\d{13}$/.test(val) \vert{}\vert{} /^\d{8}$/.test(val)) window.procesarConsulta();
+                    });
+                }
+                const inputR = document.getElementById('input-reposicion');
+                if (inputR) {
+                    inputR.addEventListener('input', function() {
+                        const val = this.value.trim();
+                        if (/^\d{13}$/.test(val) \vert{}\vert{} /^\d{8}$/.test(val)) window.procesarReposicion();
+                    });
+                }
             }
 
-            listaReposicion.forEach(item => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><strong>${item.descripcion}</strong></td>
-                    <td>${item.cantidad}</td>
-                    <td><button style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" onclick="eliminarItemReposicion(${item.id})">X</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
+            // === 4. ARRANQUE PRINCIPAL DE LA APP ===
+            function iniciarApp() {
+                const statusBox = document.getElementById('status-db');
+                if (statusBox) statusBox.innerHTML = "⚙️ Comprobando sistema...";
+                
+                renderizarListaReposicion();
+                configurarLectoresDirectos();
+                cargarBaseDatos();
+            }
+
+            // Arrancamos todo directamente con un breve respiro para el móvil
+            setTimeout(iniciarApp, 100);
+
+        } catch (errorCritico) {
+            // Si el código falla por completo, mostramos el error rojo brillante
+            const cajaEstado = document.getElementById('status-db');
+            if (cajaEstado) {
+                cajaEstado.className = "status-box status-error";
+                cajaEstado.innerHTML = "❌ Error crítico general: " + errorCritico.message;
+            }
         }
     </script>
 </body>
