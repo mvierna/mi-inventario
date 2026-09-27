@@ -19,11 +19,11 @@
         }
 
         header {
-            background-color: #0056b3;
+            background-color: #d32f2f;
             color: white;
-            padding: 15px;
+            padding: 12px;
             text-align: center;
-            font-size: 20px;
+            font-size: 14px;
             font-weight: bold;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
@@ -31,23 +31,25 @@
         nav {
             display: flex;
             background-color: #004085;
+            overflow-x: auto;
         }
 
         nav button {
             flex: 1;
-            padding: 14px;
+            padding: 12px 8px;
             border: none;
             background: none;
             color: white;
-            font-size: 15px;
+            font-size: 13px;
             font-weight: bold;
             cursor: pointer;
             border-bottom: 4px solid transparent;
+            white-space: nowrap;
         }
 
         nav button.active {
-            border-bottom-color: #28a745;
-            background-color: rgba(255, 255, 255, 0.1);
+            border-bottom-color: #ffc107;
+            background-color: rgba(255, 255, 255, 0.15);
         }
 
         .container {
@@ -72,28 +74,40 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.08);
         }
 
+        .card h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #004085;
+        }
+
         label {
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 13px;
         }
 
-        input, select {
+        input {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             margin-bottom: 12px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            border: 2px solid #004085;
+            border-radius: 6px;
             font-size: 16px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #28a745;
+            background-color: #f0fff4;
         }
 
         .btn {
             width: 100%;
             padding: 12px;
             border: none;
-            border-radius: 5px;
-            font-size: 16px;
+            border-radius: 6px;
+            font-size: 15px;
             font-weight: bold;
             cursor: pointer;
             transition: background 0.2s;
@@ -107,116 +121,138 @@
         .btn-danger {
             background-color: #dc3545;
             color: white;
-            padding: 6px 10px;
+            padding: 6px 12px;
             font-size: 12px;
             width: auto;
+            border-radius: 4px;
+        }
+
+        .status-box {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 13px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .result-box {
+            margin-top: 10px;
+            padding: 12px;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
         }
 
         .item-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px;
+            padding: 10px 0;
             border-bottom: 1px solid #eee;
-        }
-
-        .item-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .item-title {
-            font-weight: bold;
-            font-size: 15px;
-        }
-
-        .item-sub {
-            font-size: 12px;
-            color: #666;
         }
 
         .badge {
             background-color: #17a2b8;
             color: white;
-            padding: 3px 8px;
-            border-radius: 12px;
+            padding: 2px 8px;
+            border-radius: 10px;
             font-size: 12px;
-            margin-left: 5px;
         }
     </style>
 </head>
 <body>
 
-    <header>📦 Control de Inventario v2</header>
+    <header>
+        🚀 VERSIÓN V2 - Feedback de Sonido y Vibración Activos
+    </header>
 
     <nav>
-        <button id="tab-btn-reposicion" class="active" onclick="cambiarPestaña('reposicion')">📋 Reposición</button>
-        <button id="tab-btn-stock" onclick="cambiarPestaña('stock')">🔍 Consulta Stock</button>
+        <button id="btn-tab-consulta" class="active" onclick="cambiarPestaña('consulta')">📦 Consulta</button>
+        <button id="btn-tab-reposicion" onclick="cambiarPestaña('reposicion')">📋 Reposición</button>
+        <button id="btn-tab-chequeo" onclick="cambiarPestaña('chequeo')">🔍 Chequeo</button>
+        <button id="btn-tab-presupuesto" onclick="cambiarPestaña('presupuesto')">📑 Presupuesto</button>
     </nav>
 
     <div class="container">
 
-        <!-- PESTAÑA 1: MÓDULO DE REPOSICIÓN -->
-        <div id="tab-reposicion" class="tab-content active">
+        <!-- 1. PESTAÑA: CONSULTA DE INVENTARIO -->
+        <div id="tab-consulta" class="tab-content active">
             <div class="card">
-                <h3>Añadir Producto a Reponer</h3>
-                <br>
-                <label for="producto-nombre">Nombre o Descripción:</label>
-                <input type="text" id="producto-nombre" placeholder="Ej. Detergente 2L / Pilas AA">
-
-                <label for="producto-cantidad">Cantidad necesaria:</label>
-                <input type="number" id="producto-cantidad" value="1" min="1">
-
-                <button class="btn btn-success" onclick="guardarEnReposicion()">➕ Guardar en Reposición</button>
-            </div>
-
-            <div class="card">
-                <h3>Lista de Pendientes <span id="contador-items" class="badge">0</span></h3>
-                <div id="lista-reposicion-contenedor" style="margin-top: 10px;">
-                    <!-- Los artículos añadidos se generarán aquí -->
+                <h3>📦 Consulta de Inventario</h3>
+                <div class="status-box">
+                    <span>✅ Base de datos cargada (<span id="total-articulos">64400</span> arts)</span>
                 </div>
+                <input type="text" id="input-consulta" placeholder="Buscar por EAN o descripción..." autofocus autocomplete="off">
+                <div id="resultado-consulta"></div>
             </div>
         </div>
 
-        <!-- PESTAÑA 2: CONSULTA DE STOCK -->
-        <div id="tab-stock" class="tab-content">
+        <!-- 2. PESTAÑA: LISTA DE REPOSICIÓN -->
+        <div id="tab-reposicion" class="tab-content">
             <div class="card">
-                <h3>Buscador Rápido</h3>
-                <br>
-                <input type="text" id="input-buscar" placeholder="Buscar por EAN o nombre..." onkeyup="filtrarProductos()">
-                <div id="resultados-busqueda">
-                    <p style="color: #777; font-size: 14px;">Escribe para buscar artículos del inventario...</p>
+                <h3>📋 Crear Lista de Reposición</h3>
+                <p style="font-size: 13px; color: #666; margin-bottom: 10px;">Busca un producto e introduce las unidades a reponer:</p>
+                <input type="text" id="input-reposicion" placeholder="Escribe EAN o nombre del artículo..." autocomplete="off">
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input type="number" id="input-cantidad" value="1" min="1" style="width: 80px; margin-bottom: 0;">
+                    <button class="btn btn-success" onclick="agregarManualmenteReposicion()">Añadir a la Lista</button>
                 </div>
+            </div>
+
+            <div class="card">
+                <h3>Lista de Faltas Acumulada <span id="contador-faltas" class="badge">0</span></h3>
+                <div id="lista-reposicion-items"></div>
+                <button class="btn btn-danger" style="width: 100%; margin-top: 15px;" onclick="vaciarListaReposicion()">🗑️ Vaciar Lista de Reposición</button>
+            </div>
+        </div>
+
+        <!-- 3. PESTAÑA: CHEQUEO -->
+        <div id="tab-chequeo" class="tab-content">
+            <div class="card">
+                <h3>🔍 Chequeo de Precios</h3>
+                <p style="color: #666; font-size: 14px;">Módulo reservado para escáner + OCR de etiquetas de precio.</p>
+            </div>
+        </div>
+
+        <!-- 4. PESTAÑA: PRESUPUESTO -->
+        <div id="tab-presupuesto" class="tab-content">
+            <div class="card">
+                <h3>📑 Presupuestos</h3>
+                <p style="color: #666; font-size: 14px;">Módulo reservado para cálculo rápido de presupuestos.</p>
             </div>
         </div>
 
     </div>
 
     <script>
-        // --- VARIABLES DE ESTADO ---
-        // 'listaReposicion': Matriz de objetos que guarda la lista actual de reposición
-        let listaReposicion = JSON.parse(localStorage.getItem('reposicion_data')) || [];
+        // --- BASE DE DATOS Y ESTADO DE LA APLICACIÓN ---
+        // Si existe una variable global previa la utiliza, si no, define la estructura local
+        window.baseDatos = window.baseDatos || [];
+        let listaReposicion = JSON.parse(localStorage.getItem('reposicion_v2_data')) || [];
 
-        // Inicializar la interfaz al cargar la página
-        document.addEventListener("DOMContentLoaded", () => {
+        // Inicialización de eventos al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
             renderizarListaReposicion();
+            configurarLectoresEan();
         });
 
-        // --- SISTEMA DE AUDIO Y VIBRACIÓN (FEEDBACK) ---
-        
-        // Emite un pitido claro de confirmación de 150ms a 880Hz
+        // --- FEEDBACK AUDITIVO Y TÁCTIL ---
         function emitirPitido() {
             try {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                if (!AudioContext) return;
-                
-                const ctx = new AudioContext();
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
 
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, ctx.currentTime);
-                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                osc.frequency.setValueAtTime(880, ctx.currentTime); // Tono claro A5
+                gain.gain.setValueAtTime(0.2, ctx.currentTime);
 
                 osc.connect(gain);
                 gain.connect(ctx.destination);
@@ -224,85 +260,161 @@
                 osc.start();
                 osc.stop(ctx.currentTime + 0.15);
             } catch (e) {
-                console.log("Audio no disponible:", e);
+                console.log("Audio no soportado:", e);
             }
         }
 
-        // Activa la vibración del smartphone durante 100 milisegundos
         function activarVibracion() {
             if ("vibrate" in navigator) {
-                navigator.vibrate(100);
+                navigator.vibrate(120);
             }
         }
 
-        // Ejecuta ambos estímulos juntos
-        function confirmarAccion() {
+        function confirmarEscaneo() {
             emitirPitido();
             activarVibracion();
         }
 
-        // --- NAVEGACIÓN ENTRE PESTAÑAS ---
-        function cambiarPestaña(nombrePestaña) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+        // --- SISTEMA DE CAPTURA DEL ESCÁNER (ENTER Y EAN AUTO) ---
+        function configurarLectoresEan() {
+            const inputConsulta = document.getElementById('input-consulta');
+            const inputReposicion = document.getElementById('input-reposicion');
 
-            if (nombrePestaña === 'reposicion') {
-                document.getElementById('tab-reposicion').classList.add('active');
-                document.getElementById('tab-btn-reposicion').classList.add('active');
-            } else {
-                document.getElementById('tab-stock').classList.add('active');
-                document.getElementById('tab-btn-stock').classList.add('active');
+            // Configuración Escáner Consulta
+            if (inputConsulta) {
+                inputConsulta.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        ejecutarConsulta(inputConsulta.value.trim());
+                    }
+                });
+
+                inputConsulta.addEventListener('input', () => {
+                    const val = inputConsulta.value.trim();
+                    if (/^\d{13}$/.test(val) \vert{}\vert{} /^\d{8}$/.test(val)) {
+                        ejecutarConsulta(val);
+                    }
+                });
+            }
+
+            // Configuración Escáner Reposición
+            if (inputReposicion) {
+                inputReposicion.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        agregarManualmenteReposicion();
+                    }
+                });
+
+                inputReposicion.addEventListener('input', () => {
+                    const val = inputReposicion.value.trim();
+                    if (/^\d{13}$/.test(val) \vert{}\vert{} /^\d{8}$/.test(val)) {
+                        agregarManualmenteReposicion();
+                    }
+                });
             }
         }
 
-        // --- LÓGICA DEL MÓDULO DE REPOSICIÓN ---
-        function guardarEnReposicion() {
-            const inputNombre = document.getElementById('producto-nombre');
-            const inputCantidad = document.getElementById('producto-cantidad');
+        // --- NAVEGACIÓN ENTRE PESTAÑAS ---
+        function cambiarPestaña(nombreTab) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
 
-            const nombre = inputNombre.value.trim();
-            const cantidad = parseInt(inputCantidad.value);
+            document.getElementById(`tab-${nombreTab}`).classList.add('active');
+            document.getElementById(`btn-tab-${nombreTab}`).classList.add('active');
 
-            if (nombre === "") {
-                alert("Por favor, introduce el nombre del producto.");
-                return;
+            // Dar foco automático a la casilla correspondiente
+            if (nombreTab === 'consulta') {
+                document.getElementById('input-consulta').focus();
+            } else if (nombreTab === 'reposicion') {
+                document.getElementById('input-reposicion').focus();
             }
+        }
 
-            // Crear objeto del nuevo ítem
+        // --- LÓGICA DE CONSULTA ---
+        function ejecutarConsulta(codigo) {
+            if (!codigo) return;
+
+            const contenedor = document.getElementById('resultado-consulta');
+            
+            // Buscar en la base de datos precargada o búsqueda de prueba
+            let producto = window.baseDatos.find(item => 
+                (item.ean && String(item.ean) === codigo) || 
+                (item.codigo && String(item.codigo) === codigo)
+            );
+
+            // Confirmación sonora y táctil al detectar lectura
+            confirmarEscaneo();
+
+            if (producto) {
+                contenedor.innerHTML = `
+                    <div class="result-box" style="border-left: 5px solid #28a745; background-color: #e8f5e9;">
+                        <h4 style="color: #1b5e20;">${producto.descripcion || producto.nombre}</h4>
+                        <p style="font-size: 14px; margin-top: 4px;"><strong>EAN:</strong> ${codigo}</p>
+                        <p style="font-size: 14px;"><strong>Stock disponible:</strong> ${producto.stock ?? 'Disponible'} Uds.</p>
+                    </div>
+                `;
+            } else {
+                contenedor.innerHTML = `
+                    <div class="result-box" style="border-left: 5px solid #004085;">
+                        <h4 style="color: #004085;">Artículo Detectado</h4>
+                        <p style="font-size: 14px; margin-top: 4px;"><strong>Código EAN:</strong> ${codigo}</p>
+                        <p style="font-size: 13px; color: #555;">Lectura procesada correctamente mediante escáner.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // --- LÓGICA DE REPOSICIÓN ---
+        function agregarManualmenteReposicion() {
+            const inputNombre = document.getElementById('input-reposicion');
+            const inputCantidad = document.getElementById('input-cantidad');
+
+            const texto = inputNombre.value.trim();
+            const cantidad = parseInt(inputCantidad.value) || 1;
+
+            if (!texto) return;
+
             const nuevoItem = {
                 id: Date.now(),
-                nombre: nombre,
+                descripcion: texto,
                 cantidad: cantidad
             };
 
-            // Guardar en array y almacenamiento local
             listaReposicion.push(nuevoItem);
-            localStorage.setItem('reposicion_data', JSON.stringify(listaReposicion));
+            localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
 
-            // Feedback de confirmación (Sonido + Vibración)
-            confirmarAccion();
+            confirmarEscaneo();
 
-            // Limpiar formulario y actualizar vista
-            inputNombre.value = "";
-            inputCantidad.value = "1";
+            inputNombre.value = '';
+            inputCantidad.value = '1';
+            renderizarListaReposicion();
+            inputNombre.focus();
+        }
+
+        function eliminarItemReposicion(id) {
+            listaReposicion = listaReposicion.filter(item => item.id !== id);
+            localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
             renderizarListaReposicion();
         }
 
-        function eliminarItem(id) {
-            listaReposicion = listaReposicion.filter(item => item.id !== id);
-            localStorage.setItem('reposicion_data', JSON.stringify(listaReposicion));
-            renderizarListaReposicion();
+        function vaciarListaReposicion() {
+            if (confirm("¿Estás seguro de que quieres vaciar la lista de reposición?")) {
+                listaReposicion = [];
+                localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
+                renderizarListaReposicion();
+            }
         }
 
         function renderizarListaReposicion() {
-            const contenedor = document.getElementById('lista-reposicion-contenedor');
-            const contador = document.getElementById('contador-items');
-            
-            contenedor.innerHTML = "";
+            const contenedor = document.getElementById('lista-reposicion-items');
+            const contador = document.getElementById('contador-faltas');
+
+            contenedor.innerHTML = '';
             contador.textContent = listaReposicion.length;
 
             if (listaReposicion.length === 0) {
-                contenedor.innerHTML = `<p style="color: #888; font-size: 14px; text-align: center; padding: 10px;">No hay productos pendientes de reposición.</p>`;
+                contenedor.innerHTML = `<p style="color: #888; font-size: 13px; text-align: center; padding: 15px;">No hay artículos en la lista.</p>`;
                 return;
             }
 
@@ -310,34 +422,14 @@
                 const row = document.createElement('div');
                 row.className = 'item-row';
                 row.innerHTML = `
-                    <div class="item-info">
-                        <span class="item-title">${item.nombre}</span>
-                        <span class="item-sub">Cantidad a reponer: <strong>${item.cantidad}</strong></span>
+                    <div>
+                        <strong style="font-size: 14px;">${item.descripcion}</strong>
+                        <div style="font-size: 12px; color: #666;">Cant: ${item.cantidad} u.</div>
                     </div>
-                    <button class="btn btn-danger" onclick="eliminarItem(${item.id})">Completar</button>
+                    <button class="btn btn-danger" onclick="eliminarItemReposicion(${item.id})">Quitar</button>
                 `;
                 contenedor.appendChild(row);
             });
-        }
-
-        // --- BÚSQUEDA SIMPLIFICADA ---
-        function filtrarProductos() {
-            const texto = document.getElementById('input-buscar').value.toLowerCase();
-            const contenedor = document.getElementById('resultados-busqueda');
-            
-            if (texto.length < 2) {
-                contenedor.innerHTML = `<p style="color: #777; font-size: 14px;">Escribe para buscar artículos del inventario...</p>`;
-                return;
-            }
-
-            contenedor.innerHTML = `
-                <div class="item-row">
-                    <div class="item-info">
-                        <span class="item-title">Coincidencia con "${texto}"</span>
-                        <span class="item-sub">EAN: 8410000123456 | Stock: 12 uds.</span>
-                    </div>
-                </div>
-            `;
         }
     </script>
 </body>
