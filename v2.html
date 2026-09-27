@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Inventario y Reposición v2</title>
 
+    <!-- INTENTO DE CARGA DIRECTA POR SCRIPT (Si existe un .js en tu servidor) -->
+    <script src="articulos.js" onerror="console.log('articulos.js no encontrado, usando fallbacks')"></script>
+    <script src="TIENDA.js" onerror="console.log('TIENDA.js no encontrado, usando fallbacks')"></script>
+
     <style>
         * {
             box-sizing: border-box;
@@ -29,7 +33,7 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
-        /* NAVEGACIÓN PRINCIPAL (4 MÓDULOS) */
+        /* NAVEGACIÓN EN PESTAÑAS */
         nav {
             display: flex;
             background-color: #004085;
@@ -102,9 +106,9 @@
         }
 
         .status-alert {
-            background-color: #ffebee;
-            color: #c62828;
-            border: 1px solid #ffcdd2;
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
         }
 
         .input-group {
@@ -181,7 +185,7 @@
         📌 VERSIÓN V2 DE PRUEBAS - Feedback de Sonido y Vibración Activos
     </header>
 
-    <!-- NAVEGACIÓN EN PESTAÑAS -->
+    <!-- PESTAÑAS DE NAVEGACIÓN -->
     <nav>
         <button id="btn-tab-consulta" class="active" onclick="cambiarPestaña('consulta')">📦 Consulta</button>
         <button id="btn-tab-reposicion" onclick="cambiarPestaña('reposicion')">📋 Reposición</button>
@@ -191,13 +195,13 @@
 
     <div class="container">
 
-        <!-- 1. PESTAÑA: CONSULTA DE INVENTARIO -->
+        <!-- 1. PESTAÑA: CONSULTA -->
         <div id="tab-consulta" class="tab-content active">
             <div class="card">
                 <h3>📦 Consulta de Inventario</h3>
                 
                 <div id="status-db" class="status-box status-loading">
-                    ⏳ Cargando archivo TIENDA.csv...
+                    ⏳ Conectando base de datos...
                 </div>
 
                 <form id="form-consulta" onsubmit="event.preventDefault(); procesarConsulta();">
@@ -211,7 +215,7 @@
             </div>
         </div>
 
-        <!-- 2. PESTAÑA: LISTA DE REPOSICIÓN -->
+        <!-- 2. PESTAÑA: REPOSICIÓN -->
         <div id="tab-reposicion" class="tab-content">
             <div class="card">
                 <h3>📋 Crear Lista de Reposición</h3>
@@ -234,7 +238,7 @@
                         </tr>
                     </thead>
                     <tbody id="tabla-reposicion-body">
-                        <!-- Contenido dinámico -->
+                        <!-- Filas dinámicas -->
                     </tbody>
                 </table>
                 <br>
@@ -242,7 +246,7 @@
             </div>
         </div>
 
-        <!-- 3. PESTAÑA: CHEQUEO DE PRECIOS -->
+        <!-- 3. PESTAÑA: CHEQUEO -->
         <div id="tab-chequeo" class="tab-content">
             <div class="card">
                 <h3>🔍 Chequeo de Precios</h3>
@@ -250,7 +254,7 @@
             </div>
         </div>
 
-        <!-- 4. PESTAÑA: PRESUPUESTOS -->
+        <!-- 4. PESTAÑA: PRESUPUESTO -->
         <div id="tab-presupuesto" class="tab-content">
             <div class="card">
                 <h3>📑 Presupuestos</h3>
@@ -261,78 +265,126 @@
     </div>
 
     <script>
-        // Array global donde almacenaremos los datos procesados del CSV
         window.articulos = [];
         let listaReposicion = JSON.parse(localStorage.getItem('reposicion_v2_data')) || [];
 
         document.addEventListener('DOMContentLoaded', () => {
-            cargarBaseDatosCSV();
+            iniciarCargaBaseDatos();
             renderizarListaReposicion();
             configurarLectoresDirectos();
         });
 
         // =======================================================
-        // 1. CARGA Y PROCESAMIENTO AUTOMÁTICO DE TIENDA.CSV
+        // 1. CARGA MULTICAPA ULTRA-RÁPIDA (VARIABLES -> STORAGE -> CSV)
         // =======================================================
-        async function cargarBaseDatosCSV() {
-            const elStatusBox = document.getElementById('status-db');
-            try {
-                // Intentar descargar el archivo TIENDA.csv
-                const respuesta = await fetch('TIENDA.csv');
-                
-                if (!respuesta.ok) {
-                    throw new Error('No se encontró el archivo TIENDA.csv');
+        async function iniciarCargaBaseDatos() {
+            const statusBox = document.getElementById('status-db');
+
+            // Intento 1: Variables globales cargadas por scripts
+            if (verificarVariablesGlobales()) {
+                actualizarEstadoOK(statusBox);
+                return;
+            }
+
+            // Intento 2: Cargar desde LocalStorage si la app anterior los guardó
+            if (verificarLocalStorage()) {
+                actualizarEstadoOK(statusBox);
+                return;
+            }
+
+            // Intento 3: Fetch a CSV con timeout de seguridad (5 segundos)
+            await cargarCSVConFallback(statusBox);
+        }
+
+        function verificarVariablesGlobales() {
+            const posibles = [window.articulos, window.baseDatos, window.productos, window.inventario, window.db];
+            for (let arr of posibles) {
+                if (Array.isArray(arr) && arr.length > 0) {
+                    window.articulos = arr;
+                    return true;
                 }
+            }
+            return false;
+        }
 
-                const contenidoTexto = await respuesta.text();
-                const lineas = contenidoTexto.split(/\r?\n/);
-                
-                window.articulos = [];
-
-                if (lineas.length === 0) {
-                    throw new Error('El archivo CSV está vacío');
+        function verificarLocalStorage() {
+            const claves = ['articulos', 'baseDatos', 'inventario', 'productos_v1'];
+            for (let clave of claves) {
+                const data = localStorage.getItem(clave);
+                if (data) {
+                    try {
+                        const parsed = JSON.parse(data);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            window.articulos = parsed;
+                            return true;
+                        }
+                    } catch (e) {}
                 }
+            }
+            return false;
+        }
 
-                // Detectar automáticamente el separador (; o ,)
-                const primeraLinea = lineas[0];
-                const separador = primeraLinea.includes(';') ? ';' : ',';
+        async function cargarCSVConFallback(statusBox) {
+            const archivosCSV = ['TIENDA.csv', 'tienda.csv', 'Tienda.csv'];
 
-                // Procesar cada línea del CSV
-                for (let i = 0; i < lineas.length; i++) {
-                    const linea = lineas[i].trim();
-                    if (!linea) continue;
+            for (let nombre of archivosCSV) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s máximo
 
-                    const columnas = linea.split(separador);
+                    const res = await fetch(nombre, { signal: controller.signal });
+                    clearTimeout(timeoutId);
 
-                    // Extraer los datos limpiando comillas sobrantes
-                    const ean = columnas[0] ? columnas[0].replace(/^"|"$/g, '').trim() : '';
-                    const descripcion = columnas[1] ? columnas[1].replace(/^"|"$/g, '').trim() : '';
-                    const stock = columnas[2] ? columnas[2].replace(/^"|"$/g, '').trim() : 'N/D';
-                    const precio = columnas[3] ? columnas[3].replace(/^"|"$/g, '').trim() : '';
-
-                    if (ean || descripcion) {
-                        window.articulos.push({
-                            ean: ean,
-                            descripcion: descripcion,
-                            stock: stock,
-                            precio: precio
-                        });
+                    if (res.ok) {
+                        const texto = await res.text();
+                        if (texto && texto.length > 0) {
+                            procesarTextoCSV(texto);
+                            actualizarEstadoOK(statusBox);
+                            return;
+                        }
                     }
+                } catch (e) {
+                    console.warn(`No se pudo leer ${nombre}:`, e);
                 }
+            }
 
-                // Éxito al cargar los datos
-                elStatusBox.className = "status-box status-ok";
-                elStatusBox.innerHTML = `✅ Base de datos cargada (${window.articulos.length} arts)`;
-
-            } catch (error) {
-                console.error("Error cargando CSV:", error);
-                elStatusBox.className = "status-box status-alert";
-                elStatusBox.innerHTML = `⚠️ No se pudo cargar TIENDA.csv. Asegúrate de haber subido el archivo al repositorio.`;
+            // Si falla todo
+            if (window.articulos.length === 0) {
+                statusBox.className = "status-box status-alert";
+                statusBox.innerHTML = `⚠️ Base de datos no detectada. Sube TIENDA.csv o articulos.js a GitHub.`;
             }
         }
 
+        function procesarTextoCSV(texto) {
+            const lineas = texto.split(/\r?\n/);
+            if (lineas.length === 0) return;
+
+            const separador = lineas[0].includes(';') ? ';' : ',';
+            window.articulos = [];
+
+            for (let i = 0; i < lineas.length; i++) {
+                const linea = lineas[i].trim();
+                if (!linea) continue;
+
+                const col = linea.split(separador);
+                const ean = col[0] ? col[0].replace(/^"|"$/g, '').trim() : '';
+                const descripcion = col[1] ? col[1].replace(/^"|"$/g, '').trim() : '';
+                const stock = col[2] ? col[2].replace(/^"|"$/g, '').trim() : 'N/D';
+                const precio = col[3] ? col[3].replace(/^"|"$/g, '').trim() : '';
+
+                if (ean || descripcion) {
+                    window.articulos.push({ ean, descripcion, stock, precio });
+                }
+            }
+        }
+
+        function actualizarEstadoOK(statusBox) {
+            statusBox.className = "status-box status-ok";
+            statusBox.innerHTML = `✅ Base de datos cargada (${window.articulos.length} arts)`;
+        }
+
         // =======================================================
-        // 2. SISTEMA DE AUDICIÓN Y VIBRACIÓN
+        // 2. AUDICIÓN Y VIBRACIÓN
         // =======================================================
         function emitirPitido() {
             try {
@@ -351,9 +403,7 @@
 
                 osc.start();
                 osc.stop(ctx.currentTime + 0.15);
-            } catch (e) {
-                console.log("Audio no soportado");
-            }
+            } catch (e) {}
         }
 
         function activarVibracion() {
@@ -368,7 +418,40 @@
         }
 
         // =======================================================
-        // 3. CAPTURA DIRECTA DE EAN POR LONGITUD
+        // 3. CAMBIO DE PESTAÑAS GARANTIZADO
+        // =======================================================
+        function cambiarPestaña(nombreTab) {
+            try {
+                const contenidos = document.getElementsByClassName('tab-content');
+                for (let i = 0; i < contenidos.length; i++) {
+                    contenidos[i].classList.remove('active');
+                }
+
+                const botones = document.querySelectorAll('nav button');
+                for (let j = 0; j < botones.length; j++) {
+                    botones[j].classList.remove('active');
+                }
+
+                const tabDestino = document.getElementById(`tab-${nombreTab}`);
+                const btnDestino = document.getElementById(`btn-tab-${nombreTab}`);
+
+                if (tabDestino) tabDestino.classList.add('active');
+                if (btnDestino) btnDestino.classList.add('active');
+
+                if (nombreTab === 'consulta') {
+                    const input = document.getElementById('input-consulta');
+                    if (input) input.focus();
+                } else if (nombreTab === 'reposicion') {
+                    const input = document.getElementById('input-reposicion');
+                    if (input) input.focus();
+                }
+            } catch (e) {
+                console.error("Error al cambiar de pestaña:", e);
+            }
+        }
+
+        // =======================================================
+        // 4. CAPTURA Y BÚSQUEDA ROBUSTA
         // =======================================================
         function configurarLectoresDirectos() {
             const inputConsulta = document.getElementById('input-consulta');
@@ -393,49 +476,39 @@
             }
         }
 
-        // =======================================================
-        // 4. CAMBIO DE PESTAÑAS
-        // =======================================================
-        function cambiarPestaña(nombreTab) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
-
-            document.getElementById(`tab-${nombreTab}`).classList.add('active');
-            document.getElementById(`btn-tab-${nombreTab}`).classList.add('active');
-
-            if (nombreTab === 'consulta') {
-                document.getElementById('input-consulta').focus();
-            } else if (nombreTab === 'reposicion') {
-                document.getElementById('input-reposicion').focus();
-            }
-        }
-
-        // =======================================================
-        // 5. BÚSQUEDA DE PRODUCTOS EN MEMORIA
-        // =======================================================
         function procesarConsulta() {
             const input = document.getElementById('input-consulta');
+            const contenedor = document.getElementById('resultado-consulta');
+            if (!input || !contenedor) return;
+
             const termino = input.value.trim();
             if (!termino) return;
 
-            const terminoLower = termino.toLowerCase();
-
-            const producto = window.articulos.find(item => {
-                const ean = String(item.ean || '');
-                const desc = String(item.descripcion || '').toLowerCase();
-                return ean === termino || desc.includes(terminoLower);
-            });
-
             confirmarEscaneo();
 
-            const contenedor = document.getElementById('resultado-consulta');
+            if (!window.articulos || window.articulos.length === 0) {
+                contenedor.innerHTML = `
+                    <div class="result-card" style="border-left-color: #f57c00; background-color: #fff3e0;">
+                        <h4 style="color: #e65100;">⚠️ Base de datos no lista</h4>
+                        <p style="font-size: 14px; margin-top: 5px;">Aún no hay artículos cargados en memoria. Revisa que el archivo TIENDA.csv o articulos.js esté subido.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const terminoLower = termino.toLowerCase();
+            const producto = window.articulos.find(item => {
+                const ean = String(item.ean || item.codigo || item.id || '');
+                const desc = String(item.descripcion || item.nombre || '').toLowerCase();
+                return ean === termino || desc.includes(terminoLower);
+            });
 
             if (producto) {
                 contenedor.innerHTML = `
                     <div class="result-card">
-                        <h4 style="color: #1b5e20;">${producto.descripcion}</h4>
-                        <p style="font-size: 14px; margin-top: 5px;"><strong>EAN:</strong> ${producto.ean || termino}</p>
-                        <p style="font-size: 14px;"><strong>Stock:</strong> ${producto.stock} Uds.</p>
+                        <h4 style="color: #1b5e20;">${producto.descripcion || producto.nombre || 'Sin descripción'}</h4>
+                        <p style="font-size: 14px; margin-top: 5px;"><strong>EAN:</strong> ${producto.ean || producto.codigo || termino}</p>
+                        <p style="font-size: 14px;"><strong>Stock:</strong> ${producto.stock ?? 'N/D'} Uds.</p>
                         ${producto.precio ? `<p style="font-size: 14px;"><strong>Precio:</strong> ${producto.precio} €</p>` : ''}
                     </div>
                 `;
@@ -451,32 +524,31 @@
         }
 
         // =======================================================
-        // 6. GESTIÓN DE REPOSICIÓN
+        // 5. GESTIÓN DE REPOSICIÓN
         // =======================================================
         function procesarReposicion() {
             const input = document.getElementById('input-reposicion');
+            if (!input) return;
+
             const termino = input.value.trim();
             if (!termino) return;
 
             const terminoLower = termino.toLowerCase();
-
-            const producto = window.articulos.find(item => {
-                const ean = String(item.ean || '');
-                const desc = String(item.descripcion || '').toLowerCase();
+            const producto = (window.articulos || []).find(item => {
+                const ean = String(item.ean || item.codigo || item.id || '');
+                const desc = String(item.descripcion || item.nombre || '').toLowerCase();
                 return ean === termino || desc.includes(terminoLower);
             });
 
-            const descripcionFinal = producto ? producto.descripcion : termino;
+            const descripcionFinal = producto ? (producto.descripcion || producto.nombre) : termino;
 
-            const nuevoItem = {
+            listaReposicion.push({
                 id: Date.now(),
                 descripcion: descripcionFinal,
                 cantidad: 1
-            };
+            });
 
-            listaReposicion.push(nuevoItem);
             localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
-
             confirmarEscaneo();
 
             input.value = '';
@@ -500,6 +572,8 @@
 
         function renderizarListaReposicion() {
             const tbody = document.getElementById('tabla-reposicion-body');
+            if (!tbody) return;
+
             tbody.innerHTML = '';
 
             if (listaReposicion.length === 0) {
