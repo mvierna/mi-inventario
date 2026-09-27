@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Inventario y Reposición v2</title>
 
-    <!-- INTENTO DE CARGA DIRECTA POR SCRIPT (Si existe un .js en tu servidor) -->
-    <script src="articulos.js" onerror="console.log('articulos.js no encontrado, usando fallbacks')"></script>
-    <script src="TIENDA.js" onerror="console.log('TIENDA.js no encontrado, usando fallbacks')"></script>
-
     <style>
         * {
             box-sizing: border-box;
@@ -86,11 +82,12 @@
         }
 
         .status-box {
-            padding: 8px 12px;
+            padding: 10px 12px;
             border-radius: 5px;
             font-size: 13px;
             margin-bottom: 12px;
             font-weight: 500;
+            line-height: 1.4;
         }
 
         .status-loading {
@@ -105,10 +102,10 @@
             border: 1px solid #c8e6c9;
         }
 
-        .status-alert {
-            background-color: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeeba;
+        .status-error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
         }
 
         .input-group {
@@ -140,6 +137,18 @@
             font-weight: bold;
             font-size: 14px;
             cursor: pointer;
+        }
+
+        .btn-reload {
+            background-color: #004085;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 6px;
+            font-weight: bold;
         }
 
         .btn-danger {
@@ -182,10 +191,10 @@
 <body>
 
     <header>
-        📌 VERSIÓN V2 DE PRUEBAS - Feedback de Sonido y Vibración Activos
+        📌 VERSIÓN V2 DE PRUEBAS - Sistema de Inventario
     </header>
 
-    <!-- PESTAÑAS DE NAVEGACIÓN -->
+    <!-- NAVEGACIÓN -->
     <nav>
         <button id="btn-tab-consulta" class="active" onclick="cambiarPestaña('consulta')">📦 Consulta</button>
         <button id="btn-tab-reposicion" onclick="cambiarPestaña('reposicion')">📋 Reposición</button>
@@ -201,7 +210,7 @@
                 <h3>📦 Consulta de Inventario</h3>
                 
                 <div id="status-db" class="status-box status-loading">
-                    ⏳ Conectando base de datos...
+                    ⏳ Iniciando carga de base de datos...
                 </div>
 
                 <form id="form-consulta" onsubmit="event.preventDefault(); procesarConsulta();">
@@ -238,7 +247,6 @@
                         </tr>
                     </thead>
                     <tbody id="tabla-reposicion-body">
-                        <!-- Filas dinámicas -->
                     </tbody>
                 </table>
                 <br>
@@ -250,7 +258,7 @@
         <div id="tab-chequeo" class="tab-content">
             <div class="card">
                 <h3>🔍 Chequeo de Precios</h3>
-                <p style="color: #666; font-size: 14px; margin-top: 10px;">Módulo reservado para escáner + OCR.</p>
+                <p style="color: #666; font-size: 14px; margin-top: 10px;">Módulo reservado para escáner y verificación de precios.</p>
             </div>
         </div>
 
@@ -269,122 +277,146 @@
         let listaReposicion = JSON.parse(localStorage.getItem('reposicion_v2_data')) || [];
 
         document.addEventListener('DOMContentLoaded', () => {
-            iniciarCargaBaseDatos();
+            cargarBaseDatos();
             renderizarListaReposicion();
             configurarLectoresDirectos();
         });
 
         // =======================================================
-        // 1. CARGA MULTICAPA ULTRA-RÁPIDA (VARIABLES -> STORAGE -> CSV)
+        // GESTIÓN DE INDEXEDDB Y DESCARGA ANTI-CACHÉ
         // =======================================================
-        async function iniciarCargaBaseDatos() {
+        const DB_NAME = 'InventarioDB_V2';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'articulos';
+
+        function abrirDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME);
+                    }
+                };
+                request.onsuccess = (e) => resolve(e.target.result);
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function guardarEnIndexedDB(data) {
+            try {
+                const db = await abrirDB();
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                store.put(data, 'lista_articulos');
+                return new Promise((resolve) => {
+                    tx.oncomplete = () => resolve(true);
+                });
+            } catch (e) {
+                console.warn('Error al guardar en memoria local:', e);
+            }
+        }
+
+        async function cargarDeIndexedDB() {
+            try {
+                const db = await abrirDB();
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.get('lista_articulos');
+                return new Promise((resolve) => {
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => resolve(null);
+                });
+            } catch (e) {
+                return null;
+            }
+        }
+
+        async function cargarBaseDatos(forzarRed = false) {
             const statusBox = document.getElementById('status-db');
 
-            // Intento 1: Variables globales cargadas por scripts
-            if (verificarVariablesGlobales()) {
-                actualizarEstadoOK(statusBox);
-                return;
-            }
-
-            // Intento 2: Cargar desde LocalStorage si la app anterior los guardó
-            if (verificarLocalStorage()) {
-                actualizarEstadoOK(statusBox);
-                return;
-            }
-
-            // Intento 3: Fetch a CSV con timeout de seguridad (5 segundos)
-            await cargarCSVConFallback(statusBox);
-        }
-
-        function verificarVariablesGlobales() {
-            const posibles = [window.articulos, window.baseDatos, window.productos, window.inventario, window.db];
-            for (let arr of posibles) {
-                if (Array.isArray(arr) && arr.length > 0) {
-                    window.articulos = arr;
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        function verificarLocalStorage() {
-            const claves = ['articulos', 'baseDatos', 'inventario', 'productos_v1'];
-            for (let clave of claves) {
-                const data = localStorage.getItem(clave);
-                if (data) {
-                    try {
-                        const parsed = JSON.parse(data);
-                        if (Array.isArray(parsed) && parsed.length > 0) {
-                            window.articulos = parsed;
-                            return true;
-                        }
-                    } catch (e) {}
-                }
-            }
-            return false;
-        }
-
-        async function cargarCSVConFallback(statusBox) {
-            const archivosCSV = ['TIENDA.csv', 'tienda.csv', 'Tienda.csv'];
-
-            for (let nombre of archivosCSV) {
-                try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s máximo
-
-                    const res = await fetch(nombre, { signal: controller.signal });
-                    clearTimeout(timeoutId);
-
-                    if (res.ok) {
-                        const texto = await res.text();
-                        if (texto && texto.length > 0) {
-                            procesarTextoCSV(texto);
-                            actualizarEstadoOK(statusBox);
-                            return;
-                        }
-                    }
-                } catch (e) {
-                    console.warn(`No se pudo leer ${nombre}:`, e);
+            // 1. Intentar cargar desde la base de datos interna del navegador si no forzamos red
+            if (!forzarRed) {
+                statusBox.className = "status-box status-loading";
+                statusBox.innerHTML = `⏳ Buscando en la memoria local del dispositivo...`;
+                const datosGuardados = await cargarDeIndexedDB();
+                if (datosGuardados && Array.isArray(datosGuardados) && datosGuardados.length > 0) {
+                    window.articulos = datosGuardados;
+                    statusBox.className = "status-box status-ok";
+                    statusBox.innerHTML = `✅ Base de datos lista (${window.articulos.length.toLocaleString('es-ES')} artículos)
+                        <br><button class="btn-reload" onclick="cargarBaseDatos(true)">🔄 Actualizar desde TIENDA.csv</button>`;
+                    return;
                 }
             }
 
-            // Si falla todo
-            if (window.articulos.length === 0) {
-                statusBox.className = "status-box status-alert";
-                statusBox.innerHTML = `⚠️ Base de datos no detectada. Sube TIENDA.csv o articulos.js a GitHub.`;
+            // 2. Descargar desde servidor evitando la caché de GitHub y Service Worker
+            try {
+                statusBox.className = "status-box status-loading";
+                statusBox.innerHTML = `⏳ Descargando TIENDA.csv desde el servidor...`;
+
+                // Parámetro v=Date.now() obliga a descargar una versión fresca
+                const urlCSV = `TIENDA.csv?v=${Date.now()}`;
+                const respuesta = await fetch(urlCSV, { cache: 'no-store' });
+
+                if (!respuesta.ok) {
+                    throw new Error(`Error de red HTTP ${respuesta.status}`);
+                }
+
+                statusBox.innerHTML = `⏳ Procesando artículos descargados...`;
+                const textoCSV = await respuesta.text();
+
+                const articulosProcesados = parsearCSVFast(textoCSV);
+
+                if (articulosProcesados.length === 0) {
+                    throw new Error("El archivo TIENDA.csv no contiene filas válidas.");
+                }
+
+                window.articulos = articulosProcesados;
+                await guardarEnIndexedDB(articulosProcesados);
+
+                statusBox.className = "status-box status-ok";
+                statusBox.innerHTML = `✅ Carga completada con éxito (${window.articulos.length.toLocaleString('es-ES')} artículos)
+                    <br><button class="btn-reload" onclick="cargarBaseDatos(true)">🔄 Volver a descargar CSV</button>`;
+
+            } catch (error) {
+                console.error("Error al cargar TIENDA.csv:", error);
+                statusBox.className = "status-box status-error";
+                statusBox.innerHTML = `❌ Error al conectar: ${error.message}
+                    <br><small>Comprueba tu conexión o si el archivo TIENDA.csv fue actualizado.</small>
+                    <br><button class="btn-reload" onclick="cargarBaseDatos(true)">🔁 Reintentar carga</button>`;
             }
         }
 
-        function procesarTextoCSV(texto) {
+        // Parseador optimizado de alto rendimiento para CSV de más de 60.000 líneas
+        function parsearCSVFast(texto) {
             const lineas = texto.split(/\r?\n/);
-            if (lineas.length === 0) return;
+            if (lineas.length === 0) return [];
 
-            const separador = lineas[0].includes(';') ? ';' : ',';
-            window.articulos = [];
+            const primeraLinea = lineas[0];
+            const separador = primeraLinea.includes(';') ? ';' : ',';
+            const resultado = [];
 
             for (let i = 0; i < lineas.length; i++) {
                 const linea = lineas[i].trim();
                 if (!linea) continue;
 
-                const col = linea.split(separador);
-                const ean = col[0] ? col[0].replace(/^"|"$/g, '').trim() : '';
-                const descripcion = col[1] ? col[1].replace(/^"|"$/g, '').trim() : '';
-                const stock = col[2] ? col[2].replace(/^"|"$/g, '').trim() : 'N/D';
-                const precio = col[3] ? col[3].replace(/^"|"$/g, '').trim() : '';
+                const partes = linea.split(separador);
+                if (partes.length >= 2) {
+                    const ean = partes[0].replace(/^"|"$/g, '').trim();
+                    const descripcion = partes[1].replace(/^"|"$/g, '').trim();
+                    const stock = partes[2] ? partes[2].replace(/^"|"$/g, '').trim() : '0';
+                    const precio = partes[3] ? partes[3].replace(/^"|"$/g, '').trim() : '';
 
-                if (ean || descripcion) {
-                    window.articulos.push({ ean, descripcion, stock, precio });
+                    if (ean || descripcion) {
+                        resultado.push({ ean, descripcion, stock, precio });
+                    }
                 }
             }
-        }
-
-        function actualizarEstadoOK(statusBox) {
-            statusBox.className = "status-box status-ok";
-            statusBox.innerHTML = `✅ Base de datos cargada (${window.articulos.length} arts)`;
+            return resultado;
         }
 
         // =======================================================
-        // 2. AUDICIÓN Y VIBRACIÓN
+        // FEEDBACK AUDITIVO Y TÁCTIL
         // =======================================================
         function emitirPitido() {
             try {
@@ -402,13 +434,13 @@
                 gain.connect(ctx.destination);
 
                 osc.start();
-                osc.stop(ctx.currentTime + 0.15);
+                osc.stop(ctx.currentTime + 0.12);
             } catch (e) {}
         }
 
         function activarVibracion() {
             if ("vibrate" in navigator) {
-                navigator.vibrate(120);
+                navigator.vibrate(100);
             }
         }
 
@@ -418,45 +450,34 @@
         }
 
         // =======================================================
-        // 3. CAMBIO DE PESTAÑAS GARANTIZADO
+        // NAVEGACIÓN Y BÚSQUEDA
         // =======================================================
         function cambiarPestaña(nombreTab) {
-            try {
-                const contenidos = document.getElementsByClassName('tab-content');
-                for (let i = 0; i < contenidos.length; i++) {
-                    contenidos[i].classList.remove('active');
-                }
+            const contenidos = document.getElementsByClassName('tab-content');
+            for (let i = 0; i < contenidos.length; i++) {
+                contenidos[i].classList.remove('active');
+            }
 
-                const botones = document.querySelectorAll('nav button');
-                for (let j = 0; j < botones.length; j++) {
-                    botones[j].classList.remove('active');
-                }
+            const botones = document.querySelectorAll('nav button');
+            for (let j = 0; j < botones.length; j++) {
+                botones[j].classList.remove('active');
+            }
 
-                const tabDestino = document.getElementById(`tab-${nombreTab}`);
-                const btnDestino = document.getElementById(`btn-tab-${nombreTab}`);
+            const tabDestino = document.getElementById(`tab-${nombreTab}`);
+            const btnDestino = document.getElementById(`btn-tab-${nombreTab}`);
 
-                if (tabDestino) tabDestino.classList.add('active');
-                if (btnDestino) btnDestino.classList.add('active');
+            if (tabDestino) tabDestino.classList.add('active');
+            if (btnDestino) btnDestino.classList.add('active');
 
-                if (nombreTab === 'consulta') {
-                    const input = document.getElementById('input-consulta');
-                    if (input) input.focus();
-                } else if (nombreTab === 'reposicion') {
-                    const input = document.getElementById('input-reposicion');
-                    if (input) input.focus();
-                }
-            } catch (e) {
-                console.error("Error al cambiar de pestaña:", e);
+            if (nombreTab === 'consulta') {
+                document.getElementById('input-consulta')?.focus();
+            } else if (nombreTab === 'reposicion') {
+                document.getElementById('input-reposicion')?.focus();
             }
         }
 
-        // =======================================================
-        // 4. CAPTURA Y BÚSQUEDA ROBUSTA
-        // =======================================================
         function configurarLectoresDirectos() {
             const inputConsulta = document.getElementById('input-consulta');
-            const inputReposicion = document.getElementById('input-reposicion');
-
             if (inputConsulta) {
                 inputConsulta.addEventListener('input', () => {
                     const val = inputConsulta.value.trim();
@@ -466,6 +487,7 @@
                 });
             }
 
+            const inputReposicion = document.getElementById('input-reposicion');
             if (inputReposicion) {
                 inputReposicion.addEventListener('input', () => {
                     const val = inputReposicion.value.trim();
@@ -489,8 +511,8 @@
             if (!window.articulos || window.articulos.length === 0) {
                 contenedor.innerHTML = `
                     <div class="result-card" style="border-left-color: #f57c00; background-color: #fff3e0;">
-                        <h4 style="color: #e65100;">⚠️ Base de datos no lista</h4>
-                        <p style="font-size: 14px; margin-top: 5px;">Aún no hay artículos cargados en memoria. Revisa que el archivo TIENDA.csv o articulos.js esté subido.</p>
+                        <h4 style="color: #e65100;">⚠️ Base de datos vacía</h4>
+                        <p style="font-size: 14px; margin-top: 5px;">Pulsa el botón "🔄 Actualizar desde TIENDA.csv" superior para descargar los datos.</p>
                     </div>
                 `;
                 return;
@@ -498,17 +520,17 @@
 
             const terminoLower = termino.toLowerCase();
             const producto = window.articulos.find(item => {
-                const ean = String(item.ean || item.codigo || item.id || '');
-                const desc = String(item.descripcion || item.nombre || '').toLowerCase();
+                const ean = String(item.ean || '');
+                const desc = String(item.descripcion || '').toLowerCase();
                 return ean === termino || desc.includes(terminoLower);
             });
 
             if (producto) {
                 contenedor.innerHTML = `
                     <div class="result-card">
-                        <h4 style="color: #1b5e20;">${producto.descripcion || producto.nombre || 'Sin descripción'}</h4>
-                        <p style="font-size: 14px; margin-top: 5px;"><strong>EAN:</strong> ${producto.ean || producto.codigo || termino}</p>
-                        <p style="font-size: 14px;"><strong>Stock:</strong> ${producto.stock ?? 'N/D'} Uds.</p>
+                        <h4 style="color: #1b5e20;">${producto.descripcion || 'Sin descripción'}</h4>
+                        <p style="font-size: 14px; margin-top: 5px;"><strong>EAN:</strong> ${producto.ean || termino}</p>
+                        <p style="font-size: 14px;"><strong>Stock:</strong> ${producto.stock} Uds.</p>
                         ${producto.precio ? `<p style="font-size: 14px;"><strong>Precio:</strong> ${producto.precio} €</p>` : ''}
                     </div>
                 `;
@@ -516,16 +538,13 @@
                 contenedor.innerHTML = `
                     <div class="result-card" style="border-left-color: #c62828; background-color: #ffebee;">
                         <h4 style="color: #c62828;">❌ Sin coincidencias</h4>
-                        <p style="font-size: 14px; margin-top: 5px;">Código/Texto: <strong>${termino}</strong></p>
-                        <p style="font-size: 12px; color: #666; margin-top: 3px;">No se encontró en los ${window.articulos.length} artículos cargados.</p>
+                        <p style="font-size: 14px; margin-top: 5px;">Búsqueda: <strong>${termino}</strong></p>
+                        <p style="font-size: 12px; color: #666; margin-top: 3px;">No se encontró entre los ${window.articulos.length.toLocaleString('es-ES')} artículos de la base de datos.</p>
                     </div>
                 `;
             }
         }
 
-        // =======================================================
-        // 5. GESTIÓN DE REPOSICIÓN
-        // =======================================================
         function procesarReposicion() {
             const input = document.getElementById('input-reposicion');
             if (!input) return;
@@ -535,12 +554,12 @@
 
             const terminoLower = termino.toLowerCase();
             const producto = (window.articulos || []).find(item => {
-                const ean = String(item.ean || item.codigo || item.id || '');
-                const desc = String(item.descripcion || item.nombre || '').toLowerCase();
+                const ean = String(item.ean || '');
+                const desc = String(item.descripcion || '').toLowerCase();
                 return ean === termino || desc.includes(terminoLower);
             });
 
-            const descripcionFinal = producto ? (producto.descripcion || producto.nombre) : termino;
+            const descripcionFinal = producto ? producto.descripcion : termino;
 
             listaReposicion.push({
                 id: Date.now(),
