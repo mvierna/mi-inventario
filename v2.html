@@ -7,193 +7,57 @@
 
     <style>
         /* RESETEO Y ESTILOS BASE */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background-color: #f4f6f9;
-            color: #333;
-            padding-bottom: 30px;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f6f9; color: #333; padding-bottom: 30px; }
 
         /* ENCABEZADO */
         header {
-            background-color: #d32f2f;
-            color: white;
-            padding: 12px;
-            text-align: center;
-            font-size: 14px;
-            font-weight: bold;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+            background-color: #d32f2f; color: white; padding: 12px; text-align: center; font-size: 14px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.15);
         }
 
         /* NAVEGACIÓN EN PESTAÑAS */
-        nav {
-            display: flex;
-            background-color: #004085;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
+        nav { display: flex; background-color: #004085; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         nav button {
-            flex: 1;
-            padding: 12px 2px;
-            border: none;
-            background: none;
-            color: white;
-            font-size: 13px;
-            font-weight: bold;
-            cursor: pointer;
-            border-bottom: 4px solid transparent;
-            transition: background-color 0.2s, border-color 0.2s;
+            flex: 1; padding: 12px 2px; border: none; background: none; color: white; font-size: 13px; font-weight: bold; cursor: pointer; border-bottom: 4px solid transparent; transition: background-color 0.2s, border-color 0.2s;
         }
-
-        nav button.active {
-            border-bottom-color: #ffc107;
-            background-color: rgba(255, 255, 255, 0.15);
-        }
+        nav button.active { border-bottom-color: #ffc107; background-color: rgba(255, 255, 255, 0.15); }
 
         /* CONTENEDOR PRINCIPAL */
-        .container {
-            padding: 15px;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
+        .container { padding: 15px; max-width: 600px; margin: 0 auto; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
 
         /* TARJETAS */
-        .card {
-            background: white;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-        }
-
-        .card h3 {
-            font-size: 16px;
-            color: #004085;
-            margin-bottom: 10px;
-        }
+        .card { background: white; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+        .card h3 { font-size: 16px; color: #004085; margin-bottom: 10px; }
 
         /* CAJA DE ESTADO DE CONEXIÓN */
-        .status-box {
-            padding: 10px 12px;
-            border-radius: 5px;
-            font-size: 13px;
-            margin-bottom: 12px;
-            font-weight: bold;
-            line-height: 1.4;
-        }
-
-        .status-loading {
-            background-color: #e3f2fd;
-            color: #0d47a1;
-            border: 1px solid #bbdefb;
-        }
-
-        .status-ok {
-            background-color: #e8f5e9;
-            color: #2e7d32;
-            border: 1px solid #c8e6c9;
-        }
-
-        .status-error {
-            background-color: #ffebee;
-            color: #c62828;
-            border: 1px solid #ffcdd2;
-        }
+        .status-box { padding: 10px 12px; border-radius: 5px; font-size: 13px; margin-bottom: 12px; font-weight: bold; line-height: 1.4; }
+        .status-loading { background-color: #e3f2fd; color: #0d47a1; border: 1px solid #bbdefb; }
+        .status-ok { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+        .status-error { background-color: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
 
         /* FORMULARIOS E INPUTS */
-        .input-group {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-
+        .input-group { display: flex; gap: 8px; margin-bottom: 12px; }
         input[type="text"] {
-            flex: 1;
-            padding: 12px;
-            border: 2px solid #004085;
-            border-radius: 6px;
-            font-size: 16px;
-            outline: none;
+            flex: 1; padding: 12px; border: 2px solid #004085; border-radius: 6px; font-size: 16px; outline: none;
         }
-
-        input[type="text"]:focus {
-            border-color: #28a745;
-            background-color: #f0fff4;
-        }
-
-        .btn-action {
-            background-color: #004085;
-            color: white;
-            border: none;
-            padding: 0 16px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        .btn-danger {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 6px;
-            width: 100%;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 13px;
-        }
+        input[type="text"]:focus { border-color: #28a745; background-color: #f0fff4; }
+        
+        .btn-action { background-color: #004085; color: white; border: none; padding: 0 16px; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; }
+        .btn-danger { background-color: #dc3545; color: white; border: none; padding: 10px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; font-size: 13px; }
 
         /* RESULTADOS Y TABLAS */
-        .result-card {
-            background-color: #f8f9fa;
-            border-left: 5px solid #28a745;
-            padding: 12px;
-            margin-top: 10px;
-            border-radius: 4px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 13px;
-        }
-
-        th, td {
-            text-align: left;
-            padding: 10px 8px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        th {
-            background-color: #f2f2f2;
-            color: #004085;
-        }
+        .result-card { background-color: #f8f9fa; border-left: 5px solid #28a745; padding: 12px; margin-top: 10px; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; color: #004085; }
     </style>
 </head>
 <body>
 
-    <!-- ENCABEZADO -->
-    <header>
-        📌 SISTEMA DE INVENTARIO V2
-    </header>
+    <header>📌 SISTEMA DE INVENTARIO V2</header>
 
-    <!-- BARRA DE NAVEGACIÓN -->
     <nav>
         <button id="btn-tab-consulta" class="active" onclick="cambiarPestaña('consulta')">📦 Consulta</button>
         <button id="btn-tab-reposicion" onclick="cambiarPestaña('reposicion')">📋 Reposición</button>
@@ -201,18 +65,16 @@
         <button id="btn-tab-presupuesto" onclick="cambiarPestaña('presupuesto')">📑 Presupuesto</button>
     </nav>
 
-    <!-- CONTENIDO PRINCIPAL -->
     <div class="container">
-
         <!-- 1. PESTAÑA CONSULTA -->
         <div id="tab-consulta" class="tab-content active">
             <div class="card">
                 <h3>📦 Búsqueda de Artículos</h3>
-                <div id="status-db" class="status-box status-loading">⏳ Cargando base de datos desde TIENDA.csv...</div>
+                <div id="status-db" class="status-box status-loading">⏳ Iniciando aplicación...</div>
 
                 <form id="form-consulta" onsubmit="event.preventDefault(); procesarConsulta();">
                     <div class="input-group">
-                        <input type="text" id="input-consulta" placeholder="Escanea EAN o busca descripción..." autofocus autocomplete="off">
+                        <input type="text" id="input-consulta" placeholder="Escanea EAN o busca descripción..." autocomplete="off">
                         <button type="submit" class="btn-action">Buscar</button>
                     </div>
                 </form>
@@ -225,8 +87,6 @@
         <div id="tab-reposicion" class="tab-content">
             <div class="card">
                 <h3>📋 Gestión de Reposición</h3>
-                <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Introduce el EAN o nombre del artículo para añadir a la lista:</p>
-                
                 <form id="form-reposicion" onsubmit="event.preventDefault(); procesarReposicion();">
                     <div class="input-group">
                         <input type="text" id="input-reposicion" placeholder="Escribe EAN o descripción..." autocomplete="off">
@@ -236,15 +96,8 @@
 
                 <h3 style="margin-top: 15px;">Lista de Faltas Acumulada</h3>
                 <table>
-                    <thead>
-                        <tr>
-                            <th>Descripción</th>
-                            <th>Cant.</th>
-                            <th>Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-reposicion-body">
-                    </tbody>
+                    <thead><tr><th>Descripción</th><th>Cant.</th><th>Acción</th></tr></thead>
+                    <tbody id="tabla-reposicion-body"></tbody>
                 </table>
                 <br>
                 <button class="btn-danger" onclick="vaciarListaReposicion()">🗑️ Vaciar Lista de Reposición</button>
@@ -254,8 +107,8 @@
         <!-- 3. PESTAÑA CHEQUEO -->
         <div id="tab-chequeo" class="tab-content">
             <div class="card">
-                <h3>🔍 Chequeo de Precios y Cartelería</h3>
-                <p style="color: #666; font-size: 14px; margin-top: 10px;">Módulo preparado para verificación de etiquetas en lineal.</p>
+                <h3>🔍 Chequeo de Precios</h3>
+                <p style="color: #666; font-size: 14px;">Módulo preparado para verificación de etiquetas en lineal.</p>
             </div>
         </div>
 
@@ -263,43 +116,62 @@
         <div id="tab-presupuesto" class="tab-content">
             <div class="card">
                 <h3>📑 Calculadora de Presupuestos</h3>
-                <p style="color: #666; font-size: 14px; margin-top: 10px;">Módulo preparado para estimación de importes.</p>
+                <p style="color: #666; font-size: 14px;">Módulo preparado para estimación de importes.</p>
             </div>
         </div>
-
     </div>
 
-    <!-- LÓGICA JAVASCRIPT -->
     <script>
-        // Variables globales
+        // === 1. VARIABLES GLOBALES SEGURAS ===
         window.articulos = [];
-        let listaReposicion = JSON.parse(localStorage.getItem('reposicion_v2_data')) || [];
+        let listaReposicion = [];
+        try {
+            // Intentamos cargar la lista guardada, si falla por datos corruptos, iniciamos vacía
+            listaReposicion = JSON.parse(localStorage.getItem('reposicion_v2_data')) || [];
+        } catch (e) {
+            console.error("Error al leer localStorage:", e);
+        }
 
-        // Inicialización al cargar el documento
-        document.addEventListener('DOMContentLoaded', () => {
+        // === 2. INICIALIZACIÓN BLINDADA ===
+        function iniciarApp() {
             cargarBaseDatos();
             renderizarListaReposicion();
             configurarLectoresDirectos();
-        });
+        }
 
-        // Carga y procesado del archivo TIENDA.csv generado por actualizador.py
+        // Evita el fallo de "race condition" en navegadores móviles comprobando el estado del DOM
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', iniciarApp);
+        } else {
+            iniciarApp();
+        }
+
+        // === 3. CARGA DE BASE DE DATOS OPTIMIZADA ===
         async function cargarBaseDatos() {
             const statusBox = document.getElementById('status-db');
             try {
-                // Incorporamos marca de tiempo (timestamp) para evitar la caché de GitHub Pages
-                const respuesta = await fetch(`TIENDA.csv?v=${Date.now()}`);
-                if (!respuesta.ok) throw new Error("No se pudo obtener el archivo TIENDA.csv del servidor.");
+                statusBox.className = "status-box status-loading";
+                statusBox.innerHTML = "⏳ Conectando y descargando datos (TIENDA.csv)...";
 
+                // Forzamos la descarga sin usar caché, usando parámetros nativos de fetch
+                const respuesta = await fetch('TIENDA.csv', { 
+                    cache: 'no-store',
+                    headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+                });
+
+                if (!respuesta.ok) throw new Error(`HTTP Error: ${respuesta.status} - No se encontró el archivo.`);
+
+                statusBox.innerHTML = "⏳ Procesando catálogo de artículos...";
                 const texto = await respuesta.text();
-                const lineas = texto.split(/\r?\n/);
                 
+                const lineas = texto.split(/\r?\n/);
                 window.articulos = [];
 
+                // Bucle de procesamiento de datos
                 for (let i = 0; i < lineas.length; i++) {
-                    const linea = lineas[i].trim();
+                    const linea = lineas[i];
                     if (!linea) continue;
 
-                    // Formato delimitado por punto y coma (;) generado por actualizador.py
                     const col = linea.split(';');
                     if (col.length >= 2) {
                         window.articulos.push({
@@ -312,91 +184,80 @@
                 }
 
                 statusBox.className = "status-box status-ok";
-                statusBox.innerHTML = `✅ Base de datos lista (${window.articulos.length.toLocaleString('es-ES')} artículos cargados)`;
+                statusBox.innerHTML = `✅ Base de datos lista (${window.articulos.length.toLocaleString('es-ES')} artículos)`;
+                document.getElementById('input-consulta')?.focus();
 
             } catch (error) {
+                // Si ocurre CUALQUIER fallo, se mostrará aquí visualmente
                 statusBox.className = "status-box status-error";
-                statusBox.innerHTML = `❌ Error de carga: ${error.message}`;
+                statusBox.innerHTML = `❌ Error de carga: ${error.message} <br><small>Revisa tu conexión o vuelve a ejecutar el actualizador.</small>`;
             }
         }
 
-        // Confirmación sensorial (Pitido y Vibración)
-        function emitirPitido() {
+        // === 4. SISTEMA SENSORIAL ===
+        function confirmarEscaneo() {
             try {
+                if ("vibrate" in navigator) navigator.vibrate(100);
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 if (!AudioCtx) return;
                 const ctx = new AudioCtx();
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
-
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(880, ctx.currentTime);
                 gain.gain.setValueAtTime(0.2, ctx.currentTime);
-
                 osc.connect(gain);
                 gain.connect(ctx.destination);
-
                 osc.start();
                 osc.stop(ctx.currentTime + 0.12);
-            } catch (e) {}
-        }
-
-        function activarVibracion() {
-            if ("vibrate" in navigator) {
-                navigator.vibrate(100);
+            } catch (e) {
+                // Silenciamos errores de audio si el navegador lo bloquea por permisos
             }
         }
 
-        function confirmarEscaneo() {
-            emitirPitido();
-            activarVibracion();
-        }
-
-        // Navegación entre pestañas
+        // === 5. FUNCIONES DE INTERFAZ ===
         function cambiarPestaña(nombreTab) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
-
             document.getElementById(`tab-${nombreTab}`)?.classList.add('active');
             document.getElementById(`btn-tab-${nombreTab}`)?.classList.add('active');
-
-            if (nombreTab === 'consulta') document.getElementById('input-consulta')?.focus();
-            if (nombreTab === 'reposicion') document.getElementById('input-reposicion')?.focus();
         }
 
-        // Búsqueda automática al escanear EAN completo
         function configurarLectoresDirectos() {
             const inputConsulta = document.getElementById('input-consulta');
             inputConsulta?.addEventListener('input', () => {
                 const val = inputConsulta.value.trim();
-                if (/^\d{13}$/.test(val) \vert{}\vert{} /^\d{8}$/.test(val)) {
-                    procesarConsulta();
-                }
+                if (/^\d{13}$/.test(val) \vert{}\vert{} /^\d{8}$/.test(val)) procesarConsulta();
             });
 
             const inputReposicion = document.getElementById('input-reposicion');
             inputReposicion?.addEventListener('input', () => {
                 const val = inputReposicion.value.trim();
-                if (/^\d{13}$/.test(val) \vert{}\vert{} /^\d{8}$/.test(val)) {
-                    procesarReposicion();
-                }
+                if (/^\d{13}$/.test(val) \vert{}\vert{} /^\d{8}$/.test(val)) procesarReposicion();
             });
         }
 
-        // Proceso de consulta
         function procesarConsulta() {
             const input = document.getElementById('input-consulta');
             const contenedor = document.getElementById('resultado-consulta');
             if (!input || !contenedor) return;
 
             const termino = input.value.trim().toLowerCase();
-            if (!termino) return;
+            
+            // Si el campo está vacío, avisamos al usuario (mejora aplicada)
+            if (!termino) {
+                contenedor.innerHTML = `
+                    <div class="result-card" style="border-left-color: #ff9800; background-color: #fff3e0;">
+                        <p style="color: #e65100; font-size: 14px; font-weight: bold;">⚠️ Escribe un código o descripción antes de buscar.</p>
+                    </div>`;
+                return;
+            }
 
             confirmarEscaneo();
 
-            const producto = window.articulos.find(item => {
-                return item.ean.toLowerCase() === termino || item.descripcion.toLowerCase().includes(termino);
-            });
+            const producto = window.articulos.find(item => 
+                item.ean.toLowerCase() === termino || item.descripcion.toLowerCase().includes(termino)
+            );
 
             if (producto) {
                 contenedor.innerHTML = `
@@ -411,30 +272,30 @@
                 contenedor.innerHTML = `
                     <div class="result-card" style="border-left-color: #c62828; background-color: #ffebee;">
                         <h4 style="color: #c62828;">❌ Sin coincidencias</h4>
-                        <p style="font-size: 13px; margin-top: 5px;">No se encontró "${termino}" en los ${window.articulos.length.toLocaleString('es-ES')} artículos de la base de datos.</p>
+                        <p style="font-size: 13px; margin-top: 5px;">No se encontró "${termino}".</p>
                     </div>
                 `;
             }
         }
 
-        // Proceso y gestión de la lista de reposición
         function procesarReposicion() {
             const input = document.getElementById('input-reposicion');
             if (!input) return;
 
             const termino = input.value.trim();
-            if (!termino) return;
+            if (!termino) {
+                alert("Por favor, escribe un EAN o artículo para añadirlo.");
+                return;
+            }
 
             const terminoLower = termino.toLowerCase();
-            const producto = window.articulos.find(item => {
-                return item.ean.toLowerCase() === terminoLower || item.descripcion.toLowerCase().includes(terminoLower);
-            });
-
-            const descripcionFinal = producto ? producto.descripcion : termino;
+            const producto = window.articulos.find(item => 
+                item.ean.toLowerCase() === terminoLower || item.descripcion.toLowerCase().includes(terminoLower)
+            );
 
             listaReposicion.push({
                 id: Date.now(),
-                descripcion: descripcionFinal,
+                descripcion: producto ? producto.descripcion : termino,
                 cantidad: 1
             });
 
@@ -465,7 +326,6 @@
             if (!tbody) return;
 
             tbody.innerHTML = '';
-
             if (listaReposicion.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #888;">No hay artículos en la lista de faltas.</td></tr>`;
                 return;
