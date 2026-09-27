@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Inventario v2 - Diagnóstico Activo</title>
+    <title>Sistema de Inventario y Reposición v2</title>
 
     <style>
+        /* RESETEO Y ESTILOS BASE */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -19,18 +20,22 @@
             padding-bottom: 30px;
         }
 
+        /* ENCABEZADO */
         header {
             background-color: #d32f2f;
             color: white;
-            padding: 10px;
+            padding: 12px;
             text-align: center;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
         }
 
+        /* NAVEGACIÓN EN PESTAÑAS */
         nav {
             display: flex;
             background-color: #004085;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         nav button {
@@ -43,6 +48,7 @@
             font-weight: bold;
             cursor: pointer;
             border-bottom: 4px solid transparent;
+            transition: background-color 0.2s, border-color 0.2s;
         }
 
         nav button.active {
@@ -50,6 +56,7 @@
             background-color: rgba(255, 255, 255, 0.15);
         }
 
+        /* CONTENEDOR PRINCIPAL */
         .container {
             padding: 15px;
             max-width: 600px;
@@ -64,6 +71,7 @@
             display: block;
         }
 
+        /* TARJETAS */
         .card {
             background: white;
             border-radius: 8px;
@@ -72,30 +80,41 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.08);
         }
 
+        .card h3 {
+            font-size: 16px;
+            color: #004085;
+            margin-bottom: 10px;
+        }
+
+        /* CAJA DE ESTADO DE CONEXIÓN */
         .status-box {
-            padding: 10px;
+            padding: 10px 12px;
             border-radius: 5px;
             font-size: 13px;
             margin-bottom: 12px;
             font-weight: bold;
+            line-height: 1.4;
         }
 
-        .status-loading { background-color: #e3f2fd; color: #0d47a1; border: 1px solid #bbdefb; }
-        .status-ok { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
-        .status-error { background-color: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
-
-        .btn {
-            background-color: #004085;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 5px;
-            font-size: 12px;
+        .status-loading {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+            border: 1px solid #bbdefb;
         }
 
+        .status-ok {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+
+        .status-error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+
+        /* FORMULARIOS E INPUTS */
         .input-group {
             display: flex;
             gap: 8px;
@@ -108,8 +127,38 @@
             border: 2px solid #004085;
             border-radius: 6px;
             font-size: 16px;
+            outline: none;
         }
 
+        input[type="text"]:focus {
+            border-color: #28a745;
+            background-color: #f0fff4;
+        }
+
+        .btn-action {
+            background-color: #004085;
+            color: white;
+            border: none;
+            padding: 0 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            width: 100%;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        /* RESULTADOS Y TABLAS */
         .result-card {
             background-color: #f8f9fa;
             border-left: 5px solid #28a745;
@@ -118,249 +167,319 @@
             border-radius: 4px;
         }
 
-        /* CONSOLA DE DIAGNÓSTICO EN PANTALLA */
-        #debug-log {
-            background-color: #1e1e1e;
-            color: #00ff00;
-            font-family: monospace;
-            font-size: 11px;
-            padding: 10px;
-            border-radius: 5px;
-            max-height: 150px;
-            overflow-y: auto;
+        table {
+            width: 100%;
+            border-collapse: collapse;
             margin-top: 10px;
-            white-space: pre-wrap;
+            font-size: 13px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 10px 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            color: #004085;
         }
     </style>
 </head>
 <body>
 
+    <!-- ENCABEZADO -->
     <header>
-        📌 VERSIÓN V2 - Con Diagnóstico en Pantalla
+        📌 SISTEMA DE INVENTARIO V2
     </header>
 
+    <!-- BARRA DE NAVEGACIÓN -->
     <nav>
         <button id="btn-tab-consulta" class="active" onclick="cambiarPestaña('consulta')">📦 Consulta</button>
         <button id="btn-tab-reposicion" onclick="cambiarPestaña('reposicion')">📋 Reposición</button>
+        <button id="btn-tab-chequeo" onclick="cambiarPestaña('chequeo')">🔍 Chequeo</button>
+        <button id="btn-tab-presupuesto" onclick="cambiarPestaña('presupuesto')">📑 Presupuesto</button>
     </nav>
 
+    <!-- CONTENIDO PRINCIPAL -->
     <div class="container">
+
+        <!-- 1. PESTAÑA CONSULTA -->
         <div id="tab-consulta" class="tab-content active">
             <div class="card">
-                <h3>📦 Estado del Inventario</h3>
-                
-                <div id="status-db" class="status-box status-loading">
-                    ⏳ Esperando inicio...
-                </div>
+                <h3>📦 Búsqueda de Artículos</h3>
+                <div id="status-db" class="status-box status-loading">⏳ Cargando base de datos desde TIENDA.csv...</div>
 
-                <!-- Botones de Acción de Contingencia -->
-                <div style="margin-bottom: 15px;">
-                    <button class="btn" onclick="descargarCSVRed()">🌐 Cargar desde Servidor (TIENDA.csv)</button>
-                    <br>
-                    <label style="font-size: 12px; font-weight: bold; display: block; margin-top: 8px;">O selecciona el archivo desde tu dispositivo:</label>
-                    <input type="file" id="input-file-csv" accept=".csv" onchange="cargarDesdeArchivoLocal(event)" style="font-size: 12px; margin-top: 4px;">
-                </div>
-
-                <form onsubmit="event.preventDefault(); buscarProducto();">
+                <form id="form-consulta" onsubmit="event.preventDefault(); procesarConsulta();">
                     <div class="input-group">
-                        <input type="text" id="input-consulta" placeholder="Escribe EAN o nombre del artículo..." autocomplete="off">
-                        <button type="submit" class="btn">Buscar</button>
+                        <input type="text" id="input-consulta" placeholder="Escanea EAN o busca descripción..." autofocus autocomplete="off">
+                        <button type="submit" class="btn-action">Buscar</button>
                     </div>
                 </form>
 
                 <div id="resultado-consulta"></div>
-
-                <!-- Consola de Diagnóstico -->
-                <h4 style="font-size: 12px; margin-top: 15px; color: #555;">🛠️ Registro de Actividad (Diagnóstico):</h4>
-                <div id="debug-log">Iniciando sistema v2...\n</div>
             </div>
         </div>
 
+        <!-- 2. PESTAÑA REPOSICIÓN -->
         <div id="tab-reposicion" class="tab-content">
             <div class="card">
-                <h3>📋 Lista de Reposición</h3>
-                <p style="font-size: 13px; color: #666;">Selección de artículos para reponer.</p>
+                <h3>📋 Gestión de Reposición</h3>
+                <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Introduce el EAN o nombre del artículo para añadir a la lista:</p>
+                
+                <form id="form-reposicion" onsubmit="event.preventDefault(); procesarReposicion();">
+                    <div class="input-group">
+                        <input type="text" id="input-reposicion" placeholder="Escribe EAN o descripción..." autocomplete="off">
+                        <button type="submit" class="btn-action">Añadir</button>
+                    </div>
+                </form>
+
+                <h3 style="margin-top: 15px;">Lista de Faltas Acumulada</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Descripción</th>
+                            <th>Cant.</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-reposicion-body">
+                    </tbody>
+                </table>
+                <br>
+                <button class="btn-danger" onclick="vaciarListaReposicion()">🗑️ Vaciar Lista de Reposición</button>
             </div>
         </div>
+
+        <!-- 3. PESTAÑA CHEQUEO -->
+        <div id="tab-chequeo" class="tab-content">
+            <div class="card">
+                <h3>🔍 Chequeo de Precios y Cartelería</h3>
+                <p style="color: #666; font-size: 14px; margin-top: 10px;">Módulo preparado para verificación de etiquetas en lineal.</p>
+            </div>
+        </div>
+
+        <!-- 4. PESTAÑA PRESUPUESTO -->
+        <div id="tab-presupuesto" class="tab-content">
+            <div class="card">
+                <h3>📑 Calculadora de Presupuestos</h3>
+                <p style="color: #666; font-size: 14px; margin-top: 10px;">Módulo preparado para estimación de importes.</p>
+            </div>
+        </div>
+
     </div>
 
+    <!-- LÓGICA JAVASCRIPT -->
     <script>
+        // Variables globales
         window.articulos = [];
+        let listaReposicion = JSON.parse(localStorage.getItem('reposicion_v2_data')) || [];
 
-        // Captura global de errores para mostrar en pantalla
-        window.onerror = function(msg, url, line) {
-            logError(`Error JS: ${msg} (Línea: ${line})`);
-            return false;
-        };
-
-        function log(mensaje) {
-            const consoleBox = document.getElementById('debug-log');
-            if (consoleBox) {
-                consoleBox.innerText += `[${new Date().toLocaleTimeString()}] ${mensaje}\n`;
-                consoleBox.scrollTop = consoleBox.scrollHeight;
-            }
-        }
-
-        function logError(mensaje) {
-            log(`❌ ${mensaje}`);
-            const statusBox = document.getElementById('status-db');
-            if (statusBox) {
-                statusBox.className = "status-box status-error";
-                statusBox.innerHTML = `❌ Error: ${mensaje}`;
-            }
-        }
-
+        // Inicialización al cargar el documento
         document.addEventListener('DOMContentLoaded', () => {
-            log("Página cargada correctamente.");
-            descargarCSVRed();
+            cargarBaseDatos();
+            renderizarListaReposicion();
+            configurarLectoresDirectos();
         });
 
-        // =======================================================
-        // 1. CARGA DESDE RED CON MANEJO DE ERRORES DETALLADO
-        // =======================================================
-        async function descargarCSVRed() {
+        // Carga y procesado del archivo TIENDA.csv generado por actualizador.py
+        async function cargarBaseDatos() {
             const statusBox = document.getElementById('status-db');
-            statusBox.className = "status-box status-loading";
-            statusBox.innerHTML = "⏳ Solicitando TIENDA.csv al servidor...";
-            log("Iniciando descarga de TIENDA.csv...");
-
             try {
-                // Previene problemas de caché añadiendo fecha
-                const url = `TIENDA.csv?v=${Date.now()}`;
-                const respuesta = await fetch(url);
-
-                log(`Respuesta del servidor: HTTP ${respuesta.status} ${respuesta.statusText}`);
-
-                if (!respuesta.ok) {
-                    throw new Error(`No se pudo obtener el archivo (HTTP ${respuesta.status}). Comprueba que TIENDA.csv está subido a la raíz de GitHub.`);
-                }
+                // Incorporamos marca de tiempo (timestamp) para evitar la caché de GitHub Pages
+                const respuesta = await fetch(`TIENDA.csv?v=${Date.now()}`);
+                if (!respuesta.ok) throw new Error("No se pudo obtener el archivo TIENDA.csv del servidor.");
 
                 const texto = await respuesta.text();
-                log(`Archivo recibido. Tamaño: ${(texto.length / 1024).toFixed(1)} KB.`);
+                const lineas = texto.split(/\r?\n/);
                 
-                procesarTextoCSV(texto);
+                window.articulos = [];
 
-            } catch (err) {
-                logError(err.message);
-                log("Sugerencia: Si estás en local o falló la red, usa el botón 'Seleccionar archivo' de abajo.");
-            }
-        }
+                for (let i = 0; i < lineas.length; i++) {
+                    const linea = lineas[i].trim();
+                    if (!linea) continue;
 
-        // =======================================================
-        // 2. CARGA DESDE ARCHIVO LOCAL (CONTINGENCIA)
-        // =======================================================
-        function cargarDesdeArchivoLocal(event) {
-            const archivo = event.target.files[0];
-            if (!archivo) return;
-
-            log(`Archivo local seleccionado: ${archivo.name} (${(archivo.size / 1024).toFixed(1)} KB)`);
-            const statusBox = document.getElementById('status-db');
-            statusBox.className = "status-box status-loading";
-            statusBox.innerHTML = "⏳ Leyendo archivo local...";
-
-            const lector = new FileReader();
-            lector.onload = function(e) {
-                log("Archivo local leído con éxito.");
-                procesarTextoCSV(e.target.result);
-            };
-            lector.onerror = function() {
-                logError("Error al leer el archivo local seleccionado.");
-            };
-            lector.readAsText(archivo);
-        }
-
-        // =======================================================
-        // 3. PROCESAMIENTO RÁPIDO Y SEGURO DE CSV
-        // =======================================================
-        function procesarTextoCSV(texto) {
-            log("Procesando filas del CSV...");
-            const lineas = texto.split(/\r?\n/);
-            log(`Total de líneas detectadas: ${lineas.length.toLocaleString('es-ES')}`);
-
-            if (lineas.length === 0) {
-                logError("El archivo CSV está vacío.");
-                return;
-            }
-
-            const separador = lineas[0].includes(';') ? ';' : ',';
-            log(`Separador de columnas detectado: "${separador}"`);
-
-            window.articulos = [];
-
-            for (let i = 0; i < lineas.length; i++) {
-                const linea = lineas[i].trim();
-                if (!linea) continue;
-
-                const col = linea.split(separador);
-                if (col.length >= 2) {
-                    const ean = col[0].replace(/^"|"$/g, '').trim();
-                    const descripcion = col[1].replace(/^"|"$/g, '').trim();
-                    const stock = col[2] ? col[2].replace(/^"|"$/g, '').trim() : '0';
-                    const precio = col[3] ? col[3].replace(/^"|"$/g, '').trim() : '';
-
-                    if (ean || descripcion) {
-                        window.articulos.push({ ean, descripcion, stock, precio });
+                    // Formato delimitado por punto y coma (;) generado por actualizador.py
+                    const col = linea.split(';');
+                    if (col.length >= 2) {
+                        window.articulos.push({
+                            ean: col[0] ? col[0].replace(/^"|"$/g, '').trim() : '',
+                            descripcion: col[1] ? col[1].replace(/^"|"$/g, '').trim() : '',
+                            stock: col[2] ? col[2].replace(/^"|"$/g, '').trim() : '0',
+                            precio: col[3] ? col[3].replace(/^"|"$/g, '').trim() : ''
+                        });
                     }
                 }
-            }
 
-            log(`✅ Éxito: ${window.articulos.length.toLocaleString('es-ES')} artículos guardados en memoria.`);
+                statusBox.className = "status-box status-ok";
+                statusBox.innerHTML = `✅ Base de datos lista (${window.articulos.length.toLocaleString('es-ES')} artículos cargados)`;
 
-            const statusBox = document.getElementById('status-db');
-            statusBox.className = "status-box status-ok";
-            statusBox.innerHTML = `✅ Base de datos lista (${window.articulos.length.toLocaleString('es-ES')} artículos cargados)`;
-        }
-
-        // =======================================================
-        // 4. BÚSQUEDA Y NAVEGACIÓN
-        // =======================================================
-        function buscarProducto() {
-            const input = document.getElementById('input-consulta');
-            const contenedor = document.getElementById('resultado-consulta');
-            if (!input || !contenedor) return;
-
-            const termino = input.value.trim();
-            if (!termino) return;
-
-            log(`Realizando búsqueda: "${termino}"`);
-
-            if (window.articulos.length === 0) {
-                contenedor.innerHTML = `<div class="result-card" style="border-left-color: #f57c00;">⚠️ No hay datos cargados en memoria.</div>`;
-                return;
-            }
-
-            const terminoLower = termino.toLowerCase();
-            const producto = window.articulos.find(item => {
-                const ean = String(item.ean || '');
-                const desc = String(item.descripcion || '').toLowerCase();
-                return ean === termino || desc.includes(terminoLower);
-            });
-
-            if (producto) {
-                contenedor.innerHTML = `
-                    <div class="result-card">
-                        <h4 style="color: #1b5e20;">${producto.descripcion}</h4>
-                        <p style="font-size: 14px; margin-top: 4px;"><strong>EAN:</strong> ${producto.ean}</p>
-                        <p style="font-size: 14px;"><strong>Stock:</strong> ${producto.stock} Uds.</p>
-                        ${producto.precio ? `<p style="font-size: 14px;"><strong>Precio:</strong> ${producto.precio} €</p>` : ''}
-                    </div>
-                `;
-            } else {
-                contenedor.innerHTML = `
-                    <div class="result-card" style="border-left-color: #c62828;">
-                        <h4 style="color: #c62828;">❌ Sin coincidencias</h4>
-                        <p style="font-size: 13px;">No se encontró "${termino}" entre los ${window.articulos.length.toLocaleString('es-ES')} artículos.</p>
-                    </div>
-                `;
+            } catch (error) {
+                statusBox.className = "status-box status-error";
+                statusBox.innerHTML = `❌ Error de carga: ${error.message}`;
             }
         }
 
+        // Confirmación sensorial (Pitido y Vibración)
+        function emitirPitido() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                gain.gain.setValueAtTime(0.2, ctx.currentTime);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 0.12);
+            } catch (e) {}
+        }
+
+        function activarVibracion() {
+            if ("vibrate" in navigator) {
+                navigator.vibrate(100);
+            }
+        }
+
+        function confirmarEscaneo() {
+            emitirPitido();
+            activarVibracion();
+        }
+
+        // Navegación entre pestañas
         function cambiarPestaña(nombreTab) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
 
             document.getElementById(`tab-${nombreTab}`)?.classList.add('active');
             document.getElementById(`btn-tab-${nombreTab}`)?.classList.add('active');
+
+            if (nombreTab === 'consulta') document.getElementById('input-consulta')?.focus();
+            if (nombreTab === 'reposicion') document.getElementById('input-reposicion')?.focus();
+        }
+
+        // Búsqueda automática al escanear EAN completo
+        function configurarLectoresDirectos() {
+            const inputConsulta = document.getElementById('input-consulta');
+            inputConsulta?.addEventListener('input', () => {
+                const val = inputConsulta.value.trim();
+                if (/^\d{13}$/.test(val) \vert{}\vert{} /^\d{8}$/.test(val)) {
+                    procesarConsulta();
+                }
+            });
+
+            const inputReposicion = document.getElementById('input-reposicion');
+            inputReposicion?.addEventListener('input', () => {
+                const val = inputReposicion.value.trim();
+                if (/^\d{13}$/.test(val) \vert{}\vert{} /^\d{8}$/.test(val)) {
+                    procesarReposicion();
+                }
+            });
+        }
+
+        // Proceso de consulta
+        function procesarConsulta() {
+            const input = document.getElementById('input-consulta');
+            const contenedor = document.getElementById('resultado-consulta');
+            if (!input || !contenedor) return;
+
+            const termino = input.value.trim().toLowerCase();
+            if (!termino) return;
+
+            confirmarEscaneo();
+
+            const producto = window.articulos.find(item => {
+                return item.ean.toLowerCase() === termino || item.descripcion.toLowerCase().includes(termino);
+            });
+
+            if (producto) {
+                contenedor.innerHTML = `
+                    <div class="result-card">
+                        <h4 style="color: #1b5e20;">${producto.descripcion}</h4>
+                        <p style="font-size: 14px; margin-top: 5px;"><strong>EAN:</strong> ${producto.ean}</p>
+                        <p style="font-size: 14px;"><strong>Stock:</strong> ${producto.stock} Uds.</p>
+                        ${producto.precio ? `<p style="font-size: 14px;"><strong>Precio:</strong> ${producto.precio} €</p>` : ''}
+                    </div>
+                `;
+            } else {
+                contenedor.innerHTML = `
+                    <div class="result-card" style="border-left-color: #c62828; background-color: #ffebee;">
+                        <h4 style="color: #c62828;">❌ Sin coincidencias</h4>
+                        <p style="font-size: 13px; margin-top: 5px;">No se encontró "${termino}" en los ${window.articulos.length.toLocaleString('es-ES')} artículos de la base de datos.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Proceso y gestión de la lista de reposición
+        function procesarReposicion() {
+            const input = document.getElementById('input-reposicion');
+            if (!input) return;
+
+            const termino = input.value.trim();
+            if (!termino) return;
+
+            const terminoLower = termino.toLowerCase();
+            const producto = window.articulos.find(item => {
+                return item.ean.toLowerCase() === terminoLower || item.descripcion.toLowerCase().includes(terminoLower);
+            });
+
+            const descripcionFinal = producto ? producto.descripcion : termino;
+
+            listaReposicion.push({
+                id: Date.now(),
+                descripcion: descripcionFinal,
+                cantidad: 1
+            });
+
+            localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
+            confirmarEscaneo();
+
+            input.value = '';
+            renderizarListaReposicion();
+            input.focus();
+        }
+
+        function eliminarItemReposicion(id) {
+            listaReposicion = listaReposicion.filter(item => item.id !== id);
+            localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
+            renderizarListaReposicion();
+        }
+
+        function vaciarListaReposicion() {
+            if (confirm("¿Deseas vaciar toda la lista de reposición acumulada?")) {
+                listaReposicion = [];
+                localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
+                renderizarListaReposicion();
+            }
+        }
+
+        function renderizarListaReposicion() {
+            const tbody = document.getElementById('tabla-reposicion-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            if (listaReposicion.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #888;">No hay artículos en la lista de faltas.</td></tr>`;
+                return;
+            }
+
+            listaReposicion.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${item.descripcion}</strong></td>
+                    <td>${item.cantidad}</td>
+                    <td><button style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" onclick="eliminarItemReposicion(${item.id})">X</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
     </script>
 </body>
