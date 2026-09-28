@@ -288,7 +288,7 @@
 
             listaReposicion.push({
                 id: Date.now(),
-                ean: producto ? producto.ean : termino, // Guarda el EAN encontrado o el texto introducido
+                ean: producto ? producto.ean : termino,
                 descripcion: producto ? producto.descripcion : termino,
                 cantidad: 1
             });
@@ -384,7 +384,7 @@
 
             listaPresupuesto.push({
                 id: Date.now(),
-                ean: producto ? producto.ean : termino, // Guarda el EAN encontrado o el texto introducido
+                ean: producto ? producto.ean : termino,
                 descripcion: producto ? producto.descripcion : termino,
                 precio: producto && producto.precio ? parseFloat(producto.precio.replace(',', '.')) : 0,
                 cantidad: 1
@@ -441,8 +441,8 @@
             });
         }
 
-        // --- CONEXIÓN GOOGLE DRIVE (WEBHOOK) ACTUALIZADO CON EAN ---
-        function enviarGoogleDrive(tipo) {
+        // --- CONEXIÓN AUTOMÁTICA CON GOOGLE DRIVE (WEB APP) ---
+        async function enviarGoogleDrive(tipo) {
             const datos = tipo === 'reposicion' ? listaReposicion : listaPresupuesto;
             if (datos.length === 0) {
                 alert("La lista está vacía.");
@@ -452,20 +452,37 @@
             let contenido = tipo === 'reposicion' ? "LISTA DE REPOSICIÓN\n====================\n" : "PRESUPUESTO\n====================\n";
             
             datos.forEach(item => {
-                // Incluimos explícitamente el código EAN en cada línea generada del archivo de texto
                 contenido += `EAN: ${item.ean} | ${item.descripcion} | Cantidad: ${item.cantidad} ${item.precio ? '| Precio: ' + item.precio + '€' : ''}\n`;
             });
 
-            const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${tipo}_${new Date().toISOString().slice(0,10)}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            
-            alert(`✅ Archivo generado con éxito incluyendo los códigos EAN.`);
+            const nombreArchivo = `${tipo}_${new Date().toISOString().slice(0,10)}.txt`;
+            const WEB_APP_URL = "https://script.google.com/a/macros/leon.leclerc/s/AKfycbxDclybr0lPPMp3cE6_aMzjRtOq5P_opcvExsI3Y0MqK52xPBzzsGjjCd5SzcAKrUwz/exec";
+
+            try {
+                alert("⏳ Enviando archivo a Google Drive...");
+                await fetch(WEB_APP_URL, {
+                    method: "POST",
+                    mode: "no-cors", // Evita bloqueos de seguridad de CORS en Apps Script
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({
+                        tipo: tipo,
+                        contenido: contenido,
+                        nombreArchivo: nombreArchivo
+                    })
+                });
+
+                alert(`✅ Archivo enviado con éxito a la carpeta de ${tipo.toUpperCase()} en Google Drive.`);
+                
+                // Vacía la lista correspondiente tras el envío exitoso
+                if (tipo === 'reposicion') {
+                    vaciarListaReposicion();
+                } else {
+                    vaciarListaPresupuesto();
+                }
+
+            } catch (error) {
+                alert("❌ Error al conectar con Google Drive: " + error.message);
+            }
         }
 
         // Inicialización
