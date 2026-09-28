@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Inventario y Reposición v2</title>
+    <!-- Librería de escaneo de códigos de barras mediante cámara -->
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -25,11 +27,15 @@
         input[type="text"], input[type="number"] { flex: 1; padding: 12px; border: 2px solid #004085; border-radius: 6px; font-size: 16px; outline: none; }
         input[type="text"]:focus, input[type="number"]:focus { border-color: #28a745; background-color: #f0fff4; }
         .btn-action { background-color: #004085; color: white; border: none; padding: 0 16px; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; }
+        .btn-camera { background-color: #28a745; color: white; border: none; padding: 0 14px; border-radius: 6px; font-size: 18px; cursor: pointer; }
+        .btn-success { background-color: #28a745; color: white; border: none; padding: 12px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: 10px; }
         .btn-danger { background-color: #dc3545; color: white; border: none; padding: 10px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; font-size: 13px; }
         .result-card { background-color: #f8f9fa; border-left: 5px solid #28a745; padding: 12px; margin-top: 10px; border-radius: 4px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #ddd; }
         th { background-color: #f2f2f2; color: #004085; }
+        #video-container { width: 100%; max-height: 250px; background: #000; margin-bottom: 10px; display: none; border-radius: 6px; overflow: hidden; position: relative; }
+        video { width: 100%; height: auto; display: block; }
     </style>
 </head>
 <body>
@@ -44,18 +50,23 @@
     </nav>
 
     <div class="container">
+        <!-- CONTENEDOR DE CÁMARA OCULTO/ACTIVO -->
+        <div id="video-container">
+            <video id="video-preview"></video>
+            <button onclick="cerrarCamara()" style="position: absolute; top: 5px; right: 5px; background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">✕ Cerrar</button>
+        </div>
+
         <!-- PESTAÑA CONSULTA -->
         <div id="tab-consulta" class="tab-content active">
             <div class="card">
                 <h3>📦 Búsqueda de Artículos</h3>
                 <div id="status-db" class="status-box status-loading">⏳ Cargando base de datos...</div>
 
-                <form id="form-consulta" onsubmit="event.preventDefault(); procesarConsulta();">
-                    <div class="input-group">
-                        <input type="text" id="input-consulta" placeholder="Escanea EAN o busca descripción..." autocomplete="off">
-                        <button type="submit" class="btn-action">Buscar</button>
-                    </div>
-                </form>
+                <div class="input-group">
+                    <input type="text" id="input-consulta" placeholder="Escanea EAN o busca descripción..." autocomplete="off" onkeydown="if(event.key === 'Enter') procesarConsulta()">
+                    <button type="button" class="btn-camera" onclick="iniciarCamara('consulta')">📷</button>
+                    <button type="button" class="btn-action" onclick="procesarConsulta()">Buscar</button>
+                </div>
 
                 <div id="resultado-consulta"></div>
             </div>
@@ -65,12 +76,11 @@
         <div id="tab-reposicion" class="tab-content">
             <div class="card">
                 <h3>📋 Gestión de Reposición</h3>
-                <form id="form-reposicion" onsubmit="event.preventDefault(); procesarReposicion();">
-                    <div class="input-group">
-                        <input type="text" id="input-reposicion" placeholder="Escribe EAN o descripción..." autocomplete="off">
-                        <button type="submit" class="btn-action">Añadir</button>
-                    </div>
-                </form>
+                <div class="input-group">
+                    <input type="text" id="input-reposicion" placeholder="Escribe EAN o descripción..." autocomplete="off" onkeydown="if(event.key === 'Enter') procesarReposicion()">
+                    <button type="button" class="btn-camera" onclick="iniciarCamara('reposicion')">📷</button>
+                    <button type="button" class="btn-action" onclick="procesarReposicion()">Añadir</button>
+                </div>
 
                 <h3 style="margin-top: 15px;">Lista de Faltas Acumulada</h3>
                 <table>
@@ -78,6 +88,8 @@
                     <tbody id="tabla-reposicion-body"></tbody>
                 </table>
                 <br>
+                <button class="btn-success" onclick="enviarGoogleDrive('reposicion')">☁️ Enviar Lista a Drive</button>
+                <br><br>
                 <button class="btn-danger" onclick="vaciarListaReposicion()">🗑️ Vaciar Lista</button>
             </div>
         </div>
@@ -86,7 +98,12 @@
         <div id="tab-chequeo" class="tab-content">
             <div class="card">
                 <h3>🔍 Chequeo de Precios</h3>
-                <p style="color: #666; font-size: 14px;">Módulo preparado para verificación de etiquetas.</p>
+                <div class="input-group">
+                    <input type="text" id="input-chequeo" placeholder="Escanea para verificar precio..." autocomplete="off" onkeydown="if(event.key === 'Enter') procesarChequeo()">
+                    <button type="button" class="btn-camera" onclick="iniciarCamara('chequeo')">📷</button>
+                    <button type="button" class="btn-action" onclick="procesarChequeo()">Verificar</button>
+                </div>
+                <div id="resultado-chequeo"></div>
             </div>
         </div>
 
@@ -94,7 +111,21 @@
         <div id="tab-presupuesto" class="tab-content">
             <div class="card">
                 <h3>📑 Calculadora de Presupuestos</h3>
-                <p style="color: #666; font-size: 14px;">Módulo preparado para estimación de importes.</p>
+                <div class="input-group">
+                    <input type="text" id="input-presupuesto" placeholder="Añadir artículo a presupuesto..." autocomplete="off" onkeydown="if(event.key === 'Enter') procesarPresupuesto()">
+                    <button type="button" class="btn-camera" onclick="iniciarCamara('presupuesto')">📷</button>
+                    <button type="button" class="btn-action" onclick="procesarPresupuesto()">Añadir</button>
+                </div>
+
+                <h3 style="margin-top: 15px;">Artículos en Presupuesto</h3>
+                <table>
+                    <thead><tr><th>Descripción</th><th style="width: 70px;">Cant.</th><th style="width: 70px;">Precio</th><th style="width: 50px;">Acción</th></tr></thead>
+                    <tbody id="tabla-presupuesto-body"></tbody>
+                </table>
+                <br>
+                <button class="btn-success" onclick="enviarGoogleDrive('presupuesto')">☁️ Enviar Presupuesto a Drive</button>
+                <br><br>
+                <button class="btn-danger" onclick="vaciarListaPresupuesto()">🗑️ Vaciar Presupuesto</button>
             </div>
         </div>
     </div>
@@ -102,6 +133,9 @@
     <script>
         window.articulos = [];
         let listaReposicion = JSON.parse(localStorage.getItem('reposicion_v2_data')) || [];
+        let listaPresupuesto = JSON.parse(localStorage.getItem('presupuesto_v2_data')) || [];
+        let codeReader = null;
+        let pestañaActivaCamara = 'consulta';
 
         // Carga de la base de datos CSV
         async function cargarBaseDatos() {
@@ -138,7 +172,7 @@
             }
         }
 
-        // Efectos de sonido y vibración al escanear
+        // Efectos de sonido y vibración
         function confirmarEscaneo() {
             try {
                 if (navigator.vibrate) navigator.vibrate(100);
@@ -158,30 +192,67 @@
             } catch (e) {}
         }
 
-        // Cambio de pestañas visuales
+        // Cambio de pestañas
         function cambiarPestaña(nombreTab) {
+            cerrarCamara();
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
             document.getElementById('tab-' + nombreTab)?.classList.add('active');
             document.getElementById('btn-tab-' + nombreTab)?.classList.add('active');
-            if(nombreTab === 'consulta') document.getElementById('input-consulta')?.focus();
-            if(nombreTab === 'reposicion') document.getElementById('input-reposicion')?.focus();
+            document.getElementById(`input-${nombreTab}`)?.focus();
         }
 
-        // Lógica de consulta de artículos
+        // --- CÁMARA / ESCÁNER INTEGRADO ---
+        async function iniciarCamara(destino) {
+            pestañaActivaCamara = destino;
+            const container = document.getElementById('video-container');
+            container.style.display = 'block';
+
+            if (!codeReader) {
+                codeReader = new ZXing.BrowserBarcodeReader();
+            }
+
+            try {
+                const videoInputDevices = await codeReader.listVideoInputDevices();
+                const selectedDeviceId = videoInputDevices.length > 0 ? videoInputDevices[videoInputDevices.length - 1].deviceId : undefined;
+
+                codeReader.decodeFromVideoDevice(selectedDeviceId, 'video-preview', (result, err) => {
+                    if (result) {
+                        confirmarEscaneo();
+                        const codigo = result.text;
+                        document.getElementById(`input-${pestañaActivaCamara}`).value = codigo;
+                        cerrarCamara();
+                        
+                        // Ejecutar acción automática según pestaña
+                        if (pestañaActivaCamara === 'consulta') procesarConsulta();
+                        if (pestañaActivaCamara === 'reposicion') procesarReposicion();
+                        if (pestañaActivaCamara === 'chequeo') procesarChequeo();
+                        if (pestañaActivaCamara === 'presupuesto') procesarPresupuesto();
+                    }
+                });
+            } catch (err) {
+                alert("Error al iniciar la cámara: " + err);
+                container.style.display = 'none';
+            }
+        }
+
+        function cerrarCamara() {
+            if (codeReader) {
+                codeReader.reset();
+            }
+            document.getElementById('video-container').style.display = 'none';
+        }
+
+        // --- MÓDULO CONSULTA ---
         function procesarConsulta() {
             const input = document.getElementById('input-consulta');
             const contenedor = document.getElementById('resultado-consulta');
             if (!input || !contenedor) return;
 
             const termino = input.value.trim().toLowerCase();
-            if (!termino) {
-                contenedor.innerHTML = `<div class="result-card" style="border-left-color: #ff9800; background-color: #fff3e0;"><p style="color: #e65100; font-size: 14px; font-weight: bold;">⚠️ Escribe un código o descripción.</p></div>`;
-                return;
-            }
+            if (!termino) return;
 
             confirmarEscaneo();
-
             const producto = window.articulos.find(item => 
                 item.ean.toLowerCase() === termino || item.descripcion.toLowerCase().includes(termino)
             );
@@ -205,7 +276,7 @@
             }
         }
 
-        // Lógica de adición a la lista de reposición
+        // --- MÓDULO REPOSICIÓN ---
         function procesarReposicion() {
             const input = document.getElementById('input-reposicion');
             if (!input) return;
@@ -228,7 +299,6 @@
             renderizarListaReposicion();
         }
 
-        // Modificar cantidad en la tabla de reposición
         window.actualizarCantidadReposicion = function(id, nuevaCantidad) {
             const item = listaReposicion.find(i => i.id === id);
             if (item) {
@@ -237,14 +307,12 @@
             }
         }
 
-        // Eliminar elemento individual de la lista
         window.eliminarItemReposicion = function(id) {
             listaReposicion = listaReposicion.filter(item => item.id !== id);
             localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
             renderizarListaReposicion();
         }
 
-        // Vaciar la lista entera de reposición
         window.vaciarListaReposicion = function() {
             if (confirm("¿Vaciar toda la lista de reposición?")) {
                 listaReposicion = [];
@@ -253,7 +321,6 @@
             }
         }
 
-        // Renderizado HTML de la tabla con inputs numéricos interactivos
         function renderizarListaReposicion() {
             const tbody = document.getElementById('tabla-reposicion-body');
             if (!tbody) return;
@@ -278,8 +345,130 @@
             });
         }
 
-        // Inicialización al cargar el script
+        // --- MÓDULO CHEQUEO ---
+        function procesarChequeo() {
+            const input = document.getElementById('input-chequeo');
+            const contenedor = document.getElementById('resultado-chequeo');
+            if (!input || !contenedor) return;
+            const termino = input.value.trim().toLowerCase();
+            if (!termino) return;
+
+            confirmarEscaneo();
+            const producto = window.articulos.find(item => 
+                item.ean.toLowerCase() === termino || item.descripcion.toLowerCase().includes(termino)
+            );
+
+            if (producto) {
+                contenedor.innerHTML = `
+                    <div class="result-card">
+                        <h4 style="color: #004085;">${producto.descripcion}</h4>
+                        <p style="font-size: 14px; margin-top: 5px;"><strong>EAN:</strong> ${producto.ean}</p>
+                        <p style="font-size: 18px; color: #28a745; margin-top: 5px;"><strong>Precio:</strong> ${producto.precio ? producto.precio + ' €' : 'No disponible'}</p>
+                    </div>
+                `;
+            } else {
+                contenedor.innerHTML = `<div class="result-card" style="border-left-color: #c62828; background-color: #ffebee;"><h4 style="color: #c62828;">❌ Artículo no encontrado</h4></div>`;
+            }
+        }
+
+        // --- MÓDULO PRESUPUESTO ---
+        function procesarPresupuesto() {
+            const input = document.getElementById('input-presupuesto');
+            if (!input) return;
+            const termino = input.value.trim();
+            if (!termino) return;
+
+            const producto = window.articulos.find(item => 
+                item.ean.toLowerCase() === termino.toLowerCase() || item.descripcion.toLowerCase().includes(termino.toLowerCase())
+            );
+
+            listaPresupuesto.push({
+                id: Date.now(),
+                descripcion: producto ? producto.descripcion : termino,
+                precio: producto && producto.precio ? parseFloat(producto.precio.replace(',', '.')) : 0,
+                cantidad: 1
+            });
+
+            localStorage.setItem('presupuesto_v2_data', JSON.stringify(listaPresupuesto));
+            confirmarEscaneo();
+            input.value = '';
+            renderizarListaPresupuesto();
+        }
+
+        window.actualizarCantidadPresupuesto = function(id, nuevaCantidad) {
+            const item = listaPresupuesto.find(i => i.id === id);
+            if (item) {
+                item.cantidad = parseInt(nuevaCantidad) || 1;
+                localStorage.setItem('presupuesto_v2_data', JSON.stringify(listaPresupuesto));
+            }
+        }
+
+        window.eliminarItemPresupuesto = function(id) {
+            listaPresupuesto = listaPresupuesto.filter(item => item.id !== id);
+            localStorage.setItem('presupuesto_v2_data', JSON.stringify(listaPresupuesto));
+            renderizarListaPresupuesto();
+        }
+
+        window.vaciarListaPresupuesto = function() {
+            if (confirm("¿Vaciar presupuesto?")) {
+                listaPresupuesto = [];
+                localStorage.setItem('presupuesto_v2_data', JSON.stringify(listaPresupuesto));
+                renderizarListaPresupuesto();
+            }
+        }
+
+        function renderizarListaPresupuesto() {
+            const tbody = document.getElementById('tabla-presupuesto-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            
+            if (listaPresupuesto.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #888;">El presupuesto está vacío.</td></tr>`;
+                return;
+            }
+
+            listaPresupuesto.forEach(item => {
+                const subtotal = (item.precio * item.cantidad).toFixed(2);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${item.descripcion}</strong><br><small>${item.precio} €/ud</small></td>
+                    <td><input type="number" min="1" value="${item.cantidad}" style="width: 55px; padding: 4px; text-align: center;" onchange="actualizarCantidadPresupuesto(${item.id}, this.value)"></td>
+                    <td>${subtotal} €</td>
+                    <td><button style="background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" onclick="eliminarItemPresupuesto(${item.id})">✕</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- CONEXIÓN GOOGLE DRIVE (WEBHOOK) ---
+        function enviarGoogleDrive(tipo) {
+            const datos = tipo === 'reposicion' ? listaReposicion : listaPresupuesto;
+            if (datos.length === 0) {
+                alert("La lista está vacía.");
+                return;
+            }
+
+            // Generar archivo de texto descargable como pasarela hacia Google Drive / Correo
+            let contenido = tipo === 'reposicion' ? "LISTA DE REPOSICIÓN\n====================\n" : "PRESUPUESTO\n====================\n";
+            datos.forEach(item => {
+                contenido += `- ${item.descripcion} | Cantidad: ${item.cantidad} ${item.precio ? '| Precio: ' + item.precio + '€' : ''}\n`;
+            });
+
+            const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${tipo}_${new Date().toISOString().slice(0,10)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            alert(`✅ Archivo generado con éxito. Puedes subirlo directamente a tu Google Drive.`);
+        }
+
+        // Inicialización
         renderizarListaReposicion();
+        renderizarListaPresupuesto();
         cargarBaseDatos();
     </script>
 </body>
