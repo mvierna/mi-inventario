@@ -8,7 +8,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #f4f6f9; color: #333; padding-bottom: 30px; }
-        header { background-color: #d32f2f; color: white; padding: 12px; text-align: center; font-size: 14px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }scris
+        header { background-color: #d32f2f; color: white; padding: 12px; text-align: center; font-size: 14px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
         nav { display: flex; background-color: #004085; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         nav button { flex: 1; padding: 12px 2px; border: none; background: none; color: white; font-size: 13px; font-weight: bold; cursor: pointer; border-bottom: 4px solid transparent; }
         nav button.active { border-bottom-color: #ffc107; background-color: rgba(255, 255, 255, 0.15); }
@@ -22,8 +22,8 @@
         .status-ok { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
         .status-error { background-color: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
         .input-group { display: flex; gap: 8px; margin-bottom: 12px; }
-        input[type="text"] { flex: 1; padding: 12px; border: 2px solid #004085; border-radius: 6px; font-size: 16px; outline: none; }
-        input[type="text"]:focus { border-color: #28a745; background-color: #f0fff4; }
+        input[type="text"], input[type="number"] { flex: 1; padding: 12px; border: 2px solid #004085; border-radius: 6px; font-size: 16px; outline: none; }
+        input[type="text"]:focus, input[type="number"]:focus { border-color: #28a745; background-color: #f0fff4; }
         .btn-action { background-color: #004085; color: white; border: none; padding: 0 16px; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; }
         .btn-danger { background-color: #dc3545; color: white; border: none; padding: 10px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; font-size: 13px; }
         .result-card { background-color: #f8f9fa; border-left: 5px solid #28a745; padding: 12px; margin-top: 10px; border-radius: 4px; }
@@ -74,7 +74,7 @@
 
                 <h3 style="margin-top: 15px;">Lista de Faltas Acumulada</h3>
                 <table>
-                    <thead><tr><th>Descripción</th><th>Cant.</th><th>Acción</th></tr></thead>
+                    <thead><tr><th>Descripción</th><th style="width: 80px;">Cant.</th><th style="width: 50px;">Acción</th></tr></thead>
                     <tbody id="tabla-reposicion-body"></tbody>
                 </table>
                 <br>
@@ -100,26 +100,10 @@
     </div>
 
     <script>
-// Escuchador optimizado para la lectura rápida por teclado o escáner
-let timeoutEscaneo = null;
-
-document.getElementById('input-consulta')?.addEventListener('input', function(e) {
-    const valorActual = this.value.trim();
-    
-    // Limpiamos temporizador anterior para evitar ejecuciones prematuras
-    clearTimeout(timeoutEscaneo);
-
-    // Si el texto introducido tiene la longitud típica de un EAN, dispara la búsqueda automáticamente
-    if (valorActual.length >= 8) {
-        timeoutEscaneo = setTimeout(() => {
-            procesarConsulta();
-        }, 150); // Breve retardo de 150ms para asegurar la estabilidad de lectura
-    }
-});
         window.articulos = [];
         let listaReposicion = JSON.parse(localStorage.getItem('reposicion_v2_data')) || [];
 
-        // Carga inmediata al abrir el script
+        // Carga de la base de datos CSV
         async function cargarBaseDatos() {
             const statusBox = document.getElementById('status-db');
             try {
@@ -154,6 +138,7 @@ document.getElementById('input-consulta')?.addEventListener('input', function(e)
             }
         }
 
+        // Efectos de sonido y vibración al escanear
         function confirmarEscaneo() {
             try {
                 if (navigator.vibrate) navigator.vibrate(100);
@@ -173,6 +158,7 @@ document.getElementById('input-consulta')?.addEventListener('input', function(e)
             } catch (e) {}
         }
 
+        // Cambio de pestañas visuales
         function cambiarPestaña(nombreTab) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
@@ -182,6 +168,7 @@ document.getElementById('input-consulta')?.addEventListener('input', function(e)
             if(nombreTab === 'reposicion') document.getElementById('input-reposicion')?.focus();
         }
 
+        // Lógica de consulta de artículos
         function procesarConsulta() {
             const input = document.getElementById('input-consulta');
             const contenedor = document.getElementById('resultado-consulta');
@@ -218,6 +205,7 @@ document.getElementById('input-consulta')?.addEventListener('input', function(e)
             }
         }
 
+        // Lógica de adición a la lista de reposición
         function procesarReposicion() {
             const input = document.getElementById('input-reposicion');
             if (!input) return;
@@ -240,40 +228,57 @@ document.getElementById('input-consulta')?.addEventListener('input', function(e)
             renderizarListaReposicion();
         }
 
+        // Modificar cantidad en la tabla de reposición
+        window.actualizarCantidadReposicion = function(id, nuevaCantidad) {
+            const item = listaReposicion.find(i => i.id === id);
+            if (item) {
+                item.cantidad = parseInt(nuevaCantidad) || 1;
+                localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
+            }
+        }
+
+        // Eliminar elemento individual de la lista
         window.eliminarItemReposicion = function(id) {
             listaReposicion = listaReposicion.filter(item => item.id !== id);
             localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
             renderizarListaReposicion();
         }
 
+        // Vaciar la lista entera de reposición
         window.vaciarListaReposicion = function() {
-            if (confirm("¿Vaciar lista?")) {
+            if (confirm("¿Vaciar toda la lista de reposición?")) {
                 listaReposicion = [];
                 localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
                 renderizarListaReposicion();
             }
         }
 
+        // Renderizado HTML de la tabla con inputs numéricos interactivos
         function renderizarListaReposicion() {
             const tbody = document.getElementById('tabla-reposicion-body');
             if (!tbody) return;
             tbody.innerHTML = '';
+            
             if (listaReposicion.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #888;">La lista está vacía.</td></tr>`;
                 return;
             }
+
             listaReposicion.forEach(item => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td><strong>${item.descripcion}</strong></td>
-                    <td>${item.cantidad}</td>
-                    <td><button style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;" onclick="eliminarItemReposicion(${item.id})">X</button></td>
+                    <td>
+                        <input type="number" min="1" value="${item.cantidad}" style="width: 65px; padding: 6px; font-size: 14px; text-align: center; border: 1px solid #ccc; border-radius: 4px;" 
+                        onchange="actualizarCantidadReposicion(${item.id}, this.value)">
+                    </td>
+                    <td><button style="background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" onclick="eliminarItemReposicion(${item.id})">✕</button></td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        // Ejecución directa al cargar el script
+        // Inicialización al cargar el script
         renderizarListaReposicion();
         cargarBaseDatos();
     </script>
