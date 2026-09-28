@@ -14,240 +14,66 @@
     <meta name="apple-mobile-web-app-title" content="Inventario">
     <link rel="apple-touch-icon" href="icono.png">
 
-    <!-- Librerías externas -->
+    <!-- Librerías externas: Cambiamos a ZXing igual que en v2 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
 
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-
+        * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
         body { 
-            font-family: Arial, sans-serif; 
-            padding: 6px; 
-            text-align: center; 
-            background-color: #f4f6f8; 
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
+            font-family: Arial, sans-serif; padding: 6px; text-align: center; 
+            background-color: #f4f6f8; display: flex; flex-direction: column; min-height: 100vh; 
         }
-
-        /* Encabezado superior */
-        .cabecera-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            margin-bottom: 2px;
-        }
-
-        h1 { 
-            margin: 0; 
-            font-size: 16px; 
-        }
-
-        .btn-actualizar { 
-            padding: 4px 8px; 
-            background-color: #28a745; 
-            color: white; 
-            border: none; 
-            border-radius: 6px; 
-            font-size: 11px; 
-            font-weight: bold; 
-            cursor: pointer; 
-        }
-
-        /* Barra de estado */
-        #estado { 
-            font-weight: bold; 
-            font-size: 11px; 
-            color: #28a745;
-            margin-bottom: 2px;
-        }
-
-        .texto-fecha { 
-            font-size: 10px; 
-            color: #555555; 
-            font-weight: normal; 
-            display: block;
-        }
-
-        /* Tarjeta de resultados compacta y anclada abajo */
+        .cabecera-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
+        h1 { margin: 0; font-size: 16px; }
+        .btn-actualizar { padding: 4px 8px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; }
+        #estado { font-weight: bold; font-size: 11px; color: #28a745; margin-bottom: 2px; }
+        .texto-fecha { font-size: 10px; color: #555555; font-weight: normal; display: block; }
+        
         .resultado { 
-            margin-top: auto; /* Empuja la tarjeta para apoyarse sobre el escáner */
-            margin-bottom: 4px;
-            padding: 6px 8px; 
-            border: 2px solid #222222; 
-            border-radius: 12px; 
-            background-color: #ffffff; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 3px; /* Mantiene la información agrupada sin huecos libres */
-            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
-            height: auto; /* Evita que la tarjeta se estire artificialmente */
+            margin-top: auto; margin-bottom: 4px; padding: 6px 8px; border: 2px solid #222222; 
+            border-radius: 12px; background-color: #ffffff; display: flex; flex-direction: column; gap: 3px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08); height: auto; 
         }
+        .titulo-encontrado { color: #28a745; margin: 0; font-size: 14px; font-weight: bold; }
+        .texto-ean { font-size: 11px; color: #555; margin: 0; }
+        .descripcion-producto { font-size: 15px; font-weight: 800; line-height: 1.2; color: #000000; margin: 2px 0; text-transform: uppercase; }
+        
+        .panel-secundario { display: flex; justify-content: space-around; gap: 2px; margin: 2px 0; background-color: #f8f9fa; padding: 3px; border-radius: 6px; border: 1px solid #e2e8f0; }
+        .item-secundario { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .etiqueta-secundaria { font-size: 9px; text-transform: uppercase; color: #6c757d; font-weight: bold; }
+        .valor-secundario { font-size: 14px; font-weight: 800; color: #111111; }
 
-        .bloque-info-superior {
-            display: flex;
-            flex-direction: column;
-            gap: 1px;
-        }
+        .caja-stock { margin-top: 1px; padding: 4px; background-color: #28a745; color: #ffffff; border-radius: 8px; }
+        .etiqueta-stock { font-size: 10px; text-transform: uppercase; margin: 0; font-weight: bold; letter-spacing: 0.5px; opacity: 0.95; }
+        .numero-stock { font-size: 38px; font-weight: 900; margin: 0; line-height: 1; }
 
-        .titulo-encontrado {
-            color: #28a745; 
-            margin: 0; 
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .texto-ean {
-            font-size: 11px; 
-            color: #555; 
-            margin: 0;
-        }
-
-        /* Descripción del producto */
-        .descripcion-producto {
-            font-size: 15px; 
-            font-weight: 800; 
-            line-height: 1.2; 
-            color: #000000;
-            margin: 2px 0;
-            text-transform: uppercase;
-        }
-
-        /* Panel secundario de datos */
-        .panel-secundario {
-            display: flex;
-            justify-content: space-around;
-            gap: 2px;
-            margin: 2px 0;
-            background-color: #f8f9fa;
-            padding: 3px;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .item-secundario { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            flex: 1; 
-        }
-
-        .etiqueta-secundaria { 
-            font-size: 9px; 
-            text-transform: uppercase; 
-            color: #6c757d; 
-            font-weight: bold; 
-        }
-
-        .valor-secundario { 
-            font-size: 14px; 
-            font-weight: 800; 
-            color: #111111; 
-        }
-
-        /* Bloque verde de Stock */
-        .caja-stock { 
-            margin-top: 1px; 
-            padding: 4px; 
-            background-color: #28a745; 
-            color: #ffffff; 
-            border-radius: 8px; 
-        }
-
-        .etiqueta-stock { 
-            font-size: 10px; 
-            text-transform: uppercase; 
-            margin: 0; 
-            font-weight: bold; 
-            letter-spacing: 0.5px; 
-            opacity: 0.95; 
-        }
-
-        .numero-stock { 
-            font-size: 38px; 
-            font-weight: 900; 
-            margin: 0; 
-            line-height: 1; 
-        }
-
-        /* Visor para la cámara iOS */
-        #lectorCamara {
+        /* Visor de cámara adaptado a ZXing */
+        #video-container {
             width: 100%;
             max-width: 320px;
+            max-height: 200px;
+            background: #000;
             margin: 4px auto;
             border-radius: 6px;
             overflow: hidden;
+            position: relative;
             display: none;
         }
+        video { width: 100%; height: auto; display: block; }
 
-        /* Interfaz inferior */
-        .caja-interfaz { 
-            padding: 4px; 
-            background-color: #ffffff; 
-            border-top: 1px solid #dee2e6;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            align-items: center;
-        }
-
-        #inputCodigo { 
-            padding: 8px; 
-            font-size: 16px; 
-            width: 100%; 
-            max-width: 350px; 
-            text-align: center; 
-            border: 2px solid #007bff; 
-            border-radius: 6px; 
-            outline: none; 
-            box-sizing: border-box;
-            font-weight: bold;
-        }
-
-        .btn-camara {
-            padding: 7px 10px;
-            background-color: #17a2b8;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            max-width: 350px;
-            display: block;
-        }
-
-        .texto-instruccion {
-            font-weight: bold; 
-            font-size: 10px; 
-            margin: 0; 
-            color: #495057;
-        }
-
+        .caja-interfaz { padding: 4px; background-color: #ffffff; border-top: 1px solid #dee2e6; display: flex; flex-direction: column; gap: 4px; align-items: center; }
+        #inputCodigo { padding: 8px; font-size: 16px; width: 100%; max-width: 350px; text-align: center; border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; }
+        .btn-camara { padding: 7px 10px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 350px; display: block; }
+        .texto-instruccion { font-weight: bold; font-size: 10px; margin: 0; color: #495057; }
         p { margin: 2px 0; }
-
-        /* Oculta elementos superiores al activar el teclado para maximizar el área visible */
-        body.modo-teclado .cabecera-top,
-        body.modo-teclado #estado {
-            display: none !important;
-        }
+        
+        body.modo-teclado .cabecera-top, body.modo-teclado #estado { display: none !important; }
     </style>
 </head>
 <body>
 
-    <!-- Cabecera superior -->
     <div class="cabecera-top">
         <h1>Inventario</h1>
         <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar</button>
@@ -255,45 +81,50 @@
 
     <div id="estado">Conectando...</div>
 
-    <!-- Módulo de Resultados compacto -->
     <div id="resultado" class="resultado">
         Esperando código...
     </div>
 
-    <!-- Visor de cámara -->
-    <div id="lectorCamara"></div>
+    <!-- Contenedor de video para ZXing -->
+    <div id="video-container">
+        <video id="video-preview"></video>
+        <button onclick="cerrarCamara()" style="position: absolute; top: 5px; right: 5px; background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">✕ Cerrar</button>
+    </div>
 
-    <!-- Entrada de datos inferior -->
     <div class="caja-interfaz">
-        <button class="btn-camara" onclick="alternarCamaraiOS()">📷 Escanear con Cámara (iPhone)</button>
+        <button class="btn-camara" onclick="iniciarCamaraZXing()">📷 Escanear con Cámara</button>
         <p class="texto-instruccion">o usa tu teclado escáner / lectura manual:</p>
         <input type="text" id="inputCodigo" placeholder="Escanea el código aquí..." autocomplete="off">
     </div>
 
     <script>
         let inventario = {};
-        let html5QrCode = null;
-        let camaraEncendida = false;
+        let codeReader = null;
 
         const inputCodigo = document.getElementById('inputCodigo');
         const resultadoDiv = document.getElementById('resultado');
         const estadoDiv = document.getElementById('estado');
 
-        inputCodigo.addEventListener('focus', () => {
-            document.body.classList.add('modo-teclado');
-        });
+        inputCodigo.addEventListener('focus', () => document.body.classList.add('modo-teclado'));
+        inputCodigo.addEventListener('blur', () => document.body.classList.remove('modo-teclado'));
 
-        inputCodigo.addEventListener('blur', () => {
-            document.body.classList.remove('modo-teclado');
-        });
-
-        function formatearFechaHora(objetoFecha) {
-            const opcionesFecha = { day: 'numeric', month: 'long' };
-            const fechaTexto = objetoFecha.toLocaleDateString('es-ES', opcionesFecha);
-            const horas = String(objetoFecha.getHours()).padStart(2, '0');
-            const minutos = String(objetoFecha.getMinutes()).padStart(2, '0');
-            
-            return `${fechaTexto} a las ${horas}:${minutos} h`;
+        function confirmarEscaneo() {
+            try {
+                if (navigator.vibrate) navigator.vibrate(100);
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) {
+                    const ctx = new AudioCtx();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.12);
+                }
+            } catch (e) {}
         }
 
         function cargarInventario() {
@@ -327,23 +158,13 @@
                                     let ventas = fila[5] ? fila[5].trim() : "0";
                                     
                                     if(ean) {
-                                        inventario[ean] = { 
-                                            descripcion: desc, 
-                                            stock: stock,
-                                            precio: precio,
-                                            fecha: fecha,
-                                            ventas: ventas
-                                        };
+                                        inventario[ean] = { descripcion: desc, stock, precio, fecha, ventas };
                                         contador++;
                                     }
                                 }
                             });
                             
-                            const fechaFormateada = formatearFechaHora(fechaRealArchivo);
-                            estadoDiv.innerHTML = `
-                                ¡Base de datos lista: ${contador} artículos!
-                                <span class="texto-fecha">Actualizado el ${fechaFormateada}</span>
-                            `;
+                            estadoDiv.innerHTML = `¡Base de datos lista: ${contador} artículos!`;
                             estadoDiv.style.color = "#28a745";
                         }
                     });
@@ -360,27 +181,16 @@
             if (inventario.hasOwnProperty(codigoEscaneado)) {
                 let articulo = inventario[codigoEscaneado];
                 resultadoDiv.innerHTML = `
-                    <div class="bloque-info-superior">
+                    <div style="display: flex; flex-direction: column; gap: 1px;">
                         <p class="titulo-encontrado">¡Artículo encontrado!</p>
                         <p class="texto-ean"><strong>EAN:</strong> ${codigoEscaneado}</p>
                         <div class="descripcion-producto">${articulo.descripcion}</div>
                     </div>
-
                     <div class="panel-secundario">
-                        <div class="item-secundario">
-                            <span class="etiqueta-secundaria">P.V.P.</span>
-                            <span class="valor-secundario">${articulo.precio}</span>
-                        </div>
-                        <div class="item-secundario">
-                            <span class="etiqueta-secundaria">Últ. Recep.</span>
-                            <span class="valor-secundario">${articulo.fecha}</span>
-                        </div>
-                        <div class="item-secundario">
-                            <span class="etiqueta-secundaria">Ventas Recep.</span>
-                            <span class="valor-secundario">${articulo.ventas} u.</span>
-                        </div>
+                        <div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${articulo.precio}</span></div>
+                        <div class="item-secundario"><span class="etiqueta-secundaria">Últ. Recep.</span><span class="valor-secundario">${articulo.fecha}</span></div>
+                        <div class="item-secundario"><span class="etiqueta-secundaria">Ventas Recep.</span><span class="valor-secundario">${articulo.ventas} u.</span></div>
                     </div>
-
                     <div class="caja-stock">
                         <p class="etiqueta-stock">STOCK DISPONIBLE</p>
                         <p class="numero-stock">${articulo.stock}</p>
@@ -392,49 +202,40 @@
                     <p style="font-size: 14px;">El código <strong>${codigoEscaneado}</strong> no está en la base de datos.</p>
                 `;
             }
-
             inputCodigo.value = "";
         }
 
-        async function alternarCamaraiOS() {
-            const visorDiv = document.getElementById('lectorCamara');
+        async function iniciarCamaraZXing() {
+            const container = document.getElementById('video-container');
+            container.style.display = 'block';
 
-            if (camaraEncendida) {
-                if (html5QrCode) {
-                    await html5QrCode.stop();
-                }
-                visorDiv.style.display = "none";
-                camaraEncendida = false;
-            } else {
-                visorDiv.style.display = "block";
-                html5QrCode = new Html5Qrcode("lectorCamara");
-
-                const configuracion = { 
-                    fps: 15, 
-                    qrbox: { width: 220, height: 130 },
-                    aspectRatio: 1.0
-                };
-
-                try {
-                    await html5QrCode.start(
-                        { facingMode: "environment" },
-                        configuracion,
-                        (codigoTexto) => {
-                            buscarCodigo(codigoTexto.trim());
-                            html5QrCode.stop().then(() => {
-                                visorDiv.style.display = "none";
-                                camaraEncendida = false;
-                            });
-                        },
-                        (mensajeError) => {}
-                    );
-                    camaraEncendida = true;
-                } catch (err) {
-                    alert("Error al encender la cámara en iOS.");
-                    visorDiv.style.display = "none";
-                    camaraEncendida = false;
-                }
+            if (!codeReader) {
+                codeReader = new ZXing.BrowserBarcodeReader();
             }
+
+            try {
+                const videoInputDevices = await codeReader.listVideoInputDevices();
+                // Selecciona por defecto la cámara trasera si está disponible
+                const selectedDeviceId = videoInputDevices.length > 0 ? videoInputDevices[videoInputDevices.length - 1].deviceId : undefined;
+
+                codeReader.decodeFromVideoDevice(selectedDeviceId, 'video-preview', (result, err) => {
+                    if (result) {
+                        confirmarEscaneo();
+                        buscarCodigo(result.text.trim());
+                        cerrarCamara();
+                    }
+                });
+            } catch (err) {
+                alert("Error al iniciar la cámara: " + err);
+                container.style.display = 'none';
+            }
+        }
+
+        function cerrarCamara() {
+            if (codeReader) {
+                codeReader.reset();
+            }
+            document.getElementById('video-container').style.display = 'none';
         }
 
         inputCodigo.addEventListener('keypress', function(e) {
