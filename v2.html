@@ -8,7 +8,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #f4f6f9; color: #333; padding-bottom: 30px; }
-        header { background-color: #d32f2f; color: white; padding: 12px; text-align: center; font-size: 14px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
+        header { background-color: #d32f2f; color: white; padding: 12px; text-align: center; font-size: 14px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }scris
         nav { display: flex; background-color: #004085; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         nav button { flex: 1; padding: 12px 2px; border: none; background: none; color: white; font-size: 13px; font-weight: bold; cursor: pointer; border-bottom: 4px solid transparent; }
         nav button.active { border-bottom-color: #ffc107; background-color: rgba(255, 255, 255, 0.15); }
@@ -100,6 +100,22 @@
     </div>
 
     <script>
+// Escuchador optimizado para la lectura rápida por teclado o escáner
+let timeoutEscaneo = null;
+
+document.getElementById('input-consulta')?.addEventListener('input', function(e) {
+    const valorActual = this.value.trim();
+    
+    // Limpiamos temporizador anterior para evitar ejecuciones prematuras
+    clearTimeout(timeoutEscaneo);
+
+    // Si el texto introducido tiene la longitud típica de un EAN, dispara la búsqueda automáticamente
+    if (valorActual.length >= 8) {
+        timeoutEscaneo = setTimeout(() => {
+            procesarConsulta();
+        }, 150); // Breve retardo de 150ms para asegurar la estabilidad de lectura
+    }
+});
         window.articulos = [];
         let listaReposicion = JSON.parse(localStorage.getItem('reposicion_v2_data')) || [];
 
