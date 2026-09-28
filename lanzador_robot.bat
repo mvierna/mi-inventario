@@ -1,6 +1,8 @@
 @echo off
-:: Reemplaza la ruta entre comillas por la carpeta donde tienes tus archivos
-cd /d "C:\Ruta\A\Tu\Carpeta\Del\Proyecto"
+:: Cambia automáticamente al directorio donde se encuentra este archivo .bat
+cd /d "%~dp0"
 
-:: Ejecuta el robot
+:: Ejecuta el robot de Python
 python robot.py
+
+pause

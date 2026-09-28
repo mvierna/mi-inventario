@@ -2,25 +2,32 @@ import pyautogui
 import time
 import os
 
+# Obtener la ruta absoluta del directorio actual (mi-inventario) y definir la carpeta assets
+DIRECTORIO_BASE = os.path.dirname(os.path.abspath(__file__))
+CARPETA_ASSETS = os.path.join(DIRECTORIO_BASE, 'assets')
+
 def clic_visual(nombre_imagen, tiempo_espera=2, precision=0.8, clics=1, timeout=10):
     """
-    Busca una imagen en pantalla y hace clic en su centro.
+    Busca una imagen dentro de la carpeta assets y hace clic en su centro.
     Soporta múltiples clics y tiene un bucle que espera hasta 10 segundos 
     a que la imagen aparezca en pantalla.
     """
+    # Construir la ruta completa y segura hacia la imagen dentro de 'assets'
+    ruta_imagen = os.path.join(CARPETA_ASSETS, nombre_imagen)
+    
     print(f"Buscando en pantalla: {nombre_imagen}...")
     tiempo_inicio = time.time()
     
     while time.time() - tiempo_inicio < timeout:
         try:
-            coordenadas = pyautogui.locateCenterOnScreen(nombre_imagen, confidence=precision)
+            coordenadas = pyautogui.locateCenterOnScreen(ruta_imagen, confidence=precision)
             if coordenadas is not None:
                 pyautogui.click(coordenadas, clicks=clics)
                 time.sleep(tiempo_espera)
                 return True
         except Exception as e:
             if "read" in str(e).lower() or "missing" in str(e).lower():
-                print(f"-> Error técnico: Falta el archivo de imagen '{nombre_imagen}'.")
+                print(f"-> Error técnico: Falta el archivo de imagen '{nombre_imagen}' en la ruta: {ruta_imagen}")
                 return False
             pass 
             
@@ -51,7 +58,6 @@ def ejecutar_robot():
 
         print("Haciendo doble clic en Miguel para abrir Abaco...")
         if not clic_visual('icono_miguel.png', tiempo_espera=15, clics=2): return
-
 
         # ---------------------------------------------------------
         # 3. NAVEGACIÓN INICIAL POR LOS MENÚS
