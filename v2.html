@@ -50,7 +50,7 @@
     </nav>
 
     <div class="container">
-        <!-- CONTENEDOR DE CÁMARA OCULTO/ACTIVO -->
+        <!-- CONTENEDOR DE CÁMARA -->
         <div id="video-container">
             <video id="video-preview"></video>
             <button onclick="cerrarCamara()" style="position: absolute; top: 5px; right: 5px; background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">✕ Cerrar</button>
@@ -137,7 +137,7 @@
         let codeReader = null;
         let pestañaActivaCamara = 'consulta';
 
-        // Carga de la base de datos CSV
+        // Carga de la base de datos CSV ampliada
         async function cargarBaseDatos() {
             const statusBox = document.getElementById('status-db');
             try {
@@ -157,7 +157,10 @@
                             ean: col[0] ? col[0].replace(/^"|"$/g, '').trim() : '',
                             descripcion: col[1] ? col[1].replace(/^"|"$/g, '').trim() : '',
                             stock: col[2] ? col[2].replace(/^"|"$/g, '').trim() : '0',
-                            precio: col[3] ? col[3].replace(/^"|"$/g, '').trim() : ''
+                            precio: col[3] ? col[3].replace(/^"|"$/g, '').trim() : '',
+                            unidadesVendidas: col[4] ? col[4].replace(/^"|"$/g, '').trim() : '0',
+                            ultimaFechaCompra: col[5] ? col[5].replace(/^"|"$/g, '').trim() : 'N/D',
+                            fechaActualizacion: col[6] ? col[6].replace(/^"|"$/g, '').trim() : 'N/D'
                         });
                     }
                 }
@@ -172,7 +175,6 @@
             }
         }
 
-        // Efectos de sonido y vibración
         function confirmarEscaneo() {
             try {
                 if (navigator.vibrate) navigator.vibrate(100);
@@ -192,7 +194,6 @@
             } catch (e) {}
         }
 
-        // Cambio de pestañas
         function cambiarPestaña(nombreTab) {
             cerrarCamara();
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -202,7 +203,6 @@
             document.getElementById(`input-${nombreTab}`)?.focus();
         }
 
-        // --- CÁMARA / ESCÁNER INTEGRADO ---
         async function iniciarCamara(destino) {
             pestañaActivaCamara = destino;
             const container = document.getElementById('video-container');
@@ -263,6 +263,9 @@
                         <p style="font-size: 14px; margin-top: 5px;"><strong>EAN:</strong> ${producto.ean}</p>
                         <p style="font-size: 14px;"><strong>Stock:</strong> ${producto.stock} Uds.</p>
                         ${producto.precio ? `<p style="font-size: 14px;"><strong>Precio:</strong> ${producto.precio} €</p>` : ''}
+                        <p style="font-size: 13px; color: #555; margin-top: 4px;"><strong>Unidades vendidas:</strong> ${producto.unidadesVendidas}</p>
+                        <p style="font-size: 13px; color: #555;"><strong>Última fecha de compra:</strong> ${producto.ultimaFechaCompra}</p>
+                        <p style="font-size: 13px; color: #555;"><strong>Fecha de actualización:</strong> ${producto.fechaActualizacion}</p>
                     </div>
                 `;
             } else {
@@ -296,6 +299,7 @@
             localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
             confirmarEscaneo();
             input.value = '';
+            input.focus();
             renderizarListaReposicion();
         }
 
@@ -393,6 +397,7 @@
             localStorage.setItem('presupuesto_v2_data', JSON.stringify(listaPresupuesto));
             confirmarEscaneo();
             input.value = '';
+            input.focus();
             renderizarListaPresupuesto();
         }
 
@@ -441,7 +446,7 @@
             });
         }
 
-        // --- CONEXIÓN AUTOMÁTICA CON GOOGLE DRIVE (WEB APP) ---
+        // --- ENVÍO A GOOGLE DRIVE VIA WEB APP ---
         async function enviarGoogleDrive(tipo) {
             const datos = tipo === 'reposicion' ? listaReposicion : listaPresupuesto;
             if (datos.length === 0) {
@@ -462,7 +467,7 @@
                 alert("⏳ Enviando archivo a Google Drive...");
                 await fetch(WEB_APP_URL, {
                     method: "POST",
-                    mode: "no-cors", // Evita bloqueos de seguridad de CORS en Apps Script
+                    mode: "no-cors",
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
                     body: JSON.stringify({
                         tipo: tipo,
@@ -473,7 +478,6 @@
 
                 alert(`✅ Archivo enviado con éxito a la carpeta de ${tipo.toUpperCase()} en Google Drive.`);
                 
-                // Vacía la lista correspondiente tras el envío exitoso
                 if (tipo === 'reposicion') {
                     vaciarListaReposicion();
                 } else {
