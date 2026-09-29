@@ -48,6 +48,19 @@
         .etiqueta-stock { font-size: 12px; text-transform: uppercase; margin: 0; font-weight: bold; letter-spacing: 0.5px; opacity: 0.95; }
         .numero-stock { font-size: 46px; font-weight: 900; margin: 0; line-height: 1; }
 
+        /* ESTILOS PARA LA LISTA DE BÚSQUEDA */
+        .lista-resultados { 
+            list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto; text-align: left; 
+            border: 1px solid #dee2e6; border-radius: 6px;
+        }
+        .item-resultado { 
+            padding: 10px; border-bottom: 1px solid #dee2e6; cursor: pointer; background-color: #fff; 
+        }
+        .item-resultado:last-child { border-bottom: none; }
+        .item-resultado:active { background-color: #e9ecef; }
+        .item-desc { font-weight: bold; font-size: 14px; display: block; color: #111; margin-bottom: 2px; }
+        .item-ean { font-size: 12px; color: #6c757d; font-weight: bold; }
+
         #video-container {
             width: 100%;
             max-width: 320px;
@@ -120,10 +133,9 @@
     </div>
 
     <div id="resultado" class="resultado">
-        Esperando código...
+        Esperando código o descripción...
     </div>
 
-    <!-- Elemento oculto para usar la cámara fotográfica de iOS -->
     <input type="file" id="captura-foto" accept="image/*" capture="environment" style="display: none;" onchange="procesarFotoDeCamara(event)">
 
     <div class="caja-interfaz">
@@ -133,7 +145,7 @@
                 <span id="texto-so" class="texto-ajustes">OS</span>
             </button>
             
-            <input type="text" id="inputCodigo" placeholder="Escribe aquí..." autocomplete="off">
+            <input type="text" id="inputCodigo" placeholder="EAN o descripción..." autocomplete="off">
             
             <button class="btn-camara-cuadrado" onclick="iniciarEscanerSegunOS()" title="Escanear con Cámara">📷 Escáner</button>
         </div>
@@ -149,7 +161,6 @@
         const estadoDiv = document.getElementById('estado');
         const fileInput = document.getElementById('captura-foto');
 
-        // Detección de OS
         const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
         inputCodigo.addEventListener('focus', () => document.body.classList.add('modo-teclado'));
@@ -242,7 +253,6 @@
                             `;
                             estadoDiv.style.color = "#28a745";
 
-                            // ¡IMPORTANTE! Comprobar si venimos de un escaneo de app externa
                             procesarUrlConCodigo();
                         }
                     });
@@ -253,60 +263,100 @@
                 });
         }
 
-        function buscarCodigo(codigoEscaneado) {
-            if (!codigoEscaneado) return;
+        // LÓGICA DE BÚSQUEDA MIXTA (EAN Y TEXTO)
+        function procesarBusqueda(terminoBusqueda) {
+            let termino = terminoBusqueda.trim().toUpperCase();
+            if (!termino) return;
 
-            if (inventario.hasOwnProperty(codigoEscaneado)) {
-                let articulo = inventario[codigoEscaneado];
-                resultadoDiv.innerHTML = `
-                    <div style="display: flex; flex-direction: column; gap: 2px;">
-                        <p class="titulo-encontrado">¡Artículo encontrado!</p>
-                        <p class="texto-ean"><strong>EAN:</strong> ${codigoEscaneado}</p>
-                        <div class="descripcion-producto">${articulo.descripcion}</div>
-                    </div>
-                    <div class="panel-secundario">
-                        <div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${articulo.rayon}</span></div>
-                        <div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${articulo.precio}</span></div>
-                        <div class="item-secundario"><span class="etiqueta-secundaria">Últ. Recep.</span><span class="valor-secundario">${articulo.fecha}</span></div>
-                        <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${articulo.ventas}</span></div>
-                    </div>
-                    <div class="caja-stock">
-                        <p class="etiqueta-stock">STOCK DISPONIBLE</p>
-                        <p class="numero-stock">${articulo.stock}</p>
-                    </div>
-                `;
-            } else {
+            // 1. Comprobar si es un EAN exacto
+            if (inventario.hasOwnProperty(termino)) {
+                mostrarArticuloCompleto(termino);
+                return;
+            }
+
+            // 2. Si no es EAN, buscar en la descripción (separa palabras para filtro múltiple)
+            let palabras = termino.split(" ").filter(t => t.length > 0);
+            let coincidencias = [];
+
+            for (const [ean, articulo] of Object.entries(inventario)) {
+                let descUpper = articulo.descripcion.toUpperCase();
+                // Verifica que todas las palabras introducidas estén en la descripción
+                let coincideTodo = palabras.every(palabra => descUpper.includes(palabra));
+                
+                if (coincideTodo) {
+                    coincidencias.push({ ean: ean, articulo: articulo });
+                }
+            }
+
+            // 3. Manejar los resultados de texto
+            if (coincidencias.length === 0) {
                 resultadoDiv.innerHTML = `
                     <h3 style="color: #dc3545; margin: 0 0 4px 0; font-size: 16px;">No encontrado</h3>
-                    <p style="font-size: 15px;">El código <strong>${codigoEscaneado}</strong> no está en la base de datos.</p>
+                    <p style="font-size: 15px;">No hay coincidencias para <strong>${termino}</strong>.</p>
                 `;
+            } else if (coincidencias.length === 1) {
+                // Si solo hay uno, mostrarlo directamente
+                mostrarArticuloCompleto(coincidencias[0].ean);
+            } else {
+                // Si hay varios, crear la lista navegable
+                let htmlLista = `<h3 style="margin: 0 0 8px 0; font-size: 14px; color: #007bff;">${coincidencias.length} artículos encontrados:</h3>`;
+                htmlLista += `<ul class="lista-resultados">`;
+                
+                coincidencias.forEach(c => {
+                    htmlLista += `
+                        <li class="item-resultado" onclick="mostrarArticuloCompleto('${c.ean}')">
+                            <span class="item-desc">${c.articulo.descripcion}</span>
+                            <span class="item-ean">EAN: ${c.ean}</span>
+                        </li>
+                    `;
+                });
+                
+                htmlLista += `</ul>`;
+                resultadoDiv.innerHTML = htmlLista;
             }
-            inputCodigo.value = "";
-            inputCodigo.focus();
+            
+            // Ocultar teclado tras realizar búsqueda por texto para poder ver la lista
+            inputCodigo.blur();
         }
 
-        // --- SISTEMAS DE LECTURA ---
+        // PINTAR FICHA DEL PRODUCTO SELECCIONADO
+        function mostrarArticuloCompleto(ean) {
+            let articulo = inventario[ean];
+            resultadoDiv.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <p class="titulo-encontrado">¡Artículo encontrado!</p>
+                    <p class="texto-ean"><strong>EAN:</strong> ${ean}</p>
+                    <div class="descripcion-producto">${articulo.descripcion}</div>
+                </div>
+                <div class="panel-secundario">
+                    <div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${articulo.rayon}</span></div>
+                    <div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${articulo.precio}</span></div>
+                    <div class="item-secundario"><span class="etiqueta-secundaria">Últ. Recep.</span><span class="valor-secundario">${articulo.fecha}</span></div>
+                    <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${articulo.ventas}</span></div>
+                </div>
+                <div class="caja-stock">
+                    <p class="etiqueta-stock">STOCK DISPONIBLE</p>
+                    <p class="numero-stock">${articulo.stock}</p>
+                </div>
+            `;
+            inputCodigo.value = "";
+        }
 
-        // 1. Lee parámetros URL (Para la VÍA 1: Integración con app externa como QR Bot)
         function procesarUrlConCodigo() {
             const parametros = new URLSearchParams(window.location.search);
             const codigoDesdeApp = parametros.get('codigo');
             if (codigoDesdeApp) {
                 confirmarEscaneo();
-                buscarCodigo(codigoDesdeApp.trim());
-                
-                // Limpia la URL para evitar recargas infinitas con el mismo código
+                procesarBusqueda(codigoDesdeApp.trim());
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
 
-        // 2. Procesa la fotografía (Para la VÍA 2: Truco cámara nativa iOS)
         function procesarFotoDeCamara(event) {
             const file = event.target.files[0];
             if (!file) return;
 
             resultadoDiv.innerHTML = "<p>Analizando foto...</p>";
-            
             if (!codeReader) codeReader = new ZXing.BrowserBarcodeReader();
             
             const imageURL = URL.createObjectURL(file);
@@ -317,7 +367,7 @@
                 codeReader.decodeFromImageElement(imgElement)
                     .then(result => {
                         confirmarEscaneo();
-                        buscarCodigo(result.text.trim());
+                        procesarBusqueda(result.text.trim());
                     })
                     .catch(err => {
                         resultadoDiv.innerHTML = `<h3 style="color: #dc3545;">No se detectó código</h3><p>Intenta enfocar mejor o acércate.</p>`;
@@ -325,13 +375,10 @@
             };
         }
 
-        // 3. Sistema de Video Híbrido
         function iniciarEscanerSegunOS() {
             if (esIOS && !camaraManualId) {
-                // En iOS, si no han forzado la cámara, abrimos la app de cámara nativa (Foto)
                 fileInput.click();
             } else {
-                // En Android (o iOS forzado manual) abrimos el vídeo en directo
                 iniciarCamaraVideo();
             }
         }
@@ -339,7 +386,7 @@
         function procesarResultadoZXing(result, err) {
             if (result) {
                 confirmarEscaneo();
-                buscarCodigo(result.text.trim());
+                procesarBusqueda(result.text.trim());
                 cerrarCamara();
             }
         }
@@ -405,7 +452,7 @@
         inputCodigo.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                buscarCodigo(inputCodigo.value.trim());
+                procesarBusqueda(inputCodigo.value.trim());
             }
         });
 
