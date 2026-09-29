@@ -41,10 +41,11 @@
         .texto-ean { font-size: 13px; color: #555; margin: 0; }
         .descripcion-producto { font-size: 18px; font-weight: 800; line-height: 1.25; color: #000000; margin: 2px 0; text-transform: uppercase; }
         
+        /* Panel secundario adaptado a 4 datos (P.V.P, Rayón, Últ. Recep, Ventas) */
         .panel-secundario { display: flex; justify-content: space-around; gap: 4px; margin: 2px 0; background-color: #f8f9fa; padding: 6px; border-radius: 6px; border: 1px solid #e2e8f0; }
         .item-secundario { display: flex; flex-direction: column; align-items: center; flex: 1; }
-        .etiqueta-secundaria { font-size: 11px; text-transform: uppercase; color: #555; font-weight: bold; }
-        .valor-secundario { font-size: 18px; font-weight: 800; color: #111111; }
+        .etiqueta-secundaria { font-size: 10px; text-transform: uppercase; color: #555; font-weight: bold; }
+        .valor-secundario { font-size: 16px; font-weight: 800; color: #111111; }
 
         .caja-stock { margin-top: 2px; padding: 6px; background-color: #28a745; color: #ffffff; border-radius: 8px; }
         .etiqueta-stock { font-size: 12px; text-transform: uppercase; margin: 0; font-weight: bold; letter-spacing: 0.5px; opacity: 0.95; }
@@ -64,17 +65,17 @@
         }
         video { width: 100%; height: auto; display: block; }
 
-        /* Interfaz inferior adaptada */
+        /* Interfaz inferior */
         .caja-interfaz { padding: 4px; background-color: #ffffff; border-top: 1px solid #dee2e6; display: flex; flex-direction: column; gap: 4px; align-items: center; }
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; max-width: 350px; justify-content: center; align-items: center; }
         
         #inputCodigo { padding: 10px; font-size: 16px; flex: 1; text-align: center; border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; }
         
-        /* Botón de cámara cuadrado a la derecha */
+        /* Botón de cámara más ancho hacia la izquierda */
         .btn-camara-cuadrado { 
-            width: 46px; height: 46px; background-color: #17a2b8; color: white; border: none; 
+            width: 80px; height: 46px; background-color: #17a2b8; color: white; border: none; 
             border-radius: 6px; font-size: 20px; cursor: pointer; display: flex; align-items: center; 
-            justify-content: center; flex-shrink: 0; font-weight: bold; 
+            justify-content: center; flex-shrink: 0; font-weight: bold; gap: 4px;
         }
 
         .texto-instruccion { font-weight: bold; font-size: 10px; margin: 0; color: #495057; }
@@ -96,13 +97,13 @@
         Esperando código...
     </div>
 
-    <!-- Contenedor de video -->
+    <!-- Contenedor de video con atributos esenciales para iOS -->
     <div id="video-container">
-        <video id="video-preview"></video>
+        <video id="video-preview" playsinline autoplay muted></video>
         <button onclick="cerrarCamara()" style="position: absolute; top: 5px; right: 5px; background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">✕ Cerrar</button>
     </div>
 
-    <!-- Interfaz inferior: Input a la izquierda y botón cuadrado a la derecha -->
+    <!-- Interfaz inferior con botón ampliado -->
     <div class="caja-interfaz">
         <div class="grupo-input-camara">
             <input type="text" id="inputCodigo" placeholder="Escanea o escribe aquí..." autocomplete="off">
@@ -178,11 +179,25 @@
                                     let desc = fila[1] ? fila[1].trim() : "";
                                     let stock = fila[2] ? fila[2].trim() : "";
                                     let precio = fila[3] ? fila[3].trim() : "-";
-                                    let fecha = fila[4] ? fila[4].trim() : "-";
-                                    let ventas = fila[5] ? fila[5].trim() : "0";
+                                    
+                                    // Lectura adaptativa para Rayón (Columna E/4 o Columna D/3 al limpiar A)
+                                    let rayon = "-";
+                                    let fecha = "-";
+                                    let ventas = "0";
+
+                                    if (fila.length >= 6) {
+                                        // Estructura original con Columna A presente (Rayón en E / índice 4)
+                                        rayon = fila[4] ? fila[4].trim() : "-";
+                                        fecha = fila[5] ? fila[5].trim() : "-";
+                                        ventas = fila[6] ? fila[6].trim() : "0";
+                                    } else if (fila.length === 5) {
+                                        // Estructura tras eliminar Columna A (Rayón pasa a D / índice 3)
+                                        rayon = fila[3] ? fila[3].trim() : "-";
+                                        fecha = fila[4] ? fila[4].trim() : "-";
+                                    }
                                     
                                     if(ean) {
-                                        inventario[ean] = { descripcion: desc, stock, precio, fecha, ventas };
+                                        inventario[ean] = { descripcion: desc, stock, precio, rayon, fecha, ventas };
                                         contador++;
                                     }
                                 }
@@ -216,8 +231,9 @@
                     </div>
                     <div class="panel-secundario">
                         <div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${articulo.precio}</span></div>
+                        <div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${articulo.rayon}</span></div>
                         <div class="item-secundario"><span class="etiqueta-secundaria">Últ. Recep.</span><span class="valor-secundario">${articulo.fecha}</span></div>
-                        <div class="item-secundario"><span class="etiqueta-secundaria">Ventas Recep.</span><span class="valor-secundario">${articulo.ventas} u.</span></div>
+                        <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${articulo.ventas} u.</span></div>
                     </div>
                     <div class="caja-stock">
                         <p class="etiqueta-stock">STOCK DISPONIBLE</p>
@@ -243,15 +259,29 @@
             }
 
             try {
-                const videoInputDevices = await codeReader.listVideoInputDevices();
-                const selectedDeviceId = videoInputDevices.length > 0 ? videoInputDevices[videoInputDevices.length - 1].deviceId : undefined;
+                // Restricciones explícitas para compatibilidad con iOS / Safari
+                const constraints = {
+                    video: { facingMode: { exact: "environment" } }
+                };
 
-                codeReader.decodeFromVideoDevice(selectedDeviceId, 'video-preview', (result, err) => {
+                // Intentar abrir cámara trasera por restricción explícita
+                codeReader.decodeFromConstraints(constraints, 'video-preview', (result, err) => {
                     if (result) {
                         confirmarEscaneo();
                         buscarCodigo(result.text.trim());
                         cerrarCamara();
                     }
+                }).catch(async () => {
+                    // Fallback para dispositivos Android o navegadores que no soportan 'exact'
+                    const videoDevices = await codeReader.listVideoInputDevices();
+                    const selectedId = videoDevices.length > 0 ? videoDevices[videoDevices.length - 1].deviceId : undefined;
+                    codeReader.decodeFromVideoDevice(selectedId, 'video-preview', (result, err) => {
+                        if (result) {
+                            confirmarEscaneo();
+                            buscarCodigo(result.text.trim());
+                            cerrarCamara();
+                        }
+                    });
                 });
             } catch (err) {
                 alert("Error al iniciar la cámara: " + err);
