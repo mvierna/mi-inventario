@@ -69,7 +69,7 @@
         
         #selector-camara { width: 100%; max-width: 250px; padding: 4px; border-radius: 4px; font-size: 12px; }
 
-        video { width: 100%; height: auto; display: block; }
+        video { width: 100%; height: auto; display: block; object-fit: cover; }
 
         .caja-interfaz { padding: 4px; background-color: #ffffff; border-top: 1px solid #dee2e6; display: flex; flex-direction: column; gap: 4px; align-items: center; }
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; max-width: 350px; justify-content: center; align-items: center; }
@@ -77,15 +77,15 @@
         #inputCodigo { padding: 10px; font-size: 16px; flex: 1; text-align: center; border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; }
         
         .btn-camara-cuadrado { 
-            width: 80px; height: 46px; background-color: #17a2b8; color: white; border: none; 
+            width: 70px; height: 46px; background-color: #17a2b8; color: white; border: none; 
             border-radius: 6px; font-size: 20px; cursor: pointer; display: flex; align-items: center; 
             justify-content: center; flex-shrink: 0; font-weight: bold; gap: 4px;
         }
 
         .btn-ajustes { 
-            width: 46px; height: 46px; background-color: #6c757d; color: white; border: none; 
-            border-radius: 6px; font-size: 20px; cursor: pointer; display: flex; align-items: center; 
-            justify-content: center; flex-shrink: 0; 
+            height: 46px; background-color: #6c757d; color: white; border: none; 
+            border-radius: 6px; font-size: 14px; cursor: pointer; display: flex; align-items: center; 
+            justify-content: center; flex-shrink: 0; padding: 0 10px; font-weight: bold; gap: 4px;
         }
 
         body.modo-teclado .cabecera-top, body.modo-teclado #estado { display: none !important; }
@@ -100,7 +100,6 @@
 
     <div id="estado">Conectando...</div>
 
-    <!-- EL VISOR DE CÁMARA HA SIDO MOVIDO AQUÍ ARRIBA -->
     <div id="video-container">
         <div id="controles-video">
             <select id="selector-camara" onchange="cambiarCamaraManual()">
@@ -112,7 +111,6 @@
         <button onclick="cerrarCamara()" style="position: absolute; bottom: 5px; right: 5px; background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">✕ Cerrar</button>
     </div>
 
-    <!-- EL PANEL DE RESULTADOS AHORA ESTÁ DEBAJO DE LA CÁMARA -->
     <div id="resultado" class="resultado">
         Esperando código...
     </div>
@@ -120,7 +118,7 @@
     <div class="caja-interfaz">
         <div class="grupo-input-camara">
             <input type="text" id="inputCodigo" placeholder="Escanea o escribe aquí..." autocomplete="off">
-            <button class="btn-ajustes" onclick="abrirConfiguracionCamara()" title="Seleccionar cámara manual">⚙️</button>
+            <button id="btn-ajustes" class="btn-ajustes" onclick="abrirConfiguracionCamara()" title="Seleccionar cámara manual">⚙️</button>
             <button class="btn-camara-cuadrado" onclick="iniciarCamaraZXing()" title="Escanear con Cámara">📷</button>
         </div>
     </div>
@@ -133,6 +131,9 @@
         const inputCodigo = document.getElementById('inputCodigo');
         const resultadoDiv = document.getElementById('resultado');
         const estadoDiv = document.getElementById('estado');
+
+        // Detección de OS
+        const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
         inputCodigo.addEventListener('focus', () => document.body.classList.add('modo-teclado'));
         inputCodigo.addEventListener('blur', () => document.body.classList.remove('modo-teclado'));
@@ -195,19 +196,20 @@
                                     let stock = fila[2] ? fila[2].trim() : "";
                                     
                                     let rayon = "-";
-                                    let fecha = "-";
                                     let precio = "-";
+                                    let fecha = "-";
                                     let ventas = "0";
 
+                                    // Nuevos índices corregidos basados en las capturas
                                     if (fila.length >= 6) {
-                                        rayon = fila[3] ? fila[3].trim() : "-";
-                                        fecha = fila[4] ? fila[4].trim() : "-";
-                                        precio = fila[5] ? fila[5].trim() : "-";
-                                        ventas = fila[6] ? fila[6].trim() : "0";
+                                        rayon = fila[3] ? fila[3].trim() : "-";  // Columna 3 (Rayón)
+                                        precio = fila[4] ? fila[4].trim() : "-"; // Columna 4 (P.V.P)
+                                        fecha = fila[5] ? fila[5].trim() : "-";  // Columna 5 (Fecha)
+                                        ventas = fila[6] ? fila[6].trim() : "0"; // Columna 6 (Ventas)
                                     } else if (fila.length === 5) {
                                         rayon = fila[2] ? fila[2].trim() : "-";
-                                        fecha = fila[3] ? fila[3].trim() : "-";
-                                        precio = fila[4] ? fila[4].trim() : "-";
+                                        precio = fila[3] ? fila[3].trim() : "-";
+                                        fecha = fila[4] ? fila[4].trim() : "-";
                                     }
                                     
                                     if(ean) {
@@ -317,10 +319,14 @@
                     return; 
                 }
 
-                const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
-
                 if (esIOS) {
-                    const constraints = { video: { facingMode: { exact: "environment" } } };
+                    // Restricciones avanzadas para intentar forzar el enfoque en iOS
+                    const constraints = { 
+                        video: { 
+                            facingMode: { exact: "environment" },
+                            advanced: [{ focusMode: "continuous" }]
+                        } 
+                    };
                     codeReader.decodeFromConstraints(constraints, 'video-preview', procesarResultadoZXing)
                     .catch(async () => {
                         const videoDevices = await codeReader.listVideoInputDevices();
@@ -353,7 +359,16 @@
             }
         });
 
-        window.onload = cargarInventario;
+        window.onload = () => {
+            // Actualizar etiqueta del botón de ajustes según SO detectado
+            const btnAjustes = document.getElementById('btn-ajustes');
+            if (esIOS) {
+                btnAjustes.innerHTML = "⚙️ iOS";
+            } else {
+                btnAjustes.innerHTML = "⚙️ Android";
+            }
+            cargarInventario();
+        };
     </script>
 </body>
 </html>
