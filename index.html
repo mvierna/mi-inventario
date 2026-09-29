@@ -71,7 +71,7 @@
 
         video { width: 100%; height: auto; display: block; object-fit: cover; }
 
-        /* NUEVO DISEÑO INFERIOR PROPORCIONAL */
+        /* DISEÑO INFERIOR PROPORCIONAL */
         .caja-interfaz { padding: 4px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; }
         
         .grupo-input-camara { 
@@ -209,12 +209,24 @@
                                     let desc = fila[1] ? fila[1].trim() : "";
                                     let stock = fila[2] ? fila[2].trim() : "";
                                     
-                                    // Lectura ajustada a la nueva estructura:
-                                    // 0=EAN, 1=Desc, 2=Stock, 3=Rayón, 4=PVC, 5=Fecha, 6=Ventas
-                                    let rayon = fila[3] ? fila[3].trim() : "-";
-                                    let precio = fila[4] ? fila[4].trim() : "-";
+                                    // Lectura y asignación inteligente (Rayón vs PVC)
+                                    let val3 = fila[3] ? fila[3].trim() : "-";
+                                    let val4 = fila[4] ? fila[4].trim() : "-";
+                                    
+                                    let precio = "-";
+                                    let rayon = "-";
+
+                                    // Si el valor contiene letras o espacios (ej: ALIMENTACION SECA), es el Rayón.
+                                    if (/[a-zA-Z]/.test(val3) || val3.includes(" ")) {
+                                        rayon = val3;
+                                        precio = val4;
+                                    } else {
+                                        precio = val3;
+                                        rayon = val4;
+                                    }
+                                    
                                     let fecha = fila[5] ? fila[5].trim() : "-";
-                                    let ventas = fila[6] ? fila[6].trim() : "0";
+                                    let ventas = (fila.length > 6 && fila[6]) ? fila[6].trim() : "0";
                                     
                                     if(ean) {
                                         inventario[ean] = { descripcion: desc, stock, precio, rayon, fecha, ventas };
