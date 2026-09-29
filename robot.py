@@ -89,7 +89,7 @@ def ejecutar_robot():
         
         pyautogui.press('left', presses=2, interval=0.3)
         pyautogui.press('enter')
-        time.sleep(20) 
+        time.sleep(22) 
         
         print("Abriendo menú contextual (Shift + F10)...")
         pyautogui.hotkey('shift', 'f10')

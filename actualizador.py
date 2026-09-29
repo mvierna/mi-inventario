@@ -17,7 +17,6 @@ def limpiar_datos():
         # 2. Leer el archivo e inspeccionar su estructura
         with open(archivo, 'r', encoding='latin-1') as f:
             primera_linea = f.readline()
-            # Detectar si el delimitador es punto y coma o tabulación
             delimitador_entrada = ';' if ';' in primera_linea else '\t'
             f.seek(0)
             
@@ -27,83 +26,92 @@ def limpiar_datos():
             print("El archivo está vacío.")
             return False
 
-        # Buscar la primera fila de datos real (omitir cabeceras)
+        # Buscar la primera fila de datos real para ver si ya está limpio
         fila_muestra = None
         for fila in lector:
             if len(fila) > 1 and fila[0].strip().upper() not in ['EAN', 'CODIGO', 'CÓDIGO', 'FALSE'] and fila[1].strip().upper() != 'EAN':
                 fila_muestra = fila
                 break
 
-        if not fila_muestra:
-            print("No se encontraron filas con datos válidos de productos.")
-            return False
+        if fila_muestra:
+            col0 = fila_muestra[0].strip()
+            col1 = fila_muestra[1].strip() if len(fila_muestra) > 1 else ""
+            tiene_letras_col1 = any(c.isalpha() for c in col1)
+            es_ean_col0 = len(col0) >= 6 and (col0.isdigit() or 'E+' in col0.upper())
 
-        # COMPROBACIÓN INTELIGENTE MEJORADA:
-        # En un archivo YA limpio: Columna 0 = EAN, Columna 1 = Descripción (texto con letras).
-        col0 = fila_muestra[0].strip()
-        col1 = fila_muestra[1].strip() if len(fila_muestra) > 1 else ""
-        
-        tiene_letras_col1 = any(c.isalpha() for c in col1)
-        es_ean_col0 = len(col0) >= 8 and col0.isdigit()
+            # Si ya tiene el formato limpio de 7 columnas
+            if es_ean_col0 and tiene_letras_col1 and len(fila_muestra) == 7:
+                print("--> El archivo TIENDA.csv YA está limpio y preparado para la PWA.")
+                print("--> Se conservará el archivo intacto.")
+                return True
 
-        # Solo si Columna 0 es EAN, Col 1 es texto, y tiene exactamente 7 columnas (EAN, Desc, Stock, Rayon, PVC, Fecha, Ventas)
-        if es_ean_col0 and tiene_letras_col1 and len(fila_muestra) == 7:
-            print("--> El archivo TIENDA.csv YA está limpio y preparado para la PWA.")
-            print("--> Se conservará el archivo intacto.")
-            return True
+        print("--> Se ha detectado una exportación de Ábaco. Iniciando limpieza...")
 
-        print("--> Se ha detectado una exportación nueva de Ábaco. Iniciando limpieza...")
-
-        # 3. Procesar la exportación de Ábaco
+        # 3. Procesar la exportación
         for fila in lector:
-            if len(fila) > 2:
-                ean = fila[1].strip() if len(fila) > 1 else ""
+            if len(fila) < 3:
+                continue
                 
-                # Saltar filas de cabecera o vacías
-                if ean.upper() in ['EAN', 'CODIGO', 'CÓDIGO', 'DESIGNACIÓN', 'DESIGNACION'] or fila[0].strip().upper() in ['EAN', 'CODIGO', 'CÓDIGO']:
-                    continue
-                
-                # Si el EAN estaba en la primera columna por algún formato especial
-                if not ean and len(fila[0].strip()) >= 8 and fila[0].strip().isdigit():
-                    ean = fila[0].strip()
-                    
-                if not ean:
-                    continue
+            # AUTO-ALINEACIÓN: Detectar si existe la columna basura inicial (ej: "False")
+            shift = 0
+            if fila[0].strip().upper() == 'FALSE':
+                shift = 1
+            elif not (fila[0].strip().isdigit() and len(fila[0].strip()) >= 6):
+                # Si la columna 0 no es EAN pero la 1 sí lo es, desplazamos la lectura
+                if len(fila) > 1 and fila[1].strip().isdigit() and len(fila[1].strip()) >= 6:
+                    shift = 1
 
-                desc = fila[2].strip() if len(fila) > 2 else ""
-                stock = fila[3].strip() if len(fila) > 3 else "0"
+            # Aplicar desplazamiento seguro para recuperar el EAN
+            ean = fila[0 + shift].strip()
+            
+            # Saltar filas de cabecera
+            if ean.upper() in ['EAN', 'CODIGO', 'CÓDIGO', 'DESIGNACIÓN', 'DESIGNACION']:
+                continue
                 
-                # Nuevos índices extraídos del análisis de tu Excel original:
-                rayon = fila[4].strip() if len(fila) > 4 else "-"
-                pvc = fila[5].strip() if len(fila) > 5 else "-"
+            if not ean:
+                continue
+
+            # Extracción estructurada y protegida de datos (Desc, Stock, Rayón, PVC)
+            desc = fila[1 + shift].strip() if len(fila) > 1 + shift else ""
+            stock = fila[2 + shift].strip() if len(fila) > 2 + shift else "0"
+            rayon = fila[3 + shift].strip() if len(fila) > 3 + shift else "-"
+            pvc = fila[4 + shift].strip() if len(fila) > 4 + shift else "-"
+            
+            # BÚSQUEDA INTELIGENTE DE FECHAS (Solución a las 2 fechas)
+            fecha = "-"
+            ventas = "0"
+            fechas_encontradas = []
+            
+            # Recorrer toda la fila buscando cualquier celda que parezca una fecha
+            for i, val in enumerate(fila):
+                if '/' in val and ('202' in val or '203' in val):
+                    fechas_encontradas.append((i, val.strip()))
+                    
+            if fechas_encontradas:
+                # Tomar SIEMPRE la última fecha de la fila (ignora la fecha de exportación)
+                idx_fecha, val_fecha = fechas_encontradas[-1]
+                fecha = val_fecha
                 
-                # Búsqueda dinámica de la fecha para sortear columnas vacías (como la columna G)
-                fecha = "-"
-                ventas = "0"
-                for i in range(5, min(len(fila), 10)):
-                    if '/' in fila[i]:
-                        fecha = fila[i].strip()
-                        # Limpiar hora si está presente en la fecha
-                        if ' ' in fecha and ':' in fecha:
-                            fecha = fecha.split(' ')[0]
-                            
-                        # Las ventas suelen estar en la columna inmediatamente siguiente a la fecha
-                        if len(fila) > i + 1 and fila[i+1].strip() != "":
-                            ventas = fila[i+1].strip()
-                        break
-                        
-                datos_limpios.append([ean, desc, stock, rayon, pvc, fecha, ventas])
+                # Limpiar hora si está presente
+                if ' ' in fecha and ':' in fecha:
+                    fecha = fecha.split(' ')[0]
+                    
+                # Las ventas siempre están en la celda inmediatamente posterior a la última fecha
+                if len(fila) > idx_fecha + 1 and fila[idx_fecha + 1].strip() != "":
+                    ventas = fila[idx_fecha + 1].strip()
+                    
+            datos_limpios.append([ean, desc, stock, rayon, pvc, fecha, ventas])
 
     except Exception as e:
-        print(f"Error al leer el archivo de Ábaco: {e}")
+        print(f"Error al procesar el archivo: {e}")
         return False
 
     if not datos_limpios:
-        print("Atención: No se generaron datos. Operación abortada para proteger la base de datos.")
+        print("Atención: No se generaron datos. Operación abortada.")
         return False
 
     try:
-        # 4. Guardar el archivo formateado en UTF-8 con delimitador ';'
+        # 4. Guardar archivo final preparado para la web
         with open(archivo, 'w', encoding='utf-8', newline='') as f:
             escritor = csv.writer(f, delimiter=';')
             escritor.writerows(datos_limpios)
@@ -112,7 +120,7 @@ def limpiar_datos():
         return True
         
     except Exception as e:
-        print(f"Error al guardar el archivo limpio: {e}")
+        print(f"Error al guardar el archivo: {e}")
         return False
 
 def subir_a_github():
@@ -120,17 +128,17 @@ def subir_a_github():
     try:
         subprocess.run(['git', 'add', '.'], check=True)
         subprocess.run(['git', 'commit', '-m', 'Actualización automática de interfaz y stock por RPA'], check=False)
-        print("Sincronizando con los datos remotos de GitHub...")
+        print("Sincronizando con los datos remotos...")
         subprocess.run(['git', 'pull', '--rebase', 'origin', 'main'], check=False)
         subprocess.run(['git', 'push', 'origin', 'main'], check=True)
-        print("¡Sincronización completada! Todos los archivos (web y datos) ya están en la nube.")
+        print("¡Sincronización completada! Todos los datos ya están en la nube.")
     except Exception as e:
-        print(f"Error al intentar subir los datos a GitHub: {e}")
+        print(f"Error al sincronizar con GitHub: {e}")
 
 if __name__ == '__main__':
     if limpiar_datos():
         subir_a_github()
     else:
-        print("\n[CANCELADO] No se realizarán cambios en GitHub debido a un problema con el archivo de datos.")
+        print("\n[CANCELADO] No se realizarán cambios en GitHub.")
     
     input("\nPresiona ENTER para cerrar esta ventana...")
