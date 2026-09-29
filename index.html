@@ -216,7 +216,7 @@
                                     let precio = "-";
                                     let rayon = "-";
 
-                                    // Si el valor contiene letras o espacios (ej: ALIMENTACION SECA), es el Rayón.
+                                    // Asignación de datos
                                     if (/[a-zA-Z]/.test(val3) || val3.includes(" ")) {
                                         rayon = val3;
                                         precio = val4;
@@ -262,8 +262,9 @@
                         <div class="descripcion-producto">${articulo.descripcion}</div>
                     </div>
                     <div class="panel-secundario">
-                        <div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${articulo.precio}</span></div>
-                        <div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${articulo.rayon}</span></div>
+                        <!-- Intercambio de encabezados realizado aquí -->
+                        <div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${articulo.precio}</span></div>
+                        <div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${articulo.rayon}</span></div>
                         <div class="item-secundario"><span class="etiqueta-secundaria">Últ. Recep.</span><span class="valor-secundario">${articulo.fecha}</span></div>
                         <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${articulo.ventas}</span></div>
                     </div>
