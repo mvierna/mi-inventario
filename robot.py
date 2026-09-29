@@ -57,12 +57,12 @@ def ejecutar_robot():
         if not clic_visual('carpeta_inicio.png', tiempo_espera=2): return
 
         print("Haciendo doble clic en Miguel para abrir Abaco...")
-        if not clic_visual('icono_miguel.png', tiempo_espera=5, clics=2): return
+        if not clic_visual('icono_miguel.png', tiempo_espera=2, clics=2): return
 
         # ---------------------------------------------------------
         # 3. NAVEGACIÓN INICIAL POR LOS MENÚS
         # ---------------------------------------------------------
-        if not clic_visual('boton_stocks.png', tiempo_espera=1): return
+        if not clic_visual('boton_stocks.png', tiempo_espera=1.5): return
         if not clic_visual('ANALISIS.png', tiempo_espera=1): return
         if not clic_visual('FILTRO.png', tiempo_espera=2): return
         if not clic_visual('FILTRO 2.png', tiempo_espera=2): return
@@ -89,7 +89,7 @@ def ejecutar_robot():
         
         pyautogui.press('left', presses=2, interval=0.3)
         pyautogui.press('enter')
-        time.sleep(18) 
+        time.sleep(20) 
         
         print("Abriendo menú contextual (Shift + F10)...")
         pyautogui.hotkey('shift', 'f10')
