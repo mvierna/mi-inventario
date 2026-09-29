@@ -71,28 +71,28 @@
 
         video { width: 100%; height: auto; display: block; object-fit: cover; }
 
-        /* NUEVO DISEÑO INFERIOR (Ajustes Cuadrado -> Escáner y Cámara proporcionales) */
-        .caja-interfaz { padding: 4px; background-color: #ffffff; border-top: 1px solid #dee2e6; display: flex; flex-direction: column; gap: 4px; align-items: center; }
+        /* NUEVO DISEÑO INFERIOR PROPORCIONAL */
+        .caja-interfaz { padding: 4px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; }
         
         .grupo-input-camara { 
-            display: flex; gap: 6px; width: 100%; justify-content: center; align-items: center; 
+            display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; 
         }
         
         .btn-ajustes { 
-            width: 50px; height: 50px; background-color: #6c757d; color: white; border: none; 
+            flex: 0 0 50px; height: 50px; background-color: #6c757d; color: white; border: none; 
             border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; 
-            justify-content: center; flex-shrink: 0; padding: 2px;
+            justify-content: center; padding: 2px;
         }
         .icono-ajustes { font-size: 18px; line-height: 1; }
         .texto-ajustes { font-size: 10px; font-weight: bold; margin-top: 2px; }
 
         #inputCodigo { 
-            flex: 1; height: 50px; padding: 8px; font-size: 15px; text-align: center; 
+            flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 14px; text-align: center; 
             border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; 
         }
         
         .btn-camara-cuadrado { 
-            flex: 1; height: 50px; background-color: #17a2b8; color: white; border: none; 
+            flex: 1; min-width: 0; height: 50px; background-color: #17a2b8; color: white; border: none; 
             border-radius: 6px; font-size: 16px; cursor: pointer; display: flex; align-items: center; 
             justify-content: center; font-weight: bold; gap: 6px;
         }
@@ -126,17 +126,14 @@
 
     <div class="caja-interfaz">
         <div class="grupo-input-camara">
-            <!-- Botón Ajustes (Izquierda, cuadrado, con sistema operativo) -->
             <button id="btn-ajustes" class="btn-ajustes" onclick="abrirConfiguracionCamara()" title="Seleccionar cámara manual">
                 <span class="icono-ajustes">⚙️</span>
                 <span id="texto-so" class="texto-ajustes">OS</span>
             </button>
             
-            <!-- Input Escáner (Centro, flex 1) -->
-            <input type="text" id="inputCodigo" placeholder="Escanea o escribe..." autocomplete="off">
+            <input type="text" id="inputCodigo" placeholder="Escribe aquí..." autocomplete="off">
             
-            <!-- Botón Cámara (Derecha, flex 1) -->
-            <button class="btn-camara-cuadrado" onclick="iniciarCamaraZXing()" title="Escanear con Cámara">📷 Cámara</button>
+            <button class="btn-camara-cuadrado" onclick="iniciarCamaraZXing()" title="Escanear con Cámara">📷 Escáner</button>
         </div>
     </div>
 
@@ -149,7 +146,7 @@
         const resultadoDiv = document.getElementById('resultado');
         const estadoDiv = document.getElementById('estado');
 
-        // Detección de OS
+        // Detección de OS para el botón
         const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
         inputCodigo.addEventListener('focus', () => document.body.classList.add('modo-teclado'));
@@ -212,23 +209,12 @@
                                     let desc = fila[1] ? fila[1].trim() : "";
                                     let stock = fila[2] ? fila[2].trim() : "";
                                     
-                                    let precio = "-";
-                                    let rayon = "-";
-                                    let fecha = "-";
-                                    let ventas = "0";
-
-                                    // LECTURA CORREGIDA: Columna D (Índice 3) para Precio, Columna E (Índice 4) para Rayón
-                                    if (fila.length >= 6) {
-                                        precio = fila[3] ? fila[3].trim() : "-"; // Columna D
-                                        rayon = fila[4] ? fila[4].trim() : "-";  // Columna E
-                                        fecha = fila[5] ? fila[5].trim() : "-";  // Columna F
-                                        ventas = (fila.length > 6 && fila[6]) ? fila[6].trim() : "0"; // Columna G
-                                    } else if (fila.length === 5) {
-                                        // Si la columna A fue borrada y todo se desplazó a la izquierda
-                                        precio = fila[2] ? fila[2].trim() : "-";
-                                        rayon = fila[3] ? fila[3].trim() : "-";
-                                        fecha = fila[4] ? fila[4].trim() : "-";
-                                    }
+                                    // Lectura ajustada a la nueva estructura:
+                                    // 0=EAN, 1=Desc, 2=Stock, 3=Rayón, 4=PVC, 5=Fecha, 6=Ventas
+                                    let rayon = fila[3] ? fila[3].trim() : "-";
+                                    let precio = fila[4] ? fila[4].trim() : "-";
+                                    let fecha = fila[5] ? fila[5].trim() : "-";
+                                    let ventas = fila[6] ? fila[6].trim() : "0";
                                     
                                     if(ean) {
                                         inventario[ean] = { descripcion: desc, stock, precio, rayon, fecha, ventas };
@@ -377,7 +363,6 @@
         });
 
         window.onload = () => {
-            // Actualizar etiqueta del botón de ajustes según SO detectado dinámicamente
             const textoSO = document.getElementById('texto-so');
             if (esIOS) {
                 textoSO.innerText = "iPhone";

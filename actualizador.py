@@ -30,7 +30,7 @@ def limpiar_datos():
         # Buscar la primera fila de datos real (omitir cabeceras)
         fila_muestra = None
         for fila in lector:
-            if len(fila) > 1 and fila[0].strip().upper() not in ['EAN', 'CODIGO', 'CÓDIGO'] and fila[1].strip().upper() != 'EAN':
+            if len(fila) > 1 and fila[0].strip().upper() not in ['EAN', 'CODIGO', 'CÓDIGO', 'FALSE'] and fila[1].strip().upper() != 'EAN':
                 fila_muestra = fila
                 break
 
@@ -39,16 +39,15 @@ def limpiar_datos():
             return False
 
         # COMPROBACIÓN INTELIGENTE MEJORADA:
-        # En un archivo YA limpio: Columna 0 = EAN (dígitos) y Columna 1 = Descripción (texto con letras).
-        # En la exportación de Ábaco: Columna 0 = Código interno, Columna 1 = EAN, Columna 2 = Descripción.
+        # En un archivo YA limpio: Columna 0 = EAN, Columna 1 = Descripción (texto con letras).
         col0 = fila_muestra[0].strip()
         col1 = fila_muestra[1].strip() if len(fila_muestra) > 1 else ""
         
         tiene_letras_col1 = any(c.isalpha() for c in col1)
         es_ean_col0 = len(col0) >= 8 and col0.isdigit()
 
-        # Solo si Columna 0 es un EAN y Columna 1 es la descripción de texto, consideramos que ya está limpio
-        if es_ean_col0 and tiene_letras_col1 and len(fila_muestra) == 6:
+        # Solo si Columna 0 es EAN, Col 1 es texto, y tiene exactamente 7 columnas (EAN, Desc, Stock, Rayon, PVC, Fecha, Ventas)
+        if es_ean_col0 and tiene_letras_col1 and len(fila_muestra) == 7:
             print("--> El archivo TIENDA.csv YA está limpio y preparado para la PWA.")
             print("--> Se conservará el archivo intacto.")
             return True
@@ -60,8 +59,8 @@ def limpiar_datos():
             if len(fila) > 2:
                 ean = fila[1].strip() if len(fila) > 1 else ""
                 
-                # Saltar filas de cabecera
-                if ean.upper() in ['EAN', 'CODIGO', 'CÓDIGO'] or fila[0].strip().upper() in ['EAN', 'CODIGO', 'CÓDIGO']:
+                # Saltar filas de cabecera o vacías
+                if ean.upper() in ['EAN', 'CODIGO', 'CÓDIGO', 'DESIGNACIÓN', 'DESIGNACION'] or fila[0].strip().upper() in ['EAN', 'CODIGO', 'CÓDIGO']:
                     continue
                 
                 # Si el EAN estaba en la primera columna por algún formato especial
@@ -73,16 +72,27 @@ def limpiar_datos():
 
                 desc = fila[2].strip() if len(fila) > 2 else ""
                 stock = fila[3].strip() if len(fila) > 3 else "0"
-                pvc = fila[4].strip() if len(fila) > 4 else ""
                 
-                fecha = fila[6].strip() if len(fila) > 6 else ""
-                ventas = fila[7].strip() if len(fila) > 7 else ""
+                # Nuevos índices extraídos del análisis de tu Excel original:
+                rayon = fila[4].strip() if len(fila) > 4 else "-"
+                pvc = fila[5].strip() if len(fila) > 5 else "-"
                 
-                # Limpiar hora si está presente en la fecha
-                if '/' in fecha and ':' in fecha and ' ' in fecha:
-                    fecha = fecha.split(' ')[0]
-                    
-                datos_limpios.append([ean, desc, stock, pvc, fecha, ventas])
+                # Búsqueda dinámica de la fecha para sortear columnas vacías (como la columna G)
+                fecha = "-"
+                ventas = "0"
+                for i in range(5, min(len(fila), 10)):
+                    if '/' in fila[i]:
+                        fecha = fila[i].strip()
+                        # Limpiar hora si está presente en la fecha
+                        if ' ' in fecha and ':' in fecha:
+                            fecha = fecha.split(' ')[0]
+                            
+                        # Las ventas suelen estar en la columna inmediatamente siguiente a la fecha
+                        if len(fila) > i + 1 and fila[i+1].strip() != "":
+                            ventas = fila[i+1].strip()
+                        break
+                        
+                datos_limpios.append([ean, desc, stock, rayon, pvc, fecha, ventas])
 
     except Exception as e:
         print(f"Error al leer el archivo de Ábaco: {e}")
