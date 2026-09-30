@@ -254,27 +254,23 @@
 
     </div>
 
-    <!-- AQUÍ SE ENLAZA TU ARCHIVO EXTERNO DE 64K ARTÍCULOS (si lo tienes separado) -->
-    <!-- <script src="articulos.js"></script> -->
+    <!-- Carga la base de datos externa -->
+    <script src="articulos.js"></script>
 
     <script>
-        // ==========================================
-        // BASE DE DATOS CENTRAL (Síncrona y rápida)
-        // ==========================================
-        // Si tienes el <script src="articulos.js"> arriba, puedes borrar este bloque de prueba.
-        const baseDeDatos = {
-            "8433897065104": { descripcion: "FUNDA DE ROPA 60*100", precio: "2,50" },
-            "8433897065043": { descripcion: "CAJA MULTI C 45X 45X20", precio: "4,95" }
-        };
+        // Si el archivo articulos.js no carga, creamos un fallback vacío temporal para que no dé error
+        if (typeof baseDeDatos === 'undefined') {
+            var baseDeDatos = {
+                "8433897065104": { descripcion: "FUNDA DE ROPA 60*100 (Demo)", precio: "2,50" }
+            };
+        }
 
         const URL_SCRIPT_GOOGLE = "https://script.google.com/macros/s/AKfycbwyWT6AoIwslK5RR7fmu76wXaeE0bbagn279y1DI32dpZ6Ncs1KxYo0fcY4Z5wuSPiivw/exec";
 
-        // Variables de estado
         let listas = { chequeos: [], reposicion: [], presupuesto: [] };
         let ocrTimer = null;
         let audioCtx = null;
 
-        // Navegación de pestañas
         function cambiarPestana(pestaña) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
@@ -284,9 +280,6 @@
             if (pestaña === 'consulta') document.getElementById('inputConsulta').focus();
         }
 
-        // ==========================================
-        // 1. CONSULTA
-        // ==========================================
         function buscarArticulo() {
             const ean = document.getElementById('inputConsulta').value.trim();
             if (!ean) return;
@@ -308,9 +301,6 @@
             document.getElementById('inputConsulta').value = '';
         }
 
-        // ==========================================
-        // 2. REPOSICIÓN
-        // ==========================================
         function agregarReposicion() {
             const ean = document.getElementById('inputRepoEAN').value.trim();
             const cant = parseInt(document.getElementById('inputRepoCant').value) || 1;
@@ -326,9 +316,6 @@
             renderizarTabla('reposicion');
         }
 
-        // ==========================================
-        // 3. CHEQUEO OCR
-        // ==========================================
         function emitirPitido() {
             try {
                 if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -344,7 +331,7 @@
         const inputOcr = document.getElementById('inputOcr');
         inputOcr.addEventListener('input', function(e) {
             clearTimeout(ocrTimer);
-            ocrTimer = setTimeout(() => { procesarOCR(e.target.value); }, 400); // 400ms para mayor agilidad
+            ocrTimer = setTimeout(() => { procesarOCR(e.target.value); }, 400); 
         });
 
         function procesarOCR(texto) {
@@ -363,7 +350,7 @@
                 renderizarTabla('chequeos');
                 inputOcr.value = '';
             } else {
-                inputOcr.value = ''; // Descarta en silencio si falta EAN o Precio
+                inputOcr.value = ''; 
             }
         }
         function limpiarInputOCR() { inputOcr.value = ''; inputOcr.focus(); }
@@ -387,9 +374,6 @@
             }
         }
 
-        // ==========================================
-        // 4. PRESUPUESTO
-        // ==========================================
         function agregarPresupuesto() {
             const ean = document.getElementById('inputPresupEAN').value.trim();
             if (!ean) return;
@@ -405,9 +389,6 @@
             renderizarTabla('presupuesto');
         }
 
-        // ==========================================
-        // FUNCIONES COMPARTIDAS DE TABLAS
-        // ==========================================
         function renderizarTabla(tipo) {
             let tbody, msgVacio;
             if (tipo === 'reposicion') {
