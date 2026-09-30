@@ -11,6 +11,7 @@
             --bg-light: #f4f6f8;
             --btn-green: #27ae60;
             --btn-red: #e74c3c;
+            --btn-orange: #e67e22;
         }
 
         body {
@@ -21,7 +22,6 @@
             color: #333;
         }
 
-        /* Cabecera y Navegación */
         header {
             background-color: var(--header-red);
             color: white;
@@ -29,8 +29,8 @@
             font-weight: bold;
             font-size: 1.1rem;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 8px;
         }
 
         nav {
@@ -54,15 +54,17 @@
 
         nav button.active {
             border-bottom-color: white;
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.15);
         }
 
-        /* Contenedor Principal */
         .container {
             padding: 15px;
-            max-width: 600px;
+            max-width: 650px;
             margin: 0 auto;
         }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
 
         .card {
             background: white;
@@ -77,22 +79,19 @@
             font-size: 1.1rem;
             font-weight: bold;
             margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
         }
 
         .card-subtitle {
             font-size: 0.85rem;
             color: #666;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             line-height: 1.3;
         }
 
-        /* Área de lectura OCR */
         .input-group {
             display: flex;
             gap: 8px;
+            margin-bottom: 8px;
         }
 
         .input-group input {
@@ -104,9 +103,7 @@
             outline: none;
         }
 
-        .input-group input:focus {
-            border-color: var(--primary-blue);
-        }
+        .input-group input:focus { border-color: var(--primary-blue); }
 
         .btn {
             padding: 10px 16px;
@@ -123,241 +120,339 @@
         .btn-red { background-color: var(--btn-red); }
         .btn-full-red { background-color: var(--btn-red); width: 100%; margin-top: 8px; }
 
-        /* Tabla / Lista de Chequeo */
-        .tabla-chequeos {
+        .tabla-datos {
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
             font-size: 0.85rem;
         }
 
-        .tabla-chequeos th {
+        .tabla-datos th {
             background-color: #f0f3f6;
             text-align: left;
             padding: 8px;
             border-bottom: 2px solid #ddd;
         }
 
-        .tabla-chequeos td {
+        .tabla-datos td {
             padding: 10px 8px;
             border-bottom: 1px solid #eee;
             vertical-align: middle;
         }
 
-        .badge-precio {
-            color: #d32f2f;
-            font-weight: bold;
-        }
+        .badge-precio { color: #27ae60; font-weight: bold; }
+        .badge-cant { background-color: #e3f2fd; color: var(--primary-blue); padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        .btn-del { background: #e74c3c; color: white; border: none; border-radius: 4px; padding: 5px 8px; cursor: pointer; font-weight: bold; }
+        .empty-msg { text-align: center; color: #888; padding: 15px; font-style: italic; }
 
-        .badge-no-precio {
-            background-color: #ffebee;
-            color: #c62828;
-            padding: 3px 6px;
-            border-radius: 4px;
-            font-weight: bold;
-            font-size: 0.75rem;
+        .resultado-consulta {
+            background-color: #f8fafc;
+            border-left: 4px solid var(--primary-blue);
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 0 6px 6px 0;
         }
-
-        .btn-del {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 5px 8px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .empty-msg {
-            text-align: center;
-            color: #888;
-            padding: 15px;
-            font-style: italic;
-        }
+        .resultado-item { margin-bottom: 6px; font-size: 0.95rem; }
+        .resultado-label { font-weight: bold; color: #555; }
+        .presupuesto-total { font-size: 1.2rem; font-weight: bold; color: var(--primary-blue); text-align: right; padding: 10px 0; border-top: 2px solid #ddd; margin-top: 10px; }
     </style>
 </head>
 <body>
 
     <header>
-        📌 SISTEMA DE INVENTARIO V2
+        <span>📌 INVENTARIO V2</span>
     </header>
 
     <nav>
-        <button>🔍 Consulta</button>
-        <button>📦 Reposición</button>
-        <button class="active">📋 Chequeo</button>
-        <button>💰 Presupuesto</button>
+        <button id="tab-consulta" onclick="cambiarPestana('consulta')">🔍 Consulta</button>
+        <button id="tab-reposicion" onclick="cambiarPestana('reposicion')">📦 Reposición</button>
+        <button id="tab-chequeo" class="active" onclick="cambiarPestana('chequeo')">📋 Chequeo</button>
+        <button id="tab-presupuesto" onclick="cambiarPestana('presupuesto')">💰 Presupuesto</button>
     </nav>
 
     <div class="container">
-        <!-- Bloque de Entrada OCR -->
-        <div class="card">
-            <div class="card-title">🔍 Chequeo Masivo con Teclado OCR</div>
-            <div class="card-subtitle">
-                Usa el modo <b>Text</b> de tu teclado. Filtra estrictamente códigos EAN de 13 dígitos y detecta precios.
+
+        <!-- 1. PESTAÑA CONSULTA -->
+        <div id="sec-consulta" class="tab-content">
+            <div class="card">
+                <div class="card-title">🔍 Consulta Rápida de Artículos</div>
+                <div class="card-subtitle">Busca directamente por código EAN.</div>
+                <div class="input-group">
+                    <input type="text" id="inputConsulta" placeholder="Escanea o teclea EAN..." onkeyup="if(event.key==='Enter') buscarArticulo()">
+                    <button class="btn btn-blue" onclick="buscarArticulo()">Buscar</button>
+                </div>
             </div>
-            
-            <div class="input-group">
-                <input type="text" id="inputOcr" placeholder="Usa la función Text de tu teclado..." autocomplete="off" autofocus>
-                <button class="btn btn-blue" onclick="limpiarInput()">Limpiar</button>
+            <div class="card" id="cardResultadoConsulta" style="display:none;">
+                <div class="card-title">Resultado de la Búsqueda</div>
+                <div id="detalleConsulta"></div>
             </div>
         </div>
 
-        <!-- Tabla de Resultados -->
-        <div class="card">
-            <div class="card-title">Artículos Chequeados</div>
-            
-            <table class="tabla-chequeos">
-                <thead>
-                    <tr>
-                        <th>EAN</th>
-                        <th>Descripción</th>
-                        <th>Precio OCR</th>
-                        <th>Acción</th>
-                    </tr>
-                </thead>
-                <tbody id="listaChequeados">
-                    <!-- Filas dinámicas -->
-                </tbody>
-            </table>
-            
-            <div id="mensajeVacio" class="empty-msg">No hay artículos chequeados.</div>
-
-            <button class="btn btn-green" onclick="enviarADrive()">🟢 Enviar Chequeo a Drive</button>
-            <button class="btn btn-full-red" onclick="vaciarLista()">🗑️ Vaciar Lista</button>
+        <!-- 2. PESTAÑA REPOSICIÓN -->
+        <div id="sec-reposicion" class="tab-content">
+            <div class="card">
+                <div class="card-title">📦 Añadir a Reposición</div>
+                <div class="input-group">
+                    <input type="text" id="inputRepoEAN" placeholder="EAN Artículo..." onkeyup="if(event.key==='Enter') document.getElementById('inputRepoCant').focus()">
+                    <input type="number" id="inputRepoCant" placeholder="Cant." style="max-width: 80px;" value="1" onkeyup="if(event.key==='Enter') agregarReposicion()">
+                    <button class="btn btn-blue" onclick="agregarReposicion()">Añadir</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">Lista de Reposición Pendiente</div>
+                <table class="tabla-datos">
+                    <thead><tr><th>EAN</th><th>Descripción</th><th>Cant.</th><th></th></tr></thead>
+                    <tbody id="listaReposicion"></tbody>
+                </table>
+                <div id="msgRepoVacio" class="empty-msg">Lista vacía.</div>
+                <button class="btn btn-full-red" onclick="vaciarLista('reposicion')">🗑️ Vaciar Reposición</button>
+            </div>
         </div>
+
+        <!-- 3. PESTAÑA CHEQUEO (ACTIVA POR DEFECTO) -->
+        <div id="sec-chequeo" class="tab-content active">
+            <div class="card">
+                <div class="card-title">📋 Chequeo Masivo OCR</div>
+                <div class="card-subtitle">Solo captura si detecta <b>EAN de 13 dígitos Y precio</b>.</div>
+                <div class="input-group">
+                    <input type="text" id="inputOcr" placeholder="Usa la función Text del teclado..." autocomplete="off">
+                    <button class="btn btn-blue" onclick="limpiarInputOCR()">Limpiar</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">Artículos Chequeados</div>
+                <table class="tabla-datos">
+                    <thead><tr><th>EAN</th><th>Descripción</th><th>Precio</th><th></th></tr></thead>
+                    <tbody id="listaChequeados"></tbody>
+                </table>
+                <div id="msgChequeoVacio" class="empty-msg">Lista vacía.</div>
+                <button class="btn btn-green" id="btnEnviarDrive" onclick="enviarADrive()">🟢 Enviar a Drive</button>
+                <button class="btn btn-full-red" onclick="vaciarLista('chequeos')">🗑️ Vaciar Lista</button>
+            </div>
+        </div>
+
+        <!-- 4. PESTAÑA PRESUPUESTO -->
+        <div id="sec-presupuesto" class="tab-content">
+            <div class="card">
+                <div class="card-title">💰 Generador de Presupuesto</div>
+                <div class="input-group">
+                    <input type="text" id="inputPresupEAN" placeholder="EAN Artículo..." onkeyup="if(event.key==='Enter') agregarPresupuesto()">
+                    <button class="btn btn-blue" onclick="agregarPresupuesto()">Añadir</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">Líneas de Presupuesto</div>
+                <table class="tabla-datos">
+                    <thead><tr><th>EAN</th><th>Descripción</th><th>Precio</th><th></th></tr></thead>
+                    <tbody id="listaPresupuesto"></tbody>
+                </table>
+                <div id="msgPresupVacio" class="empty-msg">Presupuesto vacío.</div>
+                <div class="presupuesto-total">Total: <span id="totalPresupuesto">0,00 €</span></div>
+                <button class="btn btn-full-red" onclick="vaciarLista('presupuesto')">🗑️ Vaciar Presupuesto</button>
+            </div>
+        </div>
+
     </div>
 
+    <!-- AQUÍ SE ENLAZA TU ARCHIVO EXTERNO DE 64K ARTÍCULOS (si lo tienes separado) -->
+    <!-- <script src="articulos.js"></script> -->
+
     <script>
-        // Simulador de Base de Datos en Memoria (Sustituir/Conectar con la BDD real)
+        // ==========================================
+        // BASE DE DATOS CENTRAL (Síncrona y rápida)
+        // ==========================================
+        // Si tienes el <script src="articulos.js"> arriba, puedes borrar este bloque de prueba.
         const baseDeDatos = {
-            "8433897065104": "FUNDA DE ROPA 60*100",
-            "8433897065043": "CAJA MULTI C 45X 45X20"
+            "8433897065104": { descripcion: "FUNDA DE ROPA 60*100", precio: "2,50" },
+            "8433897065043": { descripcion: "CAJA MULTI C 45X 45X20", precio: "4,95" }
         };
 
-        let chequeos = [];
+        const URL_SCRIPT_GOOGLE = "https://script.google.com/macros/s/AKfycbwyWT6AoIwslK5RR7fmu76wXaeE0bbagn279y1DI32dpZ6Ncs1KxYo0fcY4Z5wuSPiivw/exec";
+
+        // Variables de estado
+        let listas = { chequeos: [], reposicion: [], presupuesto: [] };
         let ocrTimer = null;
+        let audioCtx = null;
+
+        // Navegación de pestañas
+        function cambiarPestana(pestaña) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+            document.getElementById(`sec-${pestaña}`).classList.add('active');
+            document.getElementById(`tab-${pestaña}`).classList.add('active');
+            if (pestaña === 'chequeo') document.getElementById('inputOcr').focus();
+            if (pestaña === 'consulta') document.getElementById('inputConsulta').focus();
+        }
+
+        // ==========================================
+        // 1. CONSULTA
+        // ==========================================
+        function buscarArticulo() {
+            const ean = document.getElementById('inputConsulta').value.trim();
+            if (!ean) return;
+
+            const art = baseDeDatos[ean];
+            const contenedor = document.getElementById('detalleConsulta');
+            document.getElementById('cardResultadoConsulta').style.display = 'block';
+
+            if (art) {
+                contenedor.innerHTML = `
+                    <div class="resultado-consulta">
+                        <div class="resultado-item"><span class="resultado-label">EAN:</span> ${ean}</div>
+                        <div class="resultado-item"><span class="resultado-label">Descripción:</span> ${art.descripcion}</div>
+                        <div class="resultado-item"><span class="resultado-label">Precio:</span> <span class="badge-precio">${art.precio} €</span></div>
+                    </div>`;
+            } else {
+                contenedor.innerHTML = `<div class="resultado-consulta" style="border-left-color: var(--btn-red);">❌ Artículo no registrado</div>`;
+            }
+            document.getElementById('inputConsulta').value = '';
+        }
+
+        // ==========================================
+        // 2. REPOSICIÓN
+        // ==========================================
+        function agregarReposicion() {
+            const ean = document.getElementById('inputRepoEAN').value.trim();
+            const cant = parseInt(document.getElementById('inputRepoCant').value) || 1;
+            if (!ean) return;
+
+            const art = baseDeDatos[ean];
+            const desc = art ? art.descripcion : "No registrado";
+
+            listas.reposicion.unshift({ ean, descripcion: desc, cantidad: cant, id: Date.now() });
+            document.getElementById('inputRepoEAN').value = '';
+            document.getElementById('inputRepoCant').value = '1';
+            document.getElementById('inputRepoEAN').focus();
+            renderizarTabla('reposicion');
+        }
+
+        // ==========================================
+        // 3. CHEQUEO OCR
+        // ==========================================
+        function emitirPitido() {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.12);
+            } catch (e) { console.warn("Audio no soportado"); }
+        }
 
         const inputOcr = document.getElementById('inputOcr');
-        const listaChequeados = document.getElementById('listaChequeados');
-        const mensajeVacio = document.getElementById('mensajeVacio');
-
-        // Escuchador de entrada con debounce para frenar el texto en ráfaga del teclado OCR
         inputOcr.addEventListener('input', function(e) {
             clearTimeout(ocrTimer);
-
-            // Esperar 500ms a que el OCR termine de pegar todo el bloque
-            ocrTimer = setTimeout(() => {
-                procesarEntradaOCR(e.target.value);
-            }, 500);
+            ocrTimer = setTimeout(() => { procesarOCR(e.target.value); }, 400); // 400ms para mayor agilidad
         });
 
-        function procesarEntradaOCR(texto) {
-            if (!texto || !texto.trim()) return;
+        function procesarOCR(texto) {
+            if (!texto.trim()) return;
+            const matchEAN = texto.match(/\b\d{13}\b/);
+            const matchPrecio = texto.match(/\b\d+[,.]\d{2}\b/);
 
-            // 1. Extraer EAN de exactamente 13 dígitos
-            const regexEAN = /\b\d{13}\b/;
-            // 2. Extraer Precio (ej. 1,95 o 1.95)
-            const regexPrecio = /\b\d+[,.]\d{2}\b/;
-
-            const matchEAN = texto.match(regexEAN);
-            const matchPrecio = texto.match(regexPrecio);
-
-            if (matchEAN) {
+            if (matchEAN && matchPrecio) {
                 const ean = matchEAN[0];
-                let precio = matchPrecio ? matchPrecio[0].replace('.', ',') + " €" : "No detectado";
+                const precio = matchPrecio[0].replace('.', ',') + " €";
+                const art = baseDeDatos[ean];
+                const desc = art ? art.descripcion : "No registrado";
 
-                // Buscar en la Base de Datos
-                const descripcion = baseDeDatos[ean] || "Artículo no registrado en BDD";
-
-                // Añadir al registro
-                agregarChequeo(ean, descripcion, precio);
-
-                // VACIAR SIEMPRE EL INPUT TRAS ÉXITO
+                emitirPitido();
+                listas.chequeos.unshift({ ean, descripcion: desc, precio, id: Date.now() });
+                renderizarTabla('chequeos');
                 inputOcr.value = '';
             } else {
-                // SI NO HABÍA UN EAN VÁLIDO (Solo entraron descripciones/basura)
-                // Limpiamos inmediatamente para no dejar restos atascados
-                console.warn("Lectura descartada por no contener EAN válido:", texto);
-                inputOcr.value = '';
+                inputOcr.value = ''; // Descarta en silencio si falta EAN o Precio
+            }
+        }
+        function limpiarInputOCR() { inputOcr.value = ''; inputOcr.focus(); }
+
+        async function enviarADrive() {
+            if (listas.chequeos.length === 0) return alert("La lista está vacía.");
+            const btn = document.getElementById('btnEnviarDrive');
+            btn.disabled = true; btn.textContent = "⏳ Enviando...";
+            try {
+                await fetch(URL_SCRIPT_GOOGLE, {
+                    method: 'POST', mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(listas.chequeos)
+                });
+                alert("✅ Chequeo guardado en Google Drive.");
+                listas.chequeos = []; renderizarTabla('chequeos');
+            } catch (e) {
+                alert("❌ Error: " + e.message);
+            } finally {
+                btn.disabled = false; btn.textContent = "🟢 Enviar a Drive";
             }
         }
 
-        function agregarChequeo(ean, descripcion, precio) {
-            chequeos.unshift({ ean, descripcion, precio, id: Date.now() });
-            renderizarTabla();
+        // ==========================================
+        // 4. PRESUPUESTO
+        // ==========================================
+        function agregarPresupuesto() {
+            const ean = document.getElementById('inputPresupEAN').value.trim();
+            if (!ean) return;
+
+            const art = baseDeDatos[ean];
+            const desc = art ? art.descripcion : "No registrado";
+            const precioStr = art ? art.precio : "0,00";
+            const precioNum = parseFloat(precioStr.replace(',', '.')) || 0;
+
+            listas.presupuesto.unshift({ ean, descripcion: desc, precioStr: precioStr + " €", precioNum, id: Date.now() });
+            document.getElementById('inputPresupEAN').value = '';
+            document.getElementById('inputPresupEAN').focus();
+            renderizarTabla('presupuesto');
         }
 
-        function eliminarChequeo(id) {
-            chequeos = chequeos.filter(item => item.id !== id);
-            renderizarTabla();
-        }
-
-        function vaciarLista() {
-            if (chequeos.length === 0) return;
-            if (confirm("¿Deseas vaciar la lista completa de chequeos?")) {
-                chequeos = [];
-                renderizarTabla();
+        // ==========================================
+        // FUNCIONES COMPARTIDAS DE TABLAS
+        // ==========================================
+        function renderizarTabla(tipo) {
+            let tbody, msgVacio;
+            if (tipo === 'reposicion') {
+                tbody = document.getElementById('listaReposicion'); msgVacio = document.getElementById('msgRepoVacio');
+            } else if (tipo === 'chequeos') {
+                tbody = document.getElementById('listaChequeados'); msgVacio = document.getElementById('msgChequeoVacio');
+            } else if (tipo === 'presupuesto') {
+                tbody = document.getElementById('listaPresupuesto'); msgVacio = document.getElementById('msgPresupVacio');
             }
-        }
 
-        function limpiarInput() {
-            inputOcr.value = '';
-            inputOcr.focus();
-        }
-
-        function renderizarTabla() {
-            listaChequeados.innerHTML = '';
-
-            if (chequeos.length === 0) {
-                mensajeVacio.style.display = 'block';
+            tbody.innerHTML = '';
+            if (listas[tipo].length === 0) {
+                msgVacio.style.display = 'block';
+                if (tipo === 'presupuesto') document.getElementById('totalPresupuesto').textContent = "0,00 €";
                 return;
             }
+            msgVacio.style.display = 'none';
 
-            mensajeVacio.style.display = 'none';
-
-            chequeos.forEach(item => {
+            let suma = 0;
+            listas[tipo].forEach(item => {
                 const tr = document.createElement('tr');
-
-                const tdEan = document.createElement('td');
-                tdEan.textContent = item.ean;
-
-                const tdDesc = document.createElement('td');
-                tdDesc.textContent = item.descripcion;
-                if (item.descripcion === "Artículo no registrado en BDD") {
-                    tdDesc.style.color = "#777";
+                let datoExtra = '';
+                if (tipo === 'reposicion') datoExtra = `<span class="badge-cant">${item.cantidad}</span>`;
+                else if (tipo === 'chequeos') datoExtra = `<span class="badge-precio">${item.precio}</span>`;
+                else if (tipo === 'presupuesto') {
+                    datoExtra = `<span class="badge-precio">${item.precioStr}</span>`;
+                    suma += item.precioNum;
                 }
 
-                const tdPrecio = document.createElement('td');
-                if (item.precio === "No detectado") {
-                    tdPrecio.innerHTML = `<span class="badge-no-precio">No detectado</span>`;
-                } else {
-                    tdPrecio.innerHTML = `<span class="badge-precio">${item.precio}</span>`;
-                }
-
-                const tdAccion = document.createElement('td');
-                const btnDel = document.createElement('button');
-                btnDel.className = 'btn-del';
-                btnDel.textContent = '✕';
-                btnDel.onclick = () => eliminarChequeo(item.id);
-                tdAccion.appendChild(btnDel);
-
-                tr.appendChild(tdEan);
-                tr.appendChild(tdDesc);
-                tr.appendChild(tdPrecio);
-                tr.appendChild(tdAccion);
-
-                listaChequeados.appendChild(tr);
+                tr.innerHTML = `<td>${item.ean}</td><td>${item.descripcion}</td><td>${datoExtra}</td>
+                                <td><button class="btn-del" onclick="eliminarFila('${tipo}', ${item.id})">✕</button></td>`;
+                tbody.appendChild(tr);
             });
+
+            if (tipo === 'presupuesto') document.getElementById('totalPresupuesto').textContent = suma.toFixed(2).replace('.', ',') + " €";
         }
 
-        function enviarADrive() {
-            if (chequeos.length === 0) {
-                alert("La lista está vacía.");
-                return;
-            }
-            alert(`Enviando ${chequeos.length} registros a Google Drive...`);
-            // Aquí iría el fetch/POST a tu Web App Appscript de Google Drive
+        function eliminarFila(tipo, id) {
+            listas[tipo] = listas[tipo].filter(i => i.id !== id);
+            renderizarTabla(tipo);
+        }
+
+        function vaciarLista(tipo) {
+            if (listas[tipo].length === 0) return;
+            if (confirm("¿Vaciar esta lista?")) { listas[tipo] = []; renderizarTabla(tipo); }
         }
     </script>
 </body>
