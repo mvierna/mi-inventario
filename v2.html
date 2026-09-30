@@ -6,7 +6,7 @@
     <title>Sistema de Inventario y Reposición v2</title>
     <!-- Librería de escaneo de códigos de barras -->
     <script src="https://unpkg.com/@zxing/library@latest"></script>
-    <!-- Librería de OCR (Tesseract.js) para lectura de precios -->
+    <!-- Librería de OCR (Tesseract.js) -->
     <script src="https://unpkg.com/tesseract.js@v4.0.2/dist/tesseract.min.js"></script>
 
     <style>
@@ -29,15 +29,15 @@
         input[type="text"], input[type="number"] { flex: 1; padding: 12px; border: 2px solid #004085; border-radius: 6px; font-size: 16px; outline: none; }
         input[type="text"]:focus, input[type="number"]:focus { border-color: #28a745; background-color: #f0fff4; }
         .btn-action { background-color: #004085; color: white; border: none; padding: 0 16px; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; }
-        .btn-camera { background-color: #28a745; color: white; border: none; padding: 0 14px; border-radius: 6px; font-size: 18px; cursor: pointer; }
+        .btn-camera { background-color: #28a745; color: white; border: none; padding: 0 14px; border-radius: 6px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none; }
         .btn-success { background-color: #28a745; color: white; border: none; padding: 12px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: 10px; }
         .btn-danger { background-color: #dc3545; color: white; border: none; padding: 10px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; font-size: 13px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #ddd; }
         th { background-color: #f2f2f2; color: #004085; }
-        #video-container { width: 100%; max-height: 280px; background: #000; margin-bottom: 10px; display: none; border-radius: 6px; overflow: hidden; position: relative; }
+        #video-container { width: 100%; max-height: 250px; background: #000; margin-bottom: 10px; display: none; border-radius: 6px; overflow: hidden; position: relative; }
         video { width: 100%; height: auto; display: block; }
-        #ocr-status { font-size: 12px; color: #004085; margin-top: 5px; font-weight: bold; text-align: center; }
+        #ocr-loading { display: none; background: #e3f2fd; color: #0d47a1; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 12px; }
     </style>
 </head>
 <body>
@@ -52,13 +52,14 @@
     </nav>
 
     <div class="container">
-        <!-- CONTENEDOR DE CÁMARA / OCR -->
+        <!-- CONTENEDOR DE CÁMARA (ZXING) -->
         <div id="video-container">
-            <video id="video-preview" autoplay playsinline></video>
-            <canvas id="canvas-captura" style="display:none;"></canvas>
-            <div id="ocr-status"></div>
+            <video id="video-preview"></video>
             <button onclick="cerrarCamara()" style="position: absolute; top: 5px; right: 5px; background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">✕ Cerrar</button>
         </div>
+
+        <!-- AVISO DE PROCESAMIENTO OCR -->
+        <div id="ocr-loading">⏳ Procesando imagen de la etiqueta y leyendo precio (OCR)...</div>
 
         <!-- PESTAÑA CONSULTA -->
         <div id="tab-consulta" class="tab-content active">
@@ -98,12 +99,15 @@
         <!-- PESTAÑA CHEQUEO -->
         <div id="tab-chequeo" class="tab-content">
             <div class="card">
-                <h3>🔍 Chequeo de Precios (EAN + OCR)</h3>
-                <p style="font-size: 12px; color: #666; margin-bottom: 8px;">Escanea el código de barras y la cámara leerá el precio de la etiqueta automáticamente.</p>
+                <h3>🔍 Chequeo de Precios (EAN + Foto OCR)</h3>
+                <p style="font-size: 12px; color: #666; margin-bottom: 8px;">1. Escanea el EAN con la cámara o pistola. 2. Haz foto a la etiqueta para leer el precio.</p>
                 <div class="input-group">
                     <input type="text" id="input-chequeo" placeholder="EAN o introduce manual..." autocomplete="off" onkeydown="if(event.key === 'Enter') procesarChequeoManual()">
-                    <button type="button" class="btn-camera" onclick="iniciarChequeoInteligente()">📷 Capturar</button>
-                    <button type="button" class="btn-action" onclick="procesarChequeoManual()">Añadir</button>
+                    <button type="button" class="btn-camera" onclick="iniciarCamara('chequeo-ean')">📷 EAN</button>
+                    <!-- Input nativo oculto para capturar la foto de la etiqueta y aplicarle OCR -->
+                    <label class="btn-camera" style="background-color: #004085; cursor: pointer;" title="Hacer foto a la etiqueta de precio">
+                        🏷️ Precio <input type="file" accept="image/*" capture="environment" id="input-foto-etiqueta" style="display: none;" onchange="procesarFotoEtiqueta(event)">
+                    </label>
                 </div>
 
                 <h3 style="margin-top: 15px;">Artículos Chequeados</h3>
@@ -154,7 +158,7 @@
         let listaChequeo = JSON.parse(localStorage.getItem('chequeo_v2_data')) || [];
         let codeReader = null;
         let pestañaActivaCamara = 'consulta';
-        let mediaStream = null;
+        let ultimoEanChequeado = '';
 
         async function cargarBaseDatos() {
             const statusBox = document.getElementById('status-db');
@@ -225,7 +229,6 @@
             pestañaActivaCamara = destino;
             const container = document.getElementById('video-container');
             container.style.display = 'block';
-            document.getElementById('ocr-status').innerText = '';
 
             if (!codeReader) {
                 codeReader = new ZXing.BrowserBarcodeReader();
@@ -239,129 +242,27 @@
                     if (result) {
                         confirmarEscaneo();
                         const codigo = result.text;
-                        document.getElementById(`input-${pestañaActivaCamara}`).value = codigo;
                         cerrarCamara();
                         
-                        if (pestañaActivaCamara === 'consulta') procesarConsulta();
-                        if (pestañaActivaCamara === 'reposicion') procesarReposicion();
-                        if (pestañaActivaCamara === 'presupuesto') procesarPresupuesto();
+                        if (pestañaActivaCamara === 'consulta') {
+                            document.getElementById('input-consulta').value = codigo;
+                            procesarConsulta();
+                        } else if (pestañaActivaCamara === 'reposicion') {
+                            document.getElementById('input-reposicion').value = codigo;
+                            procesarReposicion();
+                        } else if (pestañaActivaCamara === 'presupuesto') {
+                            document.getElementById('input-presupuesto').value = codigo;
+                            procesarPresupuesto();
+                        } else if (pestañaActivaCamara === 'chequeo-ean') {
+                            document.getElementById('input-chequeo').value = codigo;
+                            ultimoEanChequeado = codigo;
+                        }
                     }
                 });
             } catch (err) {
                 alert("Error al iniciar la cámara: " + err);
                 container.style.display = 'none';
             }
-        }
-
-        // --- FLUJO ESPECIAL DE CHEQUEO: EAN + OCR DE PRECIO ---
-        async function iniciarChequeoInteligente() {
-            const container = document.getElementById('video-container');
-            container.style.display = 'block';
-            document.getElementById('ocr-status').innerText = '🔍 Escanea el código de barras...';
-
-            if (!codeReader) {
-                codeReader = new ZXing.BrowserBarcodeReader();
-            }
-
-            try {
-                const videoInputDevices = await codeReader.listVideoInputDevices();
-                const selectedDeviceId = videoInputDevices.length > 0 ? videoInputDevices[videoInputDevices.length - 1].deviceId : undefined;
-
-                codeReader.decodeFromVideoDevice(selectedDeviceId, 'video-preview', async (result, err) => {
-                    if (result) {
-                        confirmarEscaneo();
-                        const eanDetectado = result.text;
-                        codeReader.reset(); // Parar el lector de barras momentáneamente
-
-                        document.getElementById('ocr-status').innerText = `✅ EAN detectado: ${eanDetectado}. Enfoca el precio en la etiqueta...`;
-                        
-                        // Esperar 1.5 segundos para que el usuario enfoque el número del precio impreso
-                        setTimeout(async () => {
-                            await capturarPrecioOCR(eanDetectado);
-                        }, 1500);
-                    }
-                });
-            } catch (err) {
-                alert("Error al iniciar la cámara: " + err);
-                container.style.display = 'none';
-            }
-        }
-
-        async function capturarPrecioOCR(ean) {
-            const video = document.getElementById('video-preview');
-            const canvas = document.getElementById('canvas-captura');
-            const statusOCR = document.getElementById('ocr-status');
-
-            canvas.width = video.videoWidth || 640;
-            canvas.height = video.videoHeight || 480;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            statusOCR.innerText = "⏳ Leyendo precio de la etiqueta (OCR)...";
-
-            try {
-                // Reconocimiento óptico de caracteres enfocado a números y símbolos de moneda
-                const { data: { text } } = await Tesseract.recognize(
-                    canvas,
-                    'eng',
-                    { 
-                        logger: m => {} 
-                    }
-                );
-
-                console.log("Texto OCR detectado:", text);
-                const precioExtraido = extraerPrecioDeTexto(text);
-
-                cerrarCamara();
-                agregarItemChequeo(ean, precioExtraido);
-
-            } catch (error) {
-                console.error(error);
-                statusOCR.innerText = "❌ Error en OCR. Introduce el precio manualmente.";
-                setTimeout(() => cerrarCamara(), 2000);
-                agregarItemChequeo(ean, "No detectado");
-            }
-        }
-
-        function extraerPrecioDeTexto(texto) {
-            // Expresión regular para buscar patrones de precio tipo 12.34, 12,34 o 5€
-            const regex = /(\d+[\.,]\d{2})\s*(?:€)?|(\d+)\s*(?:€)/g;
-            let coincidencias = [];
-            let match;
-            while ((match = regex.exec(texto)) !== null) {
-                coincidencias.push(match[1] || match[2]);
-            }
-            if (coincidencias.length > 0) {
-                // Devuelve el primer precio válido encontrado normalizado con coma o punto
-                return coincidencias[0].replace('.', ',') + ' €';
-            }
-            // Intento secundario buscando cualquier número aislado si la etiqueta es muy clara
-            const numerosSimples = texto.match(/\d+[\.,]\d+/);
-            return numerosSimples ? numerosSimples[0].replace('.', ',') + ' €' : 'No detectado';
-        }
-
-        function procesarChequeoManual() {
-            const input = document.getElementById('input-chequeo');
-            if (!input) return;
-            const termino = input.value.trim();
-            if (!termino) return;
-            agregarItemChequeo(termino, "Manual / N/D");
-            input.value = '';
-            input.focus();
-        }
-
-        function agregarItemChequeo(eanTermino, precioOCR) {
-            const producto = window.articulos.find(item => item.ean.toLowerCase() === eanTermino.toLowerCase());
-
-            listaChequeo.push({
-                id: Date.now(),
-                ean: producto ? producto.ean : eanTermino,
-                descripcion: producto ? producto.descripcion : 'Artículo no registrado en BDD',
-                precio: precioOCR
-            });
-
-            localStorage.setItem('chequeo_v2_data', JSON.stringify(listaChequeo));
-            renderizarListaChequeo();
         }
 
         function cerrarCamara() {
@@ -369,6 +270,87 @@
                 codeReader.reset();
             }
             document.getElementById('video-container').style.display = 'none';
+        }
+
+        // --- MÓDULO CHEQUEO CON FOTO OCR ---
+        function procesarChequeoManual() {
+            const input = document.getElementById('input-chequeo');
+            if (!input) return;
+            const termino = input.value.trim();
+            if (!termino) return;
+            ultimoEanChequeado = termino;
+            input.value = '';
+            alert(`EAN ${termino} fijado. Ahora pulsa en "🏷️ Precio" para fotografiar la etiqueta.`);
+        }
+
+        async function procesarFotoEtiqueta(event) {
+            const archivo = event.target.files[0];
+            if (!archivo) return;
+
+            const eanActual = ultimoEanChequeado || document.getElementById('input-chequeo').value.trim();
+            if (!eanActual) {
+                alert("⚠️ Primero introduce o escanea el código EAN antes de fotografiar la etiqueta.");
+                event.target.value = '';
+                return;
+            }
+
+            const loadingBox = document.getElementById('ocr-loading');
+            loadingBox.style.display = 'block';
+
+            try {
+                // Ejecutar OCR de Tesseract sobre la foto tomada con la cámara
+                const { data: { text } } = await Tesseract.recognize(
+                    archivo,
+                    'eng',
+                    { logger: m => {} }
+                );
+
+                console.log("Texto OCR reconocido:", text);
+                const precioExtraido = extraerPrecioDeTexto(text);
+
+                // Buscar artículo en la BDD (coincidencia exacta o parcial limpia)
+                const producto = window.articulos.find(item => 
+                    item.ean.toLowerCase() === eanActual.toLowerCase() || 
+                    item.ean.replace(/^0+/, '') === eanActual.replace(/^0+/, '')
+                );
+
+                listaChequeo.push({
+                    id: Date.now(),
+                    ean: producto ? producto.ean : eanActual,
+                    descripcion: producto ? producto.descripcion : 'Artículo no registrado en BDD',
+                    precio: precioExtraido
+                });
+
+                localStorage.setItem('chequeo_v2_data', JSON.stringify(listaChequeo));
+                confirmarEscaneo();
+                renderizarListaChequeo();
+                
+                // Limpiar valores
+                ultimoEanChequeado = '';
+                document.getElementById('input-chequeo').value = '';
+
+            } catch (error) {
+                console.error(error);
+                alert("❌ Error al procesar la imagen con OCR.");
+            } finally {
+                loadingBox.style.display = 'none';
+                event.target.value = ''; // Resetear input file
+            }
+        }
+
+        function extraerPrecioDeTexto(texto) {
+            // Buscar patrones de precio en formato español o internacional (ej: 12,34 o 12.34 o 12€)
+            const regex = /(\d+[\.,]\d{2})\s*(?:€)?|(\d+)\s*(?:€)?/g;
+            let coincidencias = [];
+            let match;
+            while ((match = regex.exec(texto)) !== null) {
+                coincidencias.push(match[1] || match[2]);
+            }
+            if (coincidencias.length > 0) {
+                return coincidencias[0].replace('.', ',') + ' €';
+            }
+            const numerosSimples = texto.match(/\d+[\.,]\d+/);
+            return numerosSimples ? numerosSimples[0].replace('.', ',') + ' €' : 'No detectado';
         }
 
         window.eliminarItemChequeo = function(id) {
