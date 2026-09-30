@@ -6,8 +6,6 @@
     <title>Sistema de Inventario y Reposición v2</title>
     <!-- Librería de escaneo ZXING -->
     <script src="https://unpkg.com/@zxing/library@latest"></script>
-    <!-- Librería OCR Tesseract.js -->
-    <script src="https://unpkg.com/tesseract.js@v4.0.2/dist/tesseract.min.js"></script>
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -29,7 +27,6 @@
         input[type="text"], input[type="number"] { flex: 1; padding: 12px; border: 2px solid #004085; border-radius: 6px; font-size: 16px; outline: none; }
         input[type="text"]:focus, input[type="number"]:focus { border-color: #28a745; background-color: #f0fff4; }
         .btn-action { background-color: #004085; color: white; border: none; padding: 0 16px; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; }
-        .btn-camera { background-color: #28a745; color: white; border: none; padding: 0 14px; border-radius: 6px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none; }
         .btn-success { background-color: #28a745; color: white; border: none; padding: 12px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: 10px; }
         .btn-danger { background-color: #dc3545; color: white; border: none; padding: 10px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; font-size: 13px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
@@ -37,7 +34,6 @@
         th { background-color: #f2f2f2; color: #004085; }
         #video-container { width: 100%; max-height: 250px; background: #000; margin-bottom: 10px; display: none; border-radius: 6px; overflow: hidden; position: relative; }
         video { width: 100%; height: auto; display: block; }
-        #ocr-loading { display: none; background: #e3f2fd; color: #0d47a1; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 12px; }
     </style>
 </head>
 <body>
@@ -56,8 +52,6 @@
             <video id="video-preview"></video>
             <button onclick="cerrarCamara()" style="position: absolute; top: 5px; right: 5px; background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">✕ Cerrar</button>
         </div>
-
-        <div id="ocr-loading">⏳ Leyendo etiqueta y precio automáticamente (OCR)...</div>
 
         <!-- PESTAÑA CONSULTA -->
         <div id="tab-consulta" class="tab-content active">
@@ -86,22 +80,19 @@
                     <tbody id="tabla-reposicion-body"></tbody>
                 </table>
                 <br>
-                <button class="btn-success" onclick="enviarGoogleDrive('reposicion')">☁️️ Enviar Lista a Drive</button>
+                <button class="btn-success" onclick="enviarGoogleDrive('reposicion')">☁️ Enviar Lista a Drive</button>
                 <br><br>
                 <button class="btn-danger" onclick="vaciarListaReposicion()">🗑️ Vaciar Lista</button>
             </div>
         </div>
 
-        <!-- PESTAÑA CHEQUEO UNIFICADO -->
+        <!-- PESTAÑA CHEQUEO INTELIGENTE (TECLADO OCR + EAN) -->
         <div id="tab-chequeo" class="tab-content">
             <div class="card">
-                <h3>🔍 Chequeo Rápido (EAN Teclado + Foto Precio)</h3>
-                <p style="font-size: 12px; color: #666; margin-bottom: 8px;">1. Escanea el EAN con tu teclado. 2. Haz clic en "Foto Precio" para capturar la etiqueta y extraer el precio.</p>
+                <h3>🔍 Chequeo Masivo con Teclado OCR</h3>
+                <p style="font-size: 12px; color: #666; margin-bottom: 8px;">Usa el modo <strong>Text</strong> de tu teclado para capturar la etiqueta entera. El sistema filtrará automáticamente el EAN y el precio.</p>
                 <div class="input-group">
-                    <input type="text" id="input-chequeo" placeholder="EAN (usa tu teclado escáner)..." autocomplete="off" oninput="limpiarEanInput(this)">
-                    <label class="btn-camera" style="background-color: #004085; cursor: pointer; padding: 0 16px;" title="Capturar etiqueta y precio">
-                        📷 Foto Precio <input type="file" accept="image/*" capture="environment" id="input-foto-etiqueta" style="display: none;" onchange="procesarFotoEtiquetaCompleta(event)">
-                    </label>
+                    <input type="text" id="input-chequeo" placeholder="Usa la función Text de tu teclado aquí..." autocomplete="off" oninput="procesarTextoTecladoOCR(this)">
                 </div>
 
                 <h3 style="margin-top: 15px;">Artículos Chequeados</h3>
@@ -208,91 +199,55 @@
         }
 
         function cerrarCamara() {
-            if (codeReader) {
-                codeReader.reset();
-            }
+            if (codeReader) codeReader.reset();
             const vc = document.getElementById('video-container');
             if (vc) vc.style.display = 'none';
         }
 
-        // Limpieza automática en tiempo real para evitar duplicados del teclado
-        function limpiarEanInput(input) {
-            let valor = input.value.trim();
-            if (valor.length > 13) {
-                const matchEan = valor.match(/\d{8,13}/);
-                if (matchEan) {
-                    input.value = matchEan[0];
-                }
-            }
-        }
-
-        // --- CHEQUEO UNIFICADO (EAN por teclado + OCR de precio en foto) ---
-        async function procesarFotoEtiquetaCompleta(event) {
-            const archivo = event.target.files[0];
-            if (!archivo) return;
-
-            let eanInput = document.getElementById('input-chequeo').value.trim();
-            const loadingBox = document.getElementById('ocr-loading');
-            loadingBox.style.display = 'block';
-
-            try {
-                const { data: { text } } = await Tesseract.recognize(
-                    archivo,
-                    'eng',
-                    { logger: m => {} }
-                );
-
-                const precioExtraido = extraerPrecioDeTexto(text);
-
-                if (!eanInput) {
-                    const posibleEan = text.match(/\b\d{8,13}\b/);
-                    if (posibleEan) {
-                        eanInput = posibleEan[0];
-                    }
+        // --- INTELIGENCIA OCR DE TEXTO MASIVO DEL TECLADO ---
+        function procesarTextoTecladoOCR(input) {
+            const textoCompleto = input.value;
+            // Si el texto de entrada tiene una longitud considerable (viene del pegado masivo de texto OCR del teclado)
+            if (textoCompleto.length > 15) {
+                // 1. Extraer EAN (buscamos secuencia de 8 a 13 dígitos, típica de barras, prefiriendo los que empiezan por 84 o códigos largos)
+                const coincidenciasEan = textoCompleto.match(/\b\d{8,13}\b/g);
+                let eanEncontrado = "";
+                if (coincidenciasEan && coincidenciasEan.length > 0) {
+                    // Filtrar para buscar si alguno parece un EAN real (ej. empieza por 84 o tiene longitud 13)
+                    eanEncontrado = coincidenciasEan.find(e => e.length === 13 || e.length === 8) || coincidenciasEan[0];
                 }
 
-                const eanFinal = eanInput || "Desconocido";
+                // 2. Extraer Precio (buscamos patrones de precio como 1,95 o 1.95 o números decimales aislados)
+                const coincidenciasPrecio = textoCompleto.match(/\b\d+[\.,]\d{2}\b/g);
+                let precioEncontrado = "No detectado";
+                if (coincidenciasPrecio && coincidenciasPrecio.length > 0) {
+                    precioEncontrado = coincidenciasPrecio[0].replace('.', ',') + ' €';
+                }
 
-                const producto = window.articulos.find(item => 
-                    item.ean.toLowerCase() === eanFinal.toLowerCase() || 
-                    item.ean.replace(/^0+/, '') === eanFinal.replace(/^0+/, '')
-                );
+                if (eanEncontrado || precioEncontrado !== "No detectado") {
+                    const eanFinal = eanEncontrado || "Desconocido";
 
-                listaChequeo.push({
-                    id: Date.now(),
-                    ean: eanFinal,
-                    descripcion: producto ? producto.descripcion : 'Artículo no registrado en BDD',
-                    precio: precioExtraido
-                });
+                    // Buscar en nuestra base de datos local
+                    const producto = window.articulos.find(item => 
+                        item.ean.toLowerCase() === eanFinal.toLowerCase() || 
+                        item.ean.replace(/^0+/, '') === eanFinal.replace(/^0+/, '')
+                    );
 
-                localStorage.setItem('chequeo_v2_data', JSON.stringify(listaChequeo));
-                confirmarEscaneo();
-                renderizarListaChequeo();
-                
-                document.getElementById('input-chequeo').value = '';
-                document.getElementById('input-chequeo').focus();
+                    listaChequeo.push({
+                        id: Date.now(),
+                        ean: eanFinal,
+                        descripcion: producto ? producto.descripcion : 'Artículo no registrado en BDD',
+                        precio: precioEncontrado
+                    });
 
-            } catch (error) {
-                console.error(error);
-                alert("❌ Error al procesar la imagen con OCR.");
-            } finally {
-                loadingBox.style.display = 'none';
-                event.target.value = '';
+                    localStorage.setItem('chequeo_v2_data', JSON.stringify(listaChequeo));
+                    confirmarEscaneo();
+                    renderizarListaChequeo();
+
+                    // Limpiar input automáticamente para el siguiente escaneo rápido a toda velocidad
+                    input.value = '';
+                }
             }
-        }
-
-        function extraerPrecioDeTexto(texto) {
-            const regex = /(\d+[\.,]\d{2})\s*(?:€)?|(\d+)\s*(?:€)?/g;
-            let coincidencias = [];
-            let match;
-            while ((match = regex.exec(texto)) !== null) {
-                coincidencias.push(match[1] || match[2]);
-            }
-            if (coincidencias.length > 0) {
-                return coincidencias[0].replace('.', ',') + ' €';
-            }
-            const numerosSimples = texto.match(/\d+[\.,]\d+/);
-            return numerosSimples ? numerosSimples[0].replace('.', ',') + ' €' : 'No detectado';
         }
 
         window.eliminarItemChequeo = function(id) {
