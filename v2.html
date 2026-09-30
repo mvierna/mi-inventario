@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Inventario y Reposición v2</title>
-    <!-- Librería de escaneo de códigos de barras mediante cámara -->
+    <!-- Librería de escaneo de códigos de barras -->
     <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <!-- Librería de OCR (Tesseract.js) para lectura de precios -->
+    <script src="https://unpkg.com/tesseract.js@v4.0.2/dist/tesseract.min.js"></script>
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -30,12 +32,12 @@
         .btn-camera { background-color: #28a745; color: white; border: none; padding: 0 14px; border-radius: 6px; font-size: 18px; cursor: pointer; }
         .btn-success { background-color: #28a745; color: white; border: none; padding: 12px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: 10px; }
         .btn-danger { background-color: #dc3545; color: white; border: none; padding: 10px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer; font-size: 13px; }
-        .result-card { background-color: #f8f9fa; border-left: 5px solid #28a745; padding: 12px; margin-top: 10px; border-radius: 4px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #ddd; }
         th { background-color: #f2f2f2; color: #004085; }
-        #video-container { width: 100%; max-height: 250px; background: #000; margin-bottom: 10px; display: none; border-radius: 6px; overflow: hidden; position: relative; }
+        #video-container { width: 100%; max-height: 280px; background: #000; margin-bottom: 10px; display: none; border-radius: 6px; overflow: hidden; position: relative; }
         video { width: 100%; height: auto; display: block; }
+        #ocr-status { font-size: 12px; color: #004085; margin-top: 5px; font-weight: bold; text-align: center; }
     </style>
 </head>
 <body>
@@ -50,9 +52,11 @@
     </nav>
 
     <div class="container">
-        <!-- CONTENEDOR DE CÁMARA -->
+        <!-- CONTENEDOR DE CÁMARA / OCR -->
         <div id="video-container">
-            <video id="video-preview"></video>
+            <video id="video-preview" autoplay playsinline></video>
+            <canvas id="canvas-captura" style="display:none;"></canvas>
+            <div id="ocr-status"></div>
             <button onclick="cerrarCamara()" style="position: absolute; top: 5px; right: 5px; background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">✕ Cerrar</button>
         </div>
 
@@ -61,13 +65,11 @@
             <div class="card">
                 <h3>📦 Búsqueda de Artículos</h3>
                 <div id="status-db" class="status-box status-loading">⏳ Cargando base de datos...</div>
-
                 <div class="input-group">
                     <input type="text" id="input-consulta" placeholder="Escanea EAN o busca descripción..." autocomplete="off" onkeydown="if(event.key === 'Enter') procesarConsulta()">
                     <button type="button" class="btn-camera" onclick="iniciarCamara('consulta')">📷</button>
                     <button type="button" class="btn-action" onclick="procesarConsulta()">Buscar</button>
                 </div>
-
                 <div id="resultado-consulta"></div>
             </div>
         </div>
@@ -81,7 +83,6 @@
                     <button type="button" class="btn-camera" onclick="iniciarCamara('reposicion')">📷</button>
                     <button type="button" class="btn-action" onclick="procesarReposicion()">Añadir</button>
                 </div>
-
                 <h3 style="margin-top: 15px;">Lista de Faltas Acumulada</h3>
                 <table>
                     <thead><tr><th>Descripción</th><th style="width: 80px;">Cant.</th><th style="width: 50px;">Acción</th></tr></thead>
@@ -97,20 +98,21 @@
         <!-- PESTAÑA CHEQUEO -->
         <div id="tab-chequeo" class="tab-content">
             <div class="card">
-                <h3>🔍 Chequeo de Precios</h3>
+                <h3>🔍 Chequeo de Precios (EAN + OCR)</h3>
+                <p style="font-size: 12px; color: #666; margin-bottom: 8px;">Escanea el código de barras y la cámara leerá el precio de la etiqueta automáticamente.</p>
                 <div class="input-group">
-                    <input type="text" id="input-chequeo" placeholder="Escanea EAN o busca descripción..." autocomplete="off" onkeydown="if(event.key === 'Enter') procesarChequeo()">
-                    <button type="button" class="btn-camera" onclick="iniciarCamara('chequeo')">📷</button>
-                    <button type="button" class="btn-action" onclick="procesarChequeo()">Verificar</button>
+                    <input type="text" id="input-chequeo" placeholder="EAN o introduce manual..." autocomplete="off" onkeydown="if(event.key === 'Enter') procesarChequeoManual()">
+                    <button type="button" class="btn-camera" onclick="iniciarChequeoInteligente()">📷 Capturar</button>
+                    <button type="button" class="btn-action" onclick="procesarChequeoManual()">Añadir</button>
                 </div>
 
                 <h3 style="margin-top: 15px;">Artículos Chequeados</h3>
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 110px;">EAN</th>
+                            <th style="width: 100px;">EAN</th>
                             <th>Descripción</th>
-                            <th style="width: 75px;">Precio</th>
+                            <th style="width: 75px;">Precio OCR</th>
                             <th style="width: 45px;">Acción</th>
                         </tr>
                     </thead>
@@ -132,7 +134,6 @@
                     <button type="button" class="btn-camera" onclick="iniciarCamara('presupuesto')">📷</button>
                     <button type="button" class="btn-action" onclick="procesarPresupuesto()">Añadir</button>
                 </div>
-
                 <h3 style="margin-top: 15px;">Artículos en Presupuesto</h3>
                 <table>
                     <thead><tr><th>Descripción</th><th style="width: 70px;">Cant.</th><th style="width: 70px;">Precio</th><th style="width: 50px;">Acción</th></tr></thead>
@@ -153,8 +154,8 @@
         let listaChequeo = JSON.parse(localStorage.getItem('chequeo_v2_data')) || [];
         let codeReader = null;
         let pestañaActivaCamara = 'consulta';
+        let mediaStream = null;
 
-        // Carga de la base de datos CSV ampliada
         async function cargarBaseDatos() {
             const statusBox = document.getElementById('status-db');
             try {
@@ -224,6 +225,7 @@
             pestañaActivaCamara = destino;
             const container = document.getElementById('video-container');
             container.style.display = 'block';
+            document.getElementById('ocr-status').innerText = '';
 
             if (!codeReader) {
                 codeReader = new ZXing.BrowserBarcodeReader();
@@ -242,7 +244,6 @@
                         
                         if (pestañaActivaCamara === 'consulta') procesarConsulta();
                         if (pestañaActivaCamara === 'reposicion') procesarReposicion();
-                        if (pestañaActivaCamara === 'chequeo') procesarChequeo();
                         if (pestañaActivaCamara === 'presupuesto') procesarPresupuesto();
                     }
                 });
@@ -252,143 +253,122 @@
             }
         }
 
+        // --- FLUJO ESPECIAL DE CHEQUEO: EAN + OCR DE PRECIO ---
+        async function iniciarChequeoInteligente() {
+            const container = document.getElementById('video-container');
+            container.style.display = 'block';
+            document.getElementById('ocr-status').innerText = '🔍 Escanea el código de barras...';
+
+            if (!codeReader) {
+                codeReader = new ZXing.BrowserBarcodeReader();
+            }
+
+            try {
+                const videoInputDevices = await codeReader.listVideoInputDevices();
+                const selectedDeviceId = videoInputDevices.length > 0 ? videoInputDevices[videoInputDevices.length - 1].deviceId : undefined;
+
+                codeReader.decodeFromVideoDevice(selectedDeviceId, 'video-preview', async (result, err) => {
+                    if (result) {
+                        confirmarEscaneo();
+                        const eanDetectado = result.text;
+                        codeReader.reset(); // Parar el lector de barras momentáneamente
+
+                        document.getElementById('ocr-status').innerText = `✅ EAN detectado: ${eanDetectado}. Enfoca el precio en la etiqueta...`;
+                        
+                        // Esperar 1.5 segundos para que el usuario enfoque el número del precio impreso
+                        setTimeout(async () => {
+                            await capturarPrecioOCR(eanDetectado);
+                        }, 1500);
+                    }
+                });
+            } catch (err) {
+                alert("Error al iniciar la cámara: " + err);
+                container.style.display = 'none';
+            }
+        }
+
+        async function capturarPrecioOCR(ean) {
+            const video = document.getElementById('video-preview');
+            const canvas = document.getElementById('canvas-captura');
+            const statusOCR = document.getElementById('ocr-status');
+
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            statusOCR.innerText = "⏳ Leyendo precio de la etiqueta (OCR)...";
+
+            try {
+                // Reconocimiento óptico de caracteres enfocado a números y símbolos de moneda
+                const { data: { text } } = await Tesseract.recognize(
+                    canvas,
+                    'eng',
+                    { 
+                        logger: m => {} 
+                    }
+                );
+
+                console.log("Texto OCR detectado:", text);
+                const precioExtraido = extraerPrecioDeTexto(text);
+
+                cerrarCamara();
+                agregarItemChequeo(ean, precioExtraido);
+
+            } catch (error) {
+                console.error(error);
+                statusOCR.innerText = "❌ Error en OCR. Introduce el precio manualmente.";
+                setTimeout(() => cerrarCamara(), 2000);
+                agregarItemChequeo(ean, "No detectado");
+            }
+        }
+
+        function extraerPrecioDeTexto(texto) {
+            // Expresión regular para buscar patrones de precio tipo 12.34, 12,34 o 5€
+            const regex = /(\d+[\.,]\d{2})\s*(?:€)?|(\d+)\s*(?:€)/g;
+            let coincidencias = [];
+            let match;
+            while ((match = regex.exec(texto)) !== null) {
+                coincidencias.push(match[1] || match[2]);
+            }
+            if (coincidencias.length > 0) {
+                // Devuelve el primer precio válido encontrado normalizado con coma o punto
+                return coincidencias[0].replace('.', ',') + ' €';
+            }
+            // Intento secundario buscando cualquier número aislado si la etiqueta es muy clara
+            const numerosSimples = texto.match(/\d+[\.,]\d+/);
+            return numerosSimples ? numerosSimples[0].replace('.', ',') + ' €' : 'No detectado';
+        }
+
+        function procesarChequeoManual() {
+            const input = document.getElementById('input-chequeo');
+            if (!input) return;
+            const termino = input.value.trim();
+            if (!termino) return;
+            agregarItemChequeo(termino, "Manual / N/D");
+            input.value = '';
+            input.focus();
+        }
+
+        function agregarItemChequeo(eanTermino, precioOCR) {
+            const producto = window.articulos.find(item => item.ean.toLowerCase() === eanTermino.toLowerCase());
+
+            listaChequeo.push({
+                id: Date.now(),
+                ean: producto ? producto.ean : eanTermino,
+                descripcion: producto ? producto.descripcion : 'Artículo no registrado en BDD',
+                precio: precioOCR
+            });
+
+            localStorage.setItem('chequeo_v2_data', JSON.stringify(listaChequeo));
+            renderizarListaChequeo();
+        }
+
         function cerrarCamara() {
             if (codeReader) {
                 codeReader.reset();
             }
             document.getElementById('video-container').style.display = 'none';
-        }
-
-        // --- MÓDULO CONSULTA ---
-        function procesarConsulta() {
-            const input = document.getElementById('input-consulta');
-            const contenedor = document.getElementById('resultado-consulta');
-            if (!input || !contenedor) return;
-
-            const termino = input.value.trim().toLowerCase();
-            if (!termino) return;
-
-            confirmarEscaneo();
-            const producto = window.articulos.find(item => 
-                item.ean.toLowerCase() === termino || item.descripcion.toLowerCase().includes(termino)
-            );
-
-            if (producto) {
-                contenedor.innerHTML = `
-                    <div class="result-card">
-                        <h4 style="color: #1b5e20;">${producto.descripcion}</h4>
-                        <p style="font-size: 14px; margin-top: 5px;"><strong>EAN:</strong> ${producto.ean}</p>
-                        <p style="font-size: 14px;"><strong>Stock:</strong> ${producto.stock} Uds.</p>
-                        ${producto.precio ? `<p style="font-size: 14px;"><strong>Precio:</strong> ${producto.precio} €</p>` : ''}
-                        <p style="font-size: 13px; color: #555; margin-top: 4px;"><strong>Unidades vendidas:</strong> ${producto.unidadesVendidas}</p>
-                        <p style="font-size: 13px; color: #555;"><strong>Última fecha de compra:</strong> ${producto.ultimaFechaCompra}</p>
-                        <p style="font-size: 13px; color: #555;"><strong>Fecha de actualización:</strong> ${producto.fechaActualizacion}</p>
-                    </div>
-                `;
-            } else {
-                contenedor.innerHTML = `
-                    <div class="result-card" style="border-left-color: #c62828; background-color: #ffebee;">
-                        <h4 style="color: #c62828;">❌ Sin coincidencias</h4>
-                        <p style="font-size: 13px; margin-top: 5px;">No se encontró "${termino}".</p>
-                    </div>
-                `;
-            }
-        }
-
-        // --- MÓDULO REPOSICIÓN ---
-        function procesarReposicion() {
-            const input = document.getElementById('input-reposicion');
-            if (!input) return;
-            const termino = input.value.trim();
-            if (!termino) return;
-
-            const producto = window.articulos.find(item => 
-                item.ean.toLowerCase() === termino.toLowerCase() || item.descripcion.toLowerCase().includes(termino.toLowerCase())
-            );
-
-            listaReposicion.push({
-                id: Date.now(),
-                ean: producto ? producto.ean : termino,
-                descripcion: producto ? producto.descripcion : termino,
-                cantidad: 1
-            });
-
-            localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
-            confirmarEscaneo();
-            input.value = '';
-            input.focus();
-            renderizarListaReposicion();
-        }
-
-        window.actualizarCantidadReposicion = function(id, nuevaCantidad) {
-            const item = listaReposicion.find(i => i.id === id);
-            if (item) {
-                item.cantidad = parseInt(nuevaCantidad) || 1;
-                localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
-            }
-        }
-
-        window.eliminarItemReposicion = function(id) {
-            listaReposicion = listaReposicion.filter(item => item.id !== id);
-            localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
-            renderizarListaReposicion();
-        }
-
-        window.vaciarListaReposicion = function() {
-            if (confirm("¿Vaciar toda la lista de reposición?")) {
-                listaReposicion = [];
-                localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
-                renderizarListaReposicion();
-            }
-        }
-
-        function renderizarListaReposicion() {
-            const tbody = document.getElementById('tabla-reposicion-body');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            
-            if (listaReposicion.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #888;">La lista está vacía.</td></tr>`;
-                return;
-            }
-
-            listaReposicion.forEach(item => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><strong>${item.descripcion}</strong><br><small style="color: #666;">EAN: ${item.ean}</small></td>
-                    <td>
-                        <input type="number" min="1" value="${item.cantidad}" style="width: 65px; padding: 6px; font-size: 14px; text-align: center; border: 1px solid #ccc; border-radius: 4px;" 
-                        onchange="actualizarCantidadReposicion(${item.id}, this.value)">
-                    </td>
-                    <td><button style="background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" onclick="eliminarItemReposicion(${item.id})">✕</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // --- MÓDULO CHEQUEO ---
-        function procesarChequeo() {
-            const input = document.getElementById('input-chequeo');
-            if (!input) return;
-            const termino = input.value.trim();
-            if (!termino) return;
-
-            const producto = window.articulos.find(item => 
-                item.ean.toLowerCase() === termino.toLowerCase() || item.descripcion.toLowerCase().includes(termino.toLowerCase())
-            );
-
-            listaChequeo.push({
-                id: Date.now(),
-                ean: producto ? producto.ean : termino,
-                descripcion: producto ? producto.descripcion : termino,
-                precio: producto && producto.precio ? producto.precio + ' €' : 'No disponible'
-            });
-
-            localStorage.setItem('chequeo_v2_data', JSON.stringify(listaChequeo));
-            confirmarEscaneo();
-            input.value = '';
-            input.focus();
-            renderizarListaChequeo();
         }
 
         window.eliminarItemChequeo = function(id) {
@@ -420,143 +400,100 @@
                 tr.innerHTML = `
                     <td><small style="color: #666; font-family: monospace;">${item.ean}</small></td>
                     <td><strong>${item.descripcion}</strong></td>
-                    <td style="color: #28a745; font-weight: bold;">${item.precio}</td>
+                    <td style="color: #d32f2f; font-weight: bold;">${item.precio}</td>
                     <td><button style="background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" onclick="eliminarItemChequeo(${item.id})">✕</button></td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        // --- MÓDULO PRESUPUESTO ---
+        // --- MÓDULOS RESTANTES (Consulta, Reposición, Presupuesto) ---
+        function procesarConsulta() {
+            const input = document.getElementById('input-consulta');
+            const contenedor = document.getElementById('resultado-consulta');
+            if (!input || !contenedor) return;
+            const termino = input.value.trim().toLowerCase();
+            if (!termino) return;
+            confirmarEscaneo();
+            const producto = window.articulos.find(item => item.ean.toLowerCase() === termino || item.descripcion.toLowerCase().includes(termino));
+            if (producto) {
+                contenedor.innerHTML = `<div class="result-card"><h4 style="color: #1b5e20;">${producto.descripcion}</h4><p><strong>EAN:</strong> ${producto.ean}</p><p><strong>Stock:</strong> ${producto.stock} Uds.</p>${producto.precio ? `<p><strong>Precio BDD:</strong> ${producto.precio} €</p>` : ''}</div>`;
+            } else {
+                contenedor.innerHTML = `<div class="result-card" style="background-color: #ffebee;"><h4 style="color: #c62828;">❌ Sin coincidencias</h4></div>`;
+            }
+        }
+
+        function procesarReposicion() {
+            const input = document.getElementById('input-reposicion');
+            if (!input) return;
+            const termino = input.value.trim();
+            if (!termino) return;
+            const producto = window.articulos.find(item => item.ean.toLowerCase() === termino.toLowerCase() || item.descripcion.toLowerCase().includes(termino.toLowerCase()));
+            listaReposicion.push({ id: Date.now(), ean: producto ? producto.ean : termino, descripcion: producto ? producto.descripcion : termino, cantidad: 1 });
+            localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion));
+            input.value = '';
+            renderizarListaReposicion();
+        }
+        function renderizarListaReposicion() {
+            const tbody = document.getElementById('tabla-reposicion-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (listaReposicion.length === 0) { tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #888;">Vacío.</td></tr>`; return; }
+            listaReposicion.forEach(item => {
+                tbody.innerHTML += `<tr><td><strong>${item.descripcion}</strong><br><small>EAN: ${item.ean}</small></td><td><input type="number" min="1" value="${item.cantidad}" style="width:65px;" onchange="actualizarCantRep(${item.id}, this.value)"></td><td><button onclick="eliminarRep(${item.id})" style="background:#dc3545; color:#fff; border:none; padding:4px 8px; border-radius:4px;">✕</button></td></tr>`;
+            });
+        }
+        window.actualizarCantRep = (id, val) => { const it = listaReposicion.find(x => x.id === id); if(it) { it.cantidad = parseInt(val)||1; localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion)); } };
+        window.eliminarRep = (id) => { listaReposicion = listaReposicion.filter(x => x.id !== id); localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion)); renderizarListaReposicion(); };
+        window.vaciarListaReposicion = () => { if(confirm("¿Vaciar?")) { listaReposicion = []; localStorage.setItem('reposicion_v2_data', JSON.stringify(listaReposicion)); renderizarListaReposicion(); } };
+
         function procesarPresupuesto() {
             const input = document.getElementById('input-presupuesto');
             if (!input) return;
             const termino = input.value.trim();
             if (!termino) return;
-
-            const producto = window.articulos.find(item => 
-                item.ean.toLowerCase() === termino.toLowerCase() || item.descripcion.toLowerCase().includes(termino.toLowerCase())
-            );
-
-            listaPresupuesto.push({
-                id: Date.now(),
-                ean: producto ? producto.ean : termino,
-                descripcion: producto ? producto.descripcion : termino,
-                precio: producto && producto.precio ? parseFloat(producto.precio.replace(',', '.')) : 0,
-                cantidad: 1
-            });
-
+            const producto = window.articulos.find(item => item.ean.toLowerCase() === termino.toLowerCase() || item.descripcion.toLowerCase().includes(termino.toLowerCase()));
+            listaPresupuesto.push({ id: Date.now(), ean: producto ? producto.ean : termino, descripcion: producto ? producto.descripcion : termino, precio: producto && producto.precio ? parseFloat(producto.precio.replace(',', '.')) : 0, cantidad: 1 });
             localStorage.setItem('presupuesto_v2_data', JSON.stringify(listaPresupuesto));
-            confirmarEscaneo();
             input.value = '';
-            input.focus();
             renderizarListaPresupuesto();
         }
-
-        window.actualizarCantidadPresupuesto = function(id, nuevaCantidad) {
-            const item = listaPresupuesto.find(i => i.id === id);
-            if (item) {
-                item.cantidad = parseInt(nuevaCantidad) || 1;
-                localStorage.setItem('presupuesto_v2_data', JSON.stringify(listaPresupuesto));
-            }
-        }
-
-        window.eliminarItemPresupuesto = function(id) {
-            listaPresupuesto = listaPresupuesto.filter(item => item.id !== id);
-            localStorage.setItem('presupuesto_v2_data', JSON.stringify(listaPresupuesto));
-            renderizarListaPresupuesto();
-        }
-
-        window.vaciarListaPresupuesto = function() {
-            if (confirm("¿Vaciar presupuesto?")) {
-                listaPresupuesto = [];
-                localStorage.setItem('presupuesto_v2_data', JSON.stringify(listaPresupuesto));
-                renderizarListaPresupuesto();
-            }
-        }
-
         function renderizarListaPresupuesto() {
             const tbody = document.getElementById('tabla-presupuesto-body');
             if (!tbody) return;
             tbody.innerHTML = '';
-            
-            if (listaPresupuesto.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #888;">El presupuesto está vacío.</td></tr>`;
-                return;
-            }
-
+            if (listaPresupuesto.length === 0) { tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #888;">Vacío.</td></tr>`; return; }
             listaPresupuesto.forEach(item => {
-                const subtotal = (item.precio * item.cantidad).toFixed(2);
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><strong>${item.descripcion}</strong><br><small style="color: #666;">EAN: ${item.ean} | ${item.precio} €/ud</small></td>
-                    <td><input type="number" min="1" value="${item.cantidad}" style="width: 55px; padding: 4px; text-align: center;" onchange="actualizarCantidadPresupuesto(${item.id}, this.value)"></td>
-                    <td>${subtotal} €</td>
-                    <td><button style="background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" onclick="eliminarItemPresupuesto(${item.id})">✕</button></td>
-                `;
-                tbody.appendChild(tr);
+                const sub = (item.precio * item.cantidad).toFixed(2);
+                tbody.innerHTML += `<tr><td><strong>${item.descripcion}</strong><br><small>${item.ean}</small></td><td><input type="number" min="1" value="${item.cantidad}" style="width:50px;" onchange="actualizarCantPres(${item.id}, this.value)"></td><td>${sub} €</td><td><button onclick="eliminarPres(${item.id})" style="background:#dc3545; color:#fff; border:none; padding:4px 8px; border-radius:4px;">✕</button></td></tr>`;
             });
         }
+        window.actualizarCantPres = (id, val) => { const it = listaPresupuesto.find(x => x.id === id); if(it) { it.cantidad = parseInt(val)||1; localStorage.setItem('presupuesto_v2_data', JSON.stringify(listaPresupuesto)); } };
+        window.eliminarPres = (id) => { listaPresupuesto = listaPresupuesto.filter(x => x.id !== id); localStorage.setItem('presupuesto_v2_data', JSON.stringify(listaPresupuesto)); renderizarListaPresupuesto(); };
+        window.vaciarListaPresupuesto = () => { if(confirm("¿Vaciar?")) { listaPresupuesto = []; localStorage.setItem('presupuesto_v2_data', JSON.stringify(listaPresupuesto)); renderizarListaPresupuesto(); } };
 
-        // --- ENVÍO A GOOGLE DRIVE VIA WEB APP ---
+        // --- ENVÍO A DRIVE ---
         async function enviarGoogleDrive(tipo) {
-            let datos = [];
-            let tituloCabecera = "";
+            let datos = tipo === 'reposicion' ? listaReposicion : (tipo === 'presupuesto' ? listaPresupuesto : listaChequeo);
+            if (datos.length === 0) { alert("Lista vacía."); return; }
+            let contenido = `${tipo.toUpperCase()}\n====================\n`;
+            datos.forEach(i => { contenido += `EAN: ${i.ean} | ${i.descripcion} ${i.precio ? '| Precio: ' + i.precio : ''}\n`; });
 
-            if (tipo === 'reposicion') {
-                datos = listaReposicion;
-                tituloCabecera = "LISTA DE REPOSICIÓN\n====================\n";
-            } else if (tipo === 'presupuesto') {
-                datos = listaPresupuesto;
-                tituloCabecera = "PRESUPUESTO\n====================\n";
-            } else if (tipo === 'chequeo') {
-                datos = listaChequeo;
-                tituloCabecera = "CHEQUEO DE PRECIOS\n====================\n";
-            }
-
-            if (datos.length === 0) {
-                alert("La lista está vacía.");
-                return;
-            }
-
-            let contenido = tituloCabecera;
-            
-            datos.forEach(item => {
-                contenido += `EAN: ${item.ean} | ${item.descripcion} ${item.cantidad ? '| Cantidad: ' + item.cantidad : ''} ${item.precio ? '| Precio: ' + item.precio : ''}\n`;
-            });
-
-            const nombreArchivo = `${tipo}_${new Date().toISOString().slice(0,10)}.txt`;
             const WEB_APP_URL = "https://script.google.com/a/macros/leon.leclerc/s/AKfycbxDclybr0lPPMp3cE6_aMzjRtOq5P_opcvExsI3Y0MqK52xPBzzsGjjCd5SzcAKrUwz/exec";
-
             try {
-                alert("⏳ Enviando archivo a Google Drive...");
+                alert("⏳ Enviando a Google Drive...");
                 await fetch(WEB_APP_URL, {
-                    method: "POST",
-                    mode: "no-cors",
+                    method: "POST", mode: "no-cors",
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({
-                        tipo: tipo,
-                        contenido: contenido,
-                        nombreArchivo: nombreArchivo
-                    })
+                    body: JSON.stringify({ tipo, contenido, nombreArchivo: `${tipo}_${new Date().toISOString().slice(0,10)}.txt` })
                 });
-
-                alert(`✅ Archivo enviado con éxito a la carpeta de ${tipo.toUpperCase()} en Google Drive.`);
-                
-                if (tipo === 'reposicion') {
-                    vaciarListaReposicion();
-                } else if (tipo === 'presupuesto') {
-                    vaciarListaPresupuesto();
-                } else if (tipo === 'chequeo') {
-                    vaciarListaChequeo();
-                }
-
-            } catch (error) {
-                alert("❌ Error al conectar con Google Drive: " + error.message);
-            }
+                alert(`✅ Enviado con éxito.`);
+                if (tipo === 'reposicion') vaciarListaReposicion();
+                else if (tipo === 'presupuesto') vaciarListaPresupuesto();
+                else vaciarListaChequeo();
+            } catch (error) { alert("❌ Error: " + error.message); }
         }
 
-        // Inicialización
         renderizarListaReposicion();
         renderizarListaPresupuesto();
         renderizarListaChequeo();
