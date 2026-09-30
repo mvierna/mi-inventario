@@ -99,11 +99,27 @@
             <div class="card">
                 <h3>🔍 Chequeo de Precios</h3>
                 <div class="input-group">
-                    <input type="text" id="input-chequeo" placeholder="Escanea para verificar precio..." autocomplete="off" onkeydown="if(event.key === 'Enter') procesarChequeo()">
+                    <input type="text" id="input-chequeo" placeholder="Escanea EAN o busca descripción..." autocomplete="off" onkeydown="if(event.key === 'Enter') procesarChequeo()">
                     <button type="button" class="btn-camera" onclick="iniciarCamara('chequeo')">📷</button>
                     <button type="button" class="btn-action" onclick="procesarChequeo()">Verificar</button>
                 </div>
-                <div id="resultado-chequeo"></div>
+
+                <h3 style="margin-top: 15px;">Artículos Chequeados</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 110px;">EAN</th>
+                            <th>Descripción</th>
+                            <th style="width: 75px;">Precio</th>
+                            <th style="width: 45px;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-chequeo-body"></tbody>
+                </table>
+                <br>
+                <button class="btn-success" onclick="enviarGoogleDrive('chequeo')">☁️ Enviar Chequeo a Drive</button>
+                <br><br>
+                <button class="btn-danger" onclick="vaciarListaChequeo()">🗑️ Vaciar Lista</button>
             </div>
         </div>
 
@@ -134,6 +150,7 @@
         window.articulos = [];
         let listaReposicion = JSON.parse(localStorage.getItem('reposicion_v2_data')) || [];
         let listaPresupuesto = JSON.parse(localStorage.getItem('presupuesto_v2_data')) || [];
+        let listaChequeo = JSON.parse(localStorage.getItem('chequeo_v2_data')) || [];
         let codeReader = null;
         let pestañaActivaCamara = 'consulta';
 
@@ -352,27 +369,62 @@
         // --- MÓDULO CHEQUEO ---
         function procesarChequeo() {
             const input = document.getElementById('input-chequeo');
-            const contenedor = document.getElementById('resultado-chequeo');
-            if (!input || !contenedor) return;
-            const termino = input.value.trim().toLowerCase();
+            if (!input) return;
+            const termino = input.value.trim();
             if (!termino) return;
 
-            confirmarEscaneo();
             const producto = window.articulos.find(item => 
-                item.ean.toLowerCase() === termino || item.descripcion.toLowerCase().includes(termino)
+                item.ean.toLowerCase() === termino.toLowerCase() || item.descripcion.toLowerCase().includes(termino.toLowerCase())
             );
 
-            if (producto) {
-                contenedor.innerHTML = `
-                    <div class="result-card">
-                        <h4 style="color: #004085;">${producto.descripcion}</h4>
-                        <p style="font-size: 14px; margin-top: 5px;"><strong>EAN:</strong> ${producto.ean}</p>
-                        <p style="font-size: 18px; color: #28a745; margin-top: 5px;"><strong>Precio:</strong> ${producto.precio ? producto.precio + ' €' : 'No disponible'}</p>
-                    </div>
-                `;
-            } else {
-                contenedor.innerHTML = `<div class="result-card" style="border-left-color: #c62828; background-color: #ffebee;"><h4 style="color: #c62828;">❌ Artículo no encontrado</h4></div>`;
+            listaChequeo.push({
+                id: Date.now(),
+                ean: producto ? producto.ean : termino,
+                descripcion: producto ? producto.descripcion : termino,
+                precio: producto && producto.precio ? producto.precio + ' €' : 'No disponible'
+            });
+
+            localStorage.setItem('chequeo_v2_data', JSON.stringify(listaChequeo));
+            confirmarEscaneo();
+            input.value = '';
+            input.focus();
+            renderizarListaChequeo();
+        }
+
+        window.eliminarItemChequeo = function(id) {
+            listaChequeo = listaChequeo.filter(item => item.id !== id);
+            localStorage.setItem('chequeo_v2_data', JSON.stringify(listaChequeo));
+            renderizarListaChequeo();
+        }
+
+        window.vaciarListaChequeo = function() {
+            if (confirm("¿Vaciar la lista de chequeo?")) {
+                listaChequeo = [];
+                localStorage.setItem('chequeo_v2_data', JSON.stringify(listaChequeo));
+                renderizarListaChequeo();
             }
+        }
+
+        function renderizarListaChequeo() {
+            const tbody = document.getElementById('tabla-chequeo-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            
+            if (listaChequeo.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #888;">No hay artículos chequeados.</td></tr>`;
+                return;
+            }
+
+            listaChequeo.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><small style="color: #666; font-family: monospace;">${item.ean}</small></td>
+                    <td><strong>${item.descripcion}</strong></td>
+                    <td style="color: #28a745; font-weight: bold;">${item.precio}</td>
+                    <td><button style="background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" onclick="eliminarItemChequeo(${item.id})">✕</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
 
         // --- MÓDULO PRESUPUESTO ---
@@ -448,16 +500,29 @@
 
         // --- ENVÍO A GOOGLE DRIVE VIA WEB APP ---
         async function enviarGoogleDrive(tipo) {
-            const datos = tipo === 'reposicion' ? listaReposicion : listaPresupuesto;
+            let datos = [];
+            let tituloCabecera = "";
+
+            if (tipo === 'reposicion') {
+                datos = listaReposicion;
+                tituloCabecera = "LISTA DE REPOSICIÓN\n====================\n";
+            } else if (tipo === 'presupuesto') {
+                datos = listaPresupuesto;
+                tituloCabecera = "PRESUPUESTO\n====================\n";
+            } else if (tipo === 'chequeo') {
+                datos = listaChequeo;
+                tituloCabecera = "CHEQUEO DE PRECIOS\n====================\n";
+            }
+
             if (datos.length === 0) {
                 alert("La lista está vacía.");
                 return;
             }
 
-            let contenido = tipo === 'reposicion' ? "LISTA DE REPOSICIÓN\n====================\n" : "PRESUPUESTO\n====================\n";
+            let contenido = tituloCabecera;
             
             datos.forEach(item => {
-                contenido += `EAN: ${item.ean} | ${item.descripcion} | Cantidad: ${item.cantidad} ${item.precio ? '| Precio: ' + item.precio + '€' : ''}\n`;
+                contenido += `EAN: ${item.ean} | ${item.descripcion} ${item.cantidad ? '| Cantidad: ' + item.cantidad : ''} ${item.precio ? '| Precio: ' + item.precio : ''}\n`;
             });
 
             const nombreArchivo = `${tipo}_${new Date().toISOString().slice(0,10)}.txt`;
@@ -480,8 +545,10 @@
                 
                 if (tipo === 'reposicion') {
                     vaciarListaReposicion();
-                } else {
+                } else if (tipo === 'presupuesto') {
                     vaciarListaPresupuesto();
+                } else if (tipo === 'chequeo') {
+                    vaciarListaChequeo();
                 }
 
             } catch (error) {
@@ -492,6 +559,7 @@
         // Inicialización
         renderizarListaReposicion();
         renderizarListaPresupuesto();
+        renderizarListaChequeo();
         cargarBaseDatos();
     </script>
 </body>
