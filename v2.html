@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Inventario y Reposición v2</title>
-    <!-- Librería de escaneo de códigos de barras -->
+    <!-- Librería de escaneo ZXING -->
     <script src="https://unpkg.com/@zxing/library@latest"></script>
-    <!-- Librería de OCR (Tesseract.js) -->
+    <!-- Librería OCR Tesseract.js -->
     <script src="https://unpkg.com/tesseract.js@v4.0.2/dist/tesseract.min.js"></script>
 
     <style>
@@ -52,14 +52,12 @@
     </nav>
 
     <div class="container">
-        <!-- CONTENEDOR DE CÁMARA (ZXING) -->
         <div id="video-container">
             <video id="video-preview"></video>
             <button onclick="cerrarCamara()" style="position: absolute; top: 5px; right: 5px; background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">✕ Cerrar</button>
         </div>
 
-        <!-- AVISO DE PROCESAMIENTO OCR -->
-        <div id="ocr-loading">⏳ Procesando imagen de la etiqueta y leyendo precio (OCR)...</div>
+        <div id="ocr-loading">⏳ Leyendo etiqueta y precio automáticamente (OCR)...</div>
 
         <!-- PESTAÑA CONSULTA -->
         <div id="tab-consulta" class="tab-content active">
@@ -67,8 +65,7 @@
                 <h3>📦 Búsqueda de Artículos</h3>
                 <div id="status-db" class="status-box status-loading">⏳ Cargando base de datos...</div>
                 <div class="input-group">
-                    <input type="text" id="input-consulta" placeholder="Escanea EAN o busca descripción..." autocomplete="off" onkeydown="if(event.key === 'Enter') procesarConsulta()">
-                    <button type="button" class="btn-camera" onclick="iniciarCamara('consulta')">📷</button>
+                    <input type="text" id="input-consulta" placeholder="Escanea EAN con teclado o busca..." autocomplete="off" onkeydown="if(event.key === 'Enter') procesarConsulta()">
                     <button type="button" class="btn-action" onclick="procesarConsulta()">Buscar</button>
                 </div>
                 <div id="resultado-consulta"></div>
@@ -80,8 +77,7 @@
             <div class="card">
                 <h3>📋 Gestión de Reposición</h3>
                 <div class="input-group">
-                    <input type="text" id="input-reposicion" placeholder="Escribe EAN o descripción..." autocomplete="off" onkeydown="if(event.key === 'Enter') procesarReposicion()">
-                    <button type="button" class="btn-camera" onclick="iniciarCamara('reposicion')">📷</button>
+                    <input type="text" id="input-reposicion" placeholder="Escribe o escanea EAN..." autocomplete="off" onkeydown="if(event.key === 'Enter') procesarReposicion()">
                     <button type="button" class="btn-action" onclick="procesarReposicion()">Añadir</button>
                 </div>
                 <h3 style="margin-top: 15px;">Lista de Faltas Acumulada</h3>
@@ -96,17 +92,16 @@
             </div>
         </div>
 
-        <!-- PESTAÑA CHEQUEO -->
+        <!-- PESTAÑA CHEQUEO UNIFICADO -->
         <div id="tab-chequeo" class="tab-content">
             <div class="card">
-                <h3>🔍 Chequeo de Precios (EAN + Foto OCR)</h3>
-                <p style="font-size: 12px; color: #666; margin-bottom: 8px;">1. Escanea el EAN con la cámara o pistola. 2. Haz foto a la etiqueta para leer el precio.</p>
+                <h3>🔍 Chequeo Rápido (EAN Teclado + Foto Precio)</h3>
+                <p style="font-size: 12px; color: #666; margin-bottom: 8px;">1. Usa el teclado para escanear el EAN. 2. Haz clic en la cámara para fotografiar la etiqueta y extraer el precio y el EAN juntos.</p>
                 <div class="input-group">
-                    <input type="text" id="input-chequeo" placeholder="EAN o introduce manual..." autocomplete="off" onkeydown="if(event.key === 'Enter') procesarChequeoManual()">
-                    <button type="button" class="btn-camera" onclick="iniciarCamara('chequeo-ean')">📷 EAN</button>
-                    <!-- Input nativo oculto para capturar la foto de la etiqueta y aplicarle OCR -->
-                    <label class="btn-camera" style="background-color: #004085; cursor: pointer;" title="Hacer foto a la etiqueta de precio">
-                        🏷️ Precio <input type="file" accept="image/*" capture="environment" id="input-foto-etiqueta" style="display: none;" onchange="procesarFotoEtiqueta(event)">
+                    <input type="text" id="input-chequeo" placeholder="EAN (usa tu teclado escáner)..." autocomplete="off">
+                    <!-- Botón único para capturar la etiqueta con la cámara nativa y hacer OCR completo -->
+                    <label class="btn-camera" style="background-color: #004085; cursor: pointer; padding: 0 16px;" title="Capturar etiqueta y precio">
+                        📷 Capturar Etiqueta <input type="file" accept="image/*" capture="environment" id="input-foto-etiqueta" style="display: none;" onchange="procesarFotoEtiquetaCompleta(event)">
                     </label>
                 </div>
 
@@ -134,8 +129,7 @@
             <div class="card">
                 <h3>📑 Calculadora de Presupuestos</h3>
                 <div class="input-group">
-                    <input type="text" id="input-presupuesto" placeholder="Añadir artículo a presupuesto..." autocomplete="off" onkeydown="if(event.key === 'Enter') procesarPresupuesto()">
-                    <button type="button" class="btn-camera" onclick="iniciarCamara('presupuesto')">📷</button>
+                    <input type="text" id="input-presupuesto" placeholder="Añadir artículo..." autocomplete="off" onkeydown="if(event.key === 'Enter') procesarPresupuesto()">
                     <button type="button" class="btn-action" onclick="procesarPresupuesto()">Añadir</button>
                 </div>
                 <h3 style="margin-top: 15px;">Artículos en Presupuesto</h3>
@@ -157,8 +151,6 @@
         let listaPresupuesto = JSON.parse(localStorage.getItem('presupuesto_v2_data')) || [];
         let listaChequeo = JSON.parse(localStorage.getItem('chequeo_v2_data')) || [];
         let codeReader = null;
-        let pestañaActivaCamara = 'consulta';
-        let ultimoEanChequeado = '';
 
         async function cargarBaseDatos() {
             const statusBox = document.getElementById('status-db');
@@ -187,32 +179,23 @@
                     }
                 }
 
-                statusBox.className = "status-box status-ok";
-                statusBox.innerHTML = `✅ Base de datos lista (${window.articulos.length.toLocaleString('es-ES')} artículos)`;
+                if (statusBox) {
+                    statusBox.className = "status-box status-ok";
+                    statusBox.innerHTML = `✅ Base de datos lista (${window.articulos.length.toLocaleString('es-ES')} artículos)`;
+                }
                 document.getElementById('input-consulta')?.focus();
 
             } catch (error) {
-                statusBox.className = "status-box status-error";
-                statusBox.innerHTML = `❌ Error: ${error.message}`;
+                if (statusBox) {
+                    statusBox.className = "status-box status-error";
+                    statusBox.innerHTML = `❌ Error: ${error.message}`;
+                }
             }
         }
 
         function confirmarEscaneo() {
             try {
                 if (navigator.vibrate) navigator.vibrate(100);
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (AudioCtx) {
-                    const ctx = new AudioCtx();
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(880, ctx.currentTime);
-                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.12);
-                }
             } catch (e) {}
         }
 
@@ -225,98 +208,54 @@
             document.getElementById(`input-${nombreTab}`)?.focus();
         }
 
-        async function iniciarCamara(destino) {
-            pestañaActivaCamara = destino;
-            const container = document.getElementById('video-container');
-            container.style.display = 'block';
-
-            if (!codeReader) {
-                codeReader = new ZXing.BrowserBarcodeReader();
-            }
-
-            try {
-                const videoInputDevices = await codeReader.listVideoInputDevices();
-                const selectedDeviceId = videoInputDevices.length > 0 ? videoInputDevices[videoInputDevices.length - 1].deviceId : undefined;
-
-                codeReader.decodeFromVideoDevice(selectedDeviceId, 'video-preview', (result, err) => {
-                    if (result) {
-                        confirmarEscaneo();
-                        const codigo = result.text;
-                        cerrarCamara();
-                        
-                        if (pestañaActivaCamara === 'consulta') {
-                            document.getElementById('input-consulta').value = codigo;
-                            procesarConsulta();
-                        } else if (pestañaActivaCamara === 'reposicion') {
-                            document.getElementById('input-reposicion').value = codigo;
-                            procesarReposicion();
-                        } else if (pestañaActivaCamara === 'presupuesto') {
-                            document.getElementById('input-presupuesto').value = codigo;
-                            procesarPresupuesto();
-                        } else if (pestañaActivaCamara === 'chequeo-ean') {
-                            document.getElementById('input-chequeo').value = codigo;
-                            ultimoEanChequeado = codigo;
-                        }
-                    }
-                });
-            } catch (err) {
-                alert("Error al iniciar la cámara: " + err);
-                container.style.display = 'none';
-            }
-        }
-
         function cerrarCamara() {
             if (codeReader) {
                 codeReader.reset();
             }
-            document.getElementById('video-container').style.display = 'none';
+            const vc = document.getElementById('video-container');
+            if (vc) vc.style.display = 'none';
         }
 
-        // --- MÓDULO CHEQUEO CON FOTO OCR ---
-        function procesarChequeoManual() {
-            const input = document.getElementById('input-chequeo');
-            if (!input) return;
-            const termino = input.value.trim();
-            if (!termino) return;
-            ultimoEanChequeado = termino;
-            input.value = '';
-            alert(`EAN ${termino} fijado. Ahora pulsa en "🏷️ Precio" para fotografiar la etiqueta.`);
-        }
-
-        async function procesarFotoEtiqueta(event) {
+        // --- CHEQUEO UNIFICADO (EAN por teclado + OCR de precio en foto) ---
+        async function procesarFotoEtiquetaCompleta(event) {
             const archivo = event.target.files[0];
             if (!archivo) return;
 
-            const eanActual = ultimoEanChequeado || document.getElementById('input-chequeo').value.trim();
-            if (!eanActual) {
-                alert("⚠️ Primero introduce o escanea el código EAN antes de fotografiar la etiqueta.");
-                event.target.value = '';
-                return;
-            }
-
+            // Recogemos el EAN que ya introdujo el teclado escáner en el input
+            let eanInput = document.getElementById('input-chequeo').value.trim();
             const loadingBox = document.getElementById('ocr-loading');
             loadingBox.style.display = 'block';
 
             try {
-                // Ejecutar OCR de Tesseract sobre la foto tomada con la cámara
+                // Ejecutamos OCR sobre la foto de la etiqueta
                 const { data: { text } } = await Tesseract.recognize(
                     archivo,
                     'eng',
                     { logger: m => {} }
                 );
 
-                console.log("Texto OCR reconocido:", text);
+                console.log("Texto OCR:", text);
                 const precioExtraido = extraerPrecioDeTexto(text);
 
-                // Buscar artículo en la BDD (coincidencia exacta o parcial limpia)
+                // Si el teclado no metió el EAN antes, intentamos buscar números largos tipo EAN dentro del propio texto de la imagen OCR
+                if (!eanInput) {
+                    const posibleEan = text.match(/\b\d{8,13}\b/);
+                    if (posibleEan) {
+                        eanInput = posibleEan[0];
+                    }
+                }
+
+                const eanFinal = eanInput || "Desconocido";
+
+                // Buscar artículo en la BDD
                 const producto = window.articulos.find(item => 
-                    item.ean.toLowerCase() === eanActual.toLowerCase() || 
-                    item.ean.replace(/^0+/, '') === eanActual.replace(/^0+/, '')
+                    item.ean.toLowerCase() === eanFinal.toLowerCase() || 
+                    item.ean.replace(/^0+/, '') === eanFinal.replace(/^0+/, '')
                 );
 
                 listaChequeo.push({
                     id: Date.now(),
-                    ean: producto ? producto.ean : eanActual,
+                    ean: eanFinal,
                     descripcion: producto ? producto.descripcion : 'Artículo no registrado en BDD',
                     precio: precioExtraido
                 });
@@ -325,21 +264,20 @@
                 confirmarEscaneo();
                 renderizarListaChequeo();
                 
-                // Limpiar valores
-                ultimoEanChequeado = '';
+                // Limpiar input de EAN para el siguiente
                 document.getElementById('input-chequeo').value = '';
+                document.getElementById('input-chequeo').focus();
 
             } catch (error) {
                 console.error(error);
                 alert("❌ Error al procesar la imagen con OCR.");
             } finally {
                 loadingBox.style.display = 'none';
-                event.target.value = ''; // Resetear input file
+                event.target.value = '';
             }
         }
 
         function extraerPrecioDeTexto(texto) {
-            // Buscar patrones de precio en formato español o internacional (ej: 12,34 o 12.34 o 12€)
             const regex = /(\d+[\.,]\d{2})\s*(?:€)?|(\d+)\s*(?:€)?/g;
             let coincidencias = [];
             let match;
@@ -389,7 +327,7 @@
             });
         }
 
-        // --- MÓDULOS RESTANTES (Consulta, Reposición, Presupuesto) ---
+        // --- MÓDULOS RESTANTES ---
         function procesarConsulta() {
             const input = document.getElementById('input-consulta');
             const contenedor = document.getElementById('resultado-consulta');
@@ -399,9 +337,9 @@
             confirmarEscaneo();
             const producto = window.articulos.find(item => item.ean.toLowerCase() === termino || item.descripcion.toLowerCase().includes(termino));
             if (producto) {
-                contenedor.innerHTML = `<div class="result-card"><h4 style="color: #1b5e20;">${producto.descripcion}</h4><p><strong>EAN:</strong> ${producto.ean}</p><p><strong>Stock:</strong> ${producto.stock} Uds.</p>${producto.precio ? `<p><strong>Precio BDD:</strong> ${producto.precio} €</p>` : ''}</div>`;
+                contenedor.innerHTML = `<div class="card" style="background-color: #e8f5e9; margin-top:10px;"><h4 style="color: #1b5e20;">${producto.descripcion}</h4><p><strong>EAN:</strong> ${producto.ean}</p><p><strong>Stock:</strong> ${producto.stock} Uds.</p>${producto.precio ? `<p><strong>Precio BDD:</strong> ${producto.precio} €</p>` : ''}</div>`;
             } else {
-                contenedor.innerHTML = `<div class="result-card" style="background-color: #ffebee;"><h4 style="color: #c62828;">❌ Sin coincidencias</h4></div>`;
+                contenedor.innerHTML = `<div class="card" style="background-color: #ffebee; margin-top:10px;"><h4 style="color: #c62828;">❌ Sin coincidencias</h4></div>`;
             }
         }
 
@@ -454,7 +392,6 @@
         window.eliminarPres = (id) => { listaPresupuesto = listaPresupuesto.filter(x => x.id !== id); localStorage.setItem('presupuesto_v2_data', JSON.stringify(listaPresupuesto)); renderizarListaPresupuesto(); };
         window.vaciarListaPresupuesto = () => { if(confirm("¿Vaciar?")) { listaPresupuesto = []; localStorage.setItem('presupuesto_v2_data', JSON.stringify(listaPresupuesto)); renderizarListaPresupuesto(); } };
 
-        // --- ENVÍO A DRIVE ---
         async function enviarGoogleDrive(tipo) {
             let datos = tipo === 'reposicion' ? listaReposicion : (tipo === 'presupuesto' ? listaPresupuesto : listaChequeo);
             if (datos.length === 0) { alert("Lista vacía."); return; }
