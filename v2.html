@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Inventario V2</title>
+    <title>Sistema de Inventario V2 Complete</title>
     <style>
         :root {
             --primary-blue: #0055A5;
@@ -11,6 +11,7 @@
             --bg-light: #f4f6f8;
             --btn-green: #27ae60;
             --btn-red: #e74c3c;
+            --btn-orange: #e67e22;
         }
 
         body {
@@ -29,8 +30,15 @@
             font-weight: bold;
             font-size: 1.1rem;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 8px;
+        }
+
+        .db-status {
+            font-size: 0.75rem;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 8px;
+            border-radius: 4px;
         }
 
         nav {
@@ -54,14 +62,22 @@
 
         nav button.active {
             border-bottom-color: white;
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.15);
         }
 
         /* Contenedor Principal */
         .container {
             padding: 15px;
-            max-width: 600px;
+            max-width: 650px;
             margin: 0 auto;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
         }
 
         .card {
@@ -79,23 +95,24 @@
             margin-bottom: 8px;
             display: flex;
             align-items: center;
-            gap: 6px;
+            justify-content: space-between;
         }
 
         .card-subtitle {
             font-size: 0.85rem;
             color: #666;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             line-height: 1.3;
         }
 
-        /* Área de lectura OCR */
+        /* Inputs y Botones */
         .input-group {
             display: flex;
             gap: 8px;
+            margin-bottom: 8px;
         }
 
-        .input-group input {
+        .input-group input, .input-group select {
             flex: 1;
             padding: 12px;
             border: 1px solid #ccc;
@@ -120,42 +137,42 @@
 
         .btn-blue { background-color: var(--primary-blue); }
         .btn-green { background-color: var(--btn-green); width: 100%; margin-top: 10px; }
+        .btn-orange { background-color: var(--btn-orange); }
         .btn-red { background-color: var(--btn-red); }
         .btn-full-red { background-color: var(--btn-red); width: 100%; margin-top: 8px; }
 
-        /* Tabla / Lista de Chequeo */
-        .tabla-chequeos {
+        /* Tablas */
+        .tabla-datos {
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
             font-size: 0.85rem;
         }
 
-        .tabla-chequeos th {
+        .tabla-datos th {
             background-color: #f0f3f6;
             text-align: left;
             padding: 8px;
             border-bottom: 2px solid #ddd;
         }
 
-        .tabla-chequeos td {
+        .tabla-datos td {
             padding: 10px 8px;
             border-bottom: 1px solid #eee;
             vertical-align: middle;
         }
 
         .badge-precio {
-            color: #d32f2f;
+            color: #27ae60;
             font-weight: bold;
         }
 
-        .badge-no-precio {
-            background-color: #ffebee;
-            color: #c62828;
-            padding: 3px 6px;
+        .badge-cant {
+            background-color: #e3f2fd;
+            color: var(--primary-blue);
+            padding: 2px 6px;
             border-radius: 4px;
             font-weight: bold;
-            font-size: 0.75rem;
         }
 
         .btn-del {
@@ -174,191 +191,622 @@
             padding: 15px;
             font-style: italic;
         }
+
+        /* Detalle de Consulta */
+        .resultado-consulta {
+            background-color: #f8fafc;
+            border-left: 4px solid var(--primary-blue);
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .resultado-item {
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+        }
+
+        .resultado-label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .presupuesto-total {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary-blue);
+            text-align: right;
+            padding: 10px 0;
+            border-top: 2px solid #ddd;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
 
     <header>
-        📌 SISTEMA DE INVENTARIO V2
+        <span>📌 INVENTARIO V2</span>
+        <span class="db-status" id="dbStatus">BDD: Cargando...</span>
     </header>
 
     <nav>
-        <button>🔍 Consulta</button>
-        <button>📦 Reposición</button>
-        <button class="active">📋 Chequeo</button>
-        <button>💰 Presupuesto</button>
+        <button id="tab-consulta" class="active" onclick="cambiarPestana('consulta')">🔍 Consulta</button>
+        <button id="tab-reposicion" onclick="cambiarPestana('reposicion')">📦 Reposición</button>
+        <button id="tab-chequeo" onclick="cambiarPestana('chequeo')">📋 Chequeo</button>
+        <button id="tab-presupuesto" onclick="cambiarPestana('presupuesto')">💰 Presupuesto</button>
     </nav>
 
     <div class="container">
-        <!-- Bloque de Entrada OCR -->
-        <div class="card">
-            <div class="card-title">🔍 Chequeo Masivo con Teclado OCR</div>
-            <div class="card-subtitle">
-                Usa el modo <b>Text</b> de tu teclado. Filtra estrictamente códigos EAN de 13 dígitos y detecta precios.
+
+        <!-- 1. PESTAÑA CONSULTA -->
+        <div id="sec-consulta" class="tab-content active">
+            <div class="card">
+                <div class="card-title">🔍 Consulta Rápida de Artículos</div>
+                <div class="card-subtitle">Busca por EAN o palabras de la descripción en el índice de IndexedDB.</div>
+                
+                <div class="input-group">
+                    <input type="text" id="inputConsulta" placeholder="Introduce EAN o descripción..." onkeyup="if(event.key==='Enter') buscarArticulo()">
+                    <button class="btn btn-blue" onclick="buscarArticulo()">Buscar</button>
+                </div>
             </div>
-            
-            <div class="input-group">
-                <input type="text" id="inputOcr" placeholder="Usa la función Text de tu teclado..." autocomplete="off" autofocus>
-                <button class="btn btn-blue" onclick="limpiarInput()">Limpiar</button>
+
+            <div class="card" id="cardResultadoConsulta" style="display:none;">
+                <div class="card-title">Resultado de la Búsqueda</div>
+                <div id="detalleConsulta"></div>
+            </div>
+
+            <!-- Carga de Base de Datos -->
+            <div class="card">
+                <div class="card-title">⚙️ Cargar / Actualizar Base de Datos</div>
+                <div class="card-subtitle">Importa tu archivo CSV / JSON masivo (~64.000 artículos) directamente al IndexedDB local.</div>
+                <input type="file" id="fileInput" accept=".csv, .json" style="margin-bottom: 10px;">
+                <button class="btn btn-orange" style="width:100%" onclick="cargarBaseDatosArchivo()">📥 Cargar Datos a IndexedDB</button>
             </div>
         </div>
 
-        <!-- Tabla de Resultados -->
-        <div class="card">
-            <div class="card-title">Artículos Chequeados</div>
-            
-            <table class="tabla-chequeos">
-                <thead>
-                    <tr>
-                        <th>EAN</th>
-                        <th>Descripción</th>
-                        <th>Precio OCR</th>
-                        <th>Acción</th>
-                    </tr>
-                </thead>
-                <tbody id="listaChequeados">
-                    <!-- Filas dinámicas -->
-                </tbody>
-            </table>
-            
-            <div id="mensajeVacio" class="empty-msg">No hay artículos chequeados.</div>
+        <!-- 2. PESTAÑA REPOSICIÓN -->
+        <div id="sec-reposicion" class="tab-content">
+            <div class="card">
+                <div class="card-title">📦 Añadir a Reposición</div>
+                <div class="card-subtitle">Escanea un EAN e indica las unidades que necesitas reponer en lineal.</div>
+                
+                <div class="input-group">
+                    <input type="text" id="inputRepoEAN" placeholder="EAN Artículo..." onkeyup="if(event.key==='Enter') document.getElementById('inputRepoCant').focus()">
+                    <input type="number" id="inputRepoCant" placeholder="Cant." style="max-width: 90px;" value="1" onkeyup="if(event.key==='Enter') agregarReposicion()">
+                    <button class="btn btn-blue" onclick="agregarReposicion()">Añadir</button>
+                </div>
+            </div>
 
-            <button class="btn btn-green" onclick="enviarADrive()">🟢 Enviar Chequeo a Drive</button>
-            <button class="btn btn-full-red" onclick="vaciarLista()">🗑️ Vaciar Lista</button>
+            <div class="card">
+                <div class="card-title">Lista de Reposición Pendiente</div>
+                <table class="tabla-datos">
+                    <thead>
+                        <tr>
+                            <th>EAN</th>
+                            <th>Descripción</th>
+                            <th>Cant.</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaReposicion"></tbody>
+                </table>
+                <div id="msgRepoVacio" class="empty-msg">No hay artículos en la lista de reposición.</div>
+                <button class="btn btn-full-red" onclick="vaciarReposicion()">🗑️ Vaciar Reposición</button>
+            </div>
         </div>
+
+        <!-- 3. PESTAÑA CHEQUEO (CON FILTRADO OCR + DRIVE) -->
+        <div id="sec-chequeo" class="tab-content">
+            <div class="card">
+                <div class="card-title">🔍 Chequeo Masivo OCR</div>
+                <div class="card-subtitle">
+                    Captura estrictamente cuando detecta <b>EAN de 13 dígitos Y precio de venta</b>.
+                </div>
+                
+                <div class="input-group">
+                    <input type="text" id="inputOcr" placeholder="Usa la función Text de tu teclado..." autocomplete="off">
+                    <button class="btn btn-blue" onclick="limpiarInputOCR()">Limpiar</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Artículos Chequeados</div>
+                <table class="tabla-datos">
+                    <thead>
+                        <tr>
+                            <th>EAN</th>
+                            <th>Descripción</th>
+                            <th>Precio</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaChequeados"></tbody>
+                </table>
+                
+                <div id="msgChequeoVacio" class="empty-msg">No hay artículos chequeados.</div>
+
+                <button class="btn btn-green" id="btnEnviarDrive" onclick="enviarADrive()">🟢 Enviar Chequeo a Drive</button>
+                <button class="btn btn-full-red" onclick="vaciarChequeo()">🗑️ Vaciar Lista</button>
+            </div>
+        </div>
+
+        <!-- 4. PESTAÑA PRESUPUESTO -->
+        <div id="sec-presupuesto" class="tab-content">
+            <div class="card">
+                <div class="card-title">💰 Generador de Presupuesto</div>
+                <div class="card-subtitle">Añade artículos por EAN para calcular el importe total estimado.</div>
+                
+                <div class="input-group">
+                    <input type="text" id="inputPresupEAN" placeholder="EAN Artículo..." onkeyup="if(event.key==='Enter') agregarPresupuesto()">
+                    <button class="btn btn-blue" onclick="agregarPresupuesto()">Añadir</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Líneas de Presupuesto</div>
+                <table class="tabla-datos">
+                    <thead>
+                        <tr>
+                            <th>EAN</th>
+                            <th>Descripción</th>
+                            <th>Precio</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaPresupuesto"></tbody>
+                </table>
+                <div id="msgPresupVacio" class="empty-msg">No hay artículos en el presupuesto.</div>
+                
+                <div class="presupuesto-total">
+                    Total: <span id="totalPresupuesto">0,00 €</span>
+                </div>
+
+                <button class="btn btn-full-red" onclick="vaciarPresupuesto()">🗑️ Vaciar Presupuesto</button>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        // Simulador de Base de Datos en Memoria (Sustituir/Conectar con la BDD real)
-        const baseDeDatos = {
-            "8433897065104": "FUNDA DE ROPA 60*100",
-            "8433897065043": "CAJA MULTI C 45X 45X20"
+        // ==========================================
+        // CONFIGURACIÓN Y CONSTANTES
+        // ==========================================
+        const URL_SCRIPT_GOOGLE = "https://script.google.com/macros/s/AKfycbwyWT6AoIwslK5RR7fmu76wXaeE0bbagn279y1DI32dpZ6Ncs1KxYo0fcY4Z5wuSPiivw/exec";
+        const DB_NAME = "InventarioV2_DB";
+        const DB_VERSION = 1;
+        const STORE_NAME = "articulos";
+
+        let db = null;
+        let chequeos = [];
+        let reposicion = [];
+        let presupuesto = [];
+        let ocrTimer = null;
+        let audioCtx = null;
+
+        // Base de Datos fallback de demostración
+        const bddFallback = {
+            "8433897065104": { descripcion: "FUNDA DE ROPA 60*100", precio: "2,50 €" },
+            "8433897065043": { descripcion: "CAJA MULTI C 45X 45X20", precio: "4,95 €" }
         };
 
-        let chequeos = [];
-        let ocrTimer = null;
+        // ==========================================
+        // INDEXEDDB MANAGER (Soporta 64.000+ datos)
+        // ==========================================
+        function abrirIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onupgradeneeded = (e) => {
+                    const dbInstance = e.target.result;
+                    if (!dbInstance.objectStoreNames.contains(STORE_NAME)) {
+                        const store = dbInstance.createObjectStore(STORE_NAME, { keyPath: "ean" });
+                        store.createIndex("descripcion", "descripcion", { unique: false });
+                    }
+                };
+
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    actualizarEstadoBDD();
+                    resolve(db);
+                };
+
+                request.onerror = (e) => {
+                    console.error("Error abriendo IndexedDB:", e);
+                    reject(e);
+                };
+            });
+        }
+
+        async function obtenerArticulo(ean) {
+            if (!db) return bddFallback[ean] || null;
+
+            return new Promise((resolve) => {
+                const tx = db.transaction(STORE_NAME, "readonly");
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.get(ean);
+
+                req.onsuccess = () => {
+                    if (req.result) {
+                        resolve(req.result);
+                    } else {
+                        // Intentar fallback si no está en IndexedDB
+                        resolve(bddFallback[ean] || null);
+                    }
+                };
+                req.onerror = () => resolve(bddFallback[ean] || null);
+            });
+        }
+
+        function actualizarEstadoBDD() {
+            if (!db) return;
+            const tx = db.transaction(STORE_NAME, "readonly");
+            const store = tx.objectStore(STORE_NAME);
+            const countReq = store.count();
+
+            countReq.onsuccess = () => {
+                const count = countReq.result;
+                const elStatus = document.getElementById('dbStatus');
+                if (count > 0) {
+                    elStatus.textContent = `BDD: ${count.toLocaleString('es-ES')} arts.`;
+                    elStatus.style.background = "rgba(39, 174, 96, 0.4)";
+                } else {
+                    elStatus.textContent = "BDD: Demo (2 arts.)";
+                    elStatus.style.background = "rgba(230, 126, 34, 0.4)";
+                }
+            };
+        }
+
+        // Carga masiva desde archivo CSV o JSON
+        async function cargarBaseDatosArchivo() {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) {
+                alert("Por favor, selecciona un archivo CSV o JSON.");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async function(e) {
+                const contenido = e.target.result;
+                let articulos = [];
+
+                if (file.name.endsWith('.json')) {
+                    articulos = JSON.parse(contenido);
+                } else if (file.name.endsWith('.csv')) {
+                    const lineas = contenido.split('\n');
+                    lineas.forEach(linea => {
+                        const cols = linea.split(';');
+                        if (cols.length >= 2) {
+                            const ean = cols[0].trim();
+                            const desc = cols[1].trim();
+                            const precio = cols[2] ? cols[2].trim() : "N/D";
+                            if (ean && ean !== "EAN") {
+                                articulos.push({ ean, descripcion: desc, precio });
+                            }
+                        }
+                    });
+                }
+
+                if (articulos.length > 0 && db) {
+                    const tx = db.transaction(STORE_NAME, "readwrite");
+                    const store = tx.objectStore(STORE_NAME);
+                    store.clear(); // Limpiar anterior
+
+                    articulos.forEach(art => store.put(art));
+
+                    tx.oncomplete = () => {
+                        alert(`✅ Éxito: ${articulos.length} artículos guardados en IndexedDB local.`);
+                        actualizarEstadoBDD();
+                    };
+                }
+            };
+
+            reader.readAsText(file);
+        }
+
+        // ==========================================
+        // NAVEGACIÓN Y PESTAÑAS
+        // ==========================================
+        function cambiarPestana(pestaña) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+
+            document.getElementById(`sec-${pestaña}`).classList.add('active');
+            document.getElementById(`tab-${pestaña}`).classList.add('active');
+
+            if (pestaña === 'chequeo') {
+                document.getElementById('inputOcr').focus();
+            }
+        }
+
+        // ==========================================
+        // MÓDULO 1: CONSULTA
+        // ==========================================
+        async function buscarArticulo() {
+            const input = document.getElementById('inputConsulta').value.trim();
+            const cardResultado = document.getElementById('cardResultadoConsulta');
+            const contenedor = document.getElementById('detalleConsulta');
+
+            if (!input) return;
+
+            const art = await obtenerArticulo(input);
+
+            cardResultado.style.display = 'block';
+            if (art) {
+                contenedor.innerHTML = `
+                    <div class="resultado-consulta">
+                        <div class="resultado-item"><span class="resultado-label">EAN:</span> ${art.ean || input}</div>
+                        <div class="resultado-item"><span class="resultado-label">Descripción:</span> ${art.descripcion}</div>
+                        <div class="resultado-item"><span class="resultado-label">Precio:</span> <span class="badge-precio">${art.precio || 'N/D'}</span></div>
+                    </div>
+                `;
+            } else {
+                contenedor.innerHTML = `
+                    <div class="resultado-consulta" style="border-left-color: var(--btn-red);">
+                        <div class="resultado-item">❌ <b>Artículo no encontrado</b> en el índice local.</div>
+                    </div>
+                `;
+            }
+        }
+
+        // ==========================================
+        // MÓDULO 2: REPOSICIÓN
+        // ==========================================
+        async function agregarReposicion() {
+            const ean = document.getElementById('inputRepoEAN').value.trim();
+            const cant = parseInt(document.getElementById('inputRepoCant').value) || 1;
+
+            if (!ean) return;
+
+            const art = await obtenerArticulo(ean);
+            const descripcion = art ? art.descripcion : "Artículo no registrado";
+
+            reposicion.unshift({ ean, descripcion, cantidad: cant, id: Date.now() });
+            
+            document.getElementById('inputRepoEAN').value = '';
+            document.getElementById('inputRepoCant').value = '1';
+            document.getElementById('inputRepoEAN').focus();
+
+            renderizarReposicion();
+        }
+
+        function eliminarReposicion(id) {
+            reposicion = reposicion.filter(i => i.id !== id);
+            renderizarReposicion();
+        }
+
+        function vaciarReposicion() {
+            if (reposicion.length === 0) return;
+            if (confirm("¿Vaciar lista de reposición?")) {
+                reposicion = [];
+                renderizarReposicion();
+            }
+        }
+
+        function renderizarReposicion() {
+            const tbody = document.getElementById('listaReposicion');
+            const msgVacio = document.getElementById('msgRepoVacio');
+            tbody.innerHTML = '';
+
+            if (reposicion.length === 0) {
+                msgVacio.style.display = 'block';
+                return;
+            }
+            msgVacio.style.display = 'none';
+
+            reposicion.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.ean}</td>
+                    <td>${item.descripcion}</td>
+                    <td><span class="badge-cant">${item.cantidad}</span></td>
+                    <td><button class="btn-del" onclick="eliminarReposicion(${item.id})">✕</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ==========================================
+        // MÓDULO 3: CHEQUEO CON LECTURA OCR Y DRIVE
+        // ==========================================
+        function emitirPitidoExito() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.12);
+            } catch (e) {
+                console.warn("No se pudo emitir audio:", e);
+            }
+        }
 
         const inputOcr = document.getElementById('inputOcr');
-        const listaChequeados = document.getElementById('listaChequeados');
-        const mensajeVacio = document.getElementById('mensajeVacio');
-
-        // Escuchador de entrada con debounce para frenar el texto en ráfaga del teclado OCR
         inputOcr.addEventListener('input', function(e) {
             clearTimeout(ocrTimer);
-
-            // Esperar 500ms a que el OCR termine de pegar todo el bloque
             ocrTimer = setTimeout(() => {
                 procesarEntradaOCR(e.target.value);
-            }, 500);
+            }, 450);
         });
 
-        function procesarEntradaOCR(texto) {
+        async function procesarEntradaOCR(texto) {
             if (!texto || !texto.trim()) return;
 
-            // 1. Extraer EAN de exactamente 13 dígitos
             const regexEAN = /\b\d{13}\b/;
-            // 2. Extraer Precio (ej. 1,95 o 1.95)
             const regexPrecio = /\b\d+[,.]\d{2}\b/;
 
             const matchEAN = texto.match(regexEAN);
             const matchPrecio = texto.match(regexPrecio);
 
-            if (matchEAN) {
+            // Filtro Estricto: Requiere EAN13 + Precio
+            if (matchEAN && matchPrecio) {
                 const ean = matchEAN[0];
-                let precio = matchPrecio ? matchPrecio[0].replace('.', ',') + " €" : "No detectado";
+                const precio = matchPrecio[0].replace('.', ',') + " €";
+                
+                const art = await obtenerArticulo(ean);
+                const descripcion = art ? art.descripcion : "Artículo no registrado en BDD";
 
-                // Buscar en la Base de Datos
-                const descripcion = baseDeDatos[ean] || "Artículo no registrado en BDD";
+                emitirPitidoExito();
+                chequeos.unshift({ ean, descripcion, precio, id: Date.now() });
 
-                // Añadir al registro
-                agregarChequeo(ean, descripcion, precio);
-
-                // VACIAR SIEMPRE EL INPUT TRAS ÉXITO
+                renderizarChequeo();
                 inputOcr.value = '';
             } else {
-                // SI NO HABÍA UN EAN VÁLIDO (Solo entraron descripciones/basura)
-                // Limpiamos inmediatamente para no dejar restos atascados
-                console.warn("Lectura descartada por no contener EAN válido:", texto);
+                console.warn("Escaneo descartado (requiere EAN-13 y Precio):", texto);
                 inputOcr.value = '';
             }
         }
 
-        function agregarChequeo(ean, descripcion, precio) {
-            chequeos.unshift({ ean, descripcion, precio, id: Date.now() });
-            renderizarTabla();
-        }
-
-        function eliminarChequeo(id) {
-            chequeos = chequeos.filter(item => item.id !== id);
-            renderizarTabla();
-        }
-
-        function vaciarLista() {
-            if (chequeos.length === 0) return;
-            if (confirm("¿Deseas vaciar la lista completa de chequeos?")) {
-                chequeos = [];
-                renderizarTabla();
-            }
-        }
-
-        function limpiarInput() {
+        function limpiarInputOCR() {
             inputOcr.value = '';
             inputOcr.focus();
         }
 
-        function renderizarTabla() {
-            listaChequeados.innerHTML = '';
+        function eliminarChequeo(id) {
+            chequeos = chequeos.filter(item => item.id !== id);
+            renderizarChequeo();
+        }
+
+        function vaciarChequeo() {
+            if (chequeos.length === 0) return;
+            if (confirm("¿Deseas vaciar la lista completa de chequeos?")) {
+                chequeos = [];
+                renderizarChequeo();
+            }
+        }
+
+        function renderizarChequeo() {
+            const tbody = document.getElementById('listaChequeados');
+            const msgVacio = document.getElementById('msgChequeoVacio');
+            tbody.innerHTML = '';
 
             if (chequeos.length === 0) {
-                mensajeVacio.style.display = 'block';
+                msgVacio.style.display = 'block';
                 return;
             }
-
-            mensajeVacio.style.display = 'none';
+            msgVacio.style.display = 'none';
 
             chequeos.forEach(item => {
                 const tr = document.createElement('tr');
-
-                const tdEan = document.createElement('td');
-                tdEan.textContent = item.ean;
-
-                const tdDesc = document.createElement('td');
-                tdDesc.textContent = item.descripcion;
-                if (item.descripcion === "Artículo no registrado en BDD") {
-                    tdDesc.style.color = "#777";
-                }
-
-                const tdPrecio = document.createElement('td');
-                if (item.precio === "No detectado") {
-                    tdPrecio.innerHTML = `<span class="badge-no-precio">No detectado</span>`;
-                } else {
-                    tdPrecio.innerHTML = `<span class="badge-precio">${item.precio}</span>`;
-                }
-
-                const tdAccion = document.createElement('td');
-                const btnDel = document.createElement('button');
-                btnDel.className = 'btn-del';
-                btnDel.textContent = '✕';
-                btnDel.onclick = () => eliminarChequeo(item.id);
-                tdAccion.appendChild(btnDel);
-
-                tr.appendChild(tdEan);
-                tr.appendChild(tdDesc);
-                tr.appendChild(tdPrecio);
-                tr.appendChild(tdAccion);
-
-                listaChequeados.appendChild(tr);
+                tr.innerHTML = `
+                    <td>${item.ean}</td>
+                    <td>${item.descripcion}</td>
+                    <td><span class="badge-precio">${item.precio}</span></td>
+                    <td><button class="btn-del" onclick="eliminarChequeo(${item.id})">✕</button></td>
+                `;
+                tbody.appendChild(tr);
             });
         }
 
-        function enviarADrive() {
+        async function enviarADrive() {
             if (chequeos.length === 0) {
-                alert("La lista está vacía.");
+                alert("La lista de chequeos está vacía.");
                 return;
             }
-            alert(`Enviando ${chequeos.length} registros a Google Drive...`);
-            // Aquí iría el fetch/POST a tu Web App Appscript de Google Drive
+
+            const btnEnviar = document.getElementById('btnEnviarDrive');
+            btnEnviar.disabled = true;
+            btnEnviar.textContent = "⏳ Enviando a Google Drive...";
+
+            try {
+                await fetch(URL_SCRIPT_GOOGLE, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(chequeos)
+                });
+
+                alert("✅ Chequeo guardado con éxito en tu carpeta de Google Drive.");
+                chequeos = [];
+                renderizarChequeo();
+            } catch (error) {
+                alert("❌ Error al enviar a Google Drive: " + error.message);
+            } finally {
+                btnEnviar.disabled = false;
+                btnEnviar.textContent = "🟢 Enviar Chequeo a Drive";
+            }
         }
+
+        // ==========================================
+        // MÓDULO 4: PRESUPUESTO
+        // ==========================================
+        async function agregarPresupuesto() {
+            const ean = document.getElementById('inputPresupEAN').value.trim();
+            if (!ean) return;
+
+            const art = await obtenerArticulo(ean);
+            const descripcion = art ? art.descripcion : "Artículo genérico";
+            const precioStr = art ? art.precio : "0,00 €";
+            
+            // Convertir precio a numero float
+            const precioNum = parseFloat(precioStr.replace('€', '').replace(',', '.').trim()) || 0.00;
+
+            presupuesto.unshift({ ean, descripcion, precioStr, precioNum, id: Date.now() });
+            
+            document.getElementById('inputPresupEAN').value = '';
+            document.getElementById('inputPresupEAN').focus();
+
+            renderizarPresupuesto();
+        }
+
+        function eliminarPresupuesto(id) {
+            presupuesto = presupuesto.filter(i => i.id !== id);
+            renderizarPresupuesto();
+        }
+
+        function vaciarPresupuesto() {
+            if (presupuesto.length === 0) return;
+            if (confirm("¿Vaciar lista de presupuesto?")) {
+                presupuesto = [];
+                renderizarPresupuesto();
+            }
+        }
+
+        function renderizarPresupuesto() {
+            const tbody = document.getElementById('listaPresupuesto');
+            const msgVacio = document.getElementById('msgPresupVacio');
+            const elTotal = document.getElementById('totalPresupuesto');
+            tbody.innerHTML = '';
+
+            if (presupuesto.length === 0) {
+                msgVacio.style.display = 'block';
+                elTotal.textContent = "0,00 €";
+                return;
+            }
+            msgVacio.style.display = 'none';
+
+            let sumaTotal = 0;
+
+            presupuesto.forEach(item => {
+                sumaTotal += item.precioNum;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.ean}</td>
+                    <td>${item.descripcion}</td>
+                    <td><span class="badge-precio">${item.precioStr}</span></td>
+                    <td><button class="btn-del" onclick="eliminarPresupuesto(${item.id})">✕</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            elTotal.textContent = sumaTotal.toFixed(2).replace('.', ',') + " €";
+        }
+
+        // Inicialización
+        window.addEventListener('DOMContentLoaded', () => {
+            abrirIndexedDB();
+        });
     </script>
 </body>
 </html>
