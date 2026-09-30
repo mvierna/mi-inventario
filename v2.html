@@ -90,7 +90,7 @@
         <div id="tab-chequeo" class="tab-content">
             <div class="card">
                 <h3>🔍 Chequeo Masivo con Teclado OCR</h3>
-                <p style="font-size: 12px; color: #666; margin-bottom: 8px;">Usa el modo <strong>Text</strong> de tu teclado para capturar la etiqueta entera. El sistema filtrará automáticamente el EAN y el precio.</p>
+                <p style="font-size: 12px; color: #666; margin-bottom: 8px;">Usa el modo <strong>Text</strong> de tu teclado. Solo se registrará si detecta un código EAN válido[cite: 6].</p>
                 <div class="input-group">
                     <input type="text" id="input-chequeo" placeholder="Usa la función Text de tu teclado aquí..." autocomplete="off" oninput="procesarTextoTecladoOCR(this)">
                 </div>
@@ -130,7 +130,7 @@
                 <br>
                 <button class="btn-success" onclick="enviarGoogleDrive('presupuesto')">☁️ Enviar Presupuesto a Drive</button>
                 <br><br>
-                <button class="btn-danger" onclick="vaciarListaPresupuesto()">🗑️ Vaciar Presupuesto</button>
+                <button class="btn-danger" onclick="vaciarListaPresupuesto()">🗑️️ Vaciar Presupuesto</button>
             </div>
         </div>
     </div>
@@ -204,49 +204,58 @@
             if (vc) vc.style.display = 'none';
         }
 
-        // --- INTELIGENCIA OCR DE TEXTO MASIVO DEL TECLADO ---
+        // --- FILTRO ESTRICTO: EXIGIR EAN VÁLIDO Y EVITAR DUPLICADOS ---
         function procesarTextoTecladoOCR(input) {
             const textoCompleto = input.value;
-            // Si el texto de entrada tiene una longitud considerable (viene del pegado masivo de texto OCR del teclado)
-            if (textoCompleto.length > 15) {
-                // 1. Extraer EAN (buscamos secuencia de 8 a 13 dígitos, típica de barras, prefiriendo los que empiezan por 84 o códigos largos)
+            // Esperamos a que el texto tenga una longitud suficiente para contener datos de etiqueta
+            if (textoCompleto.length > 12) {
+                // 1. Buscar códigos EAN estrictos de 8 a 13 dígitos
                 const coincidenciasEan = textoCompleto.match(/\b\d{8,13}\b/g);
                 let eanEncontrado = "";
                 if (coincidenciasEan && coincidenciasEan.length > 0) {
-                    // Filtrar para buscar si alguno parece un EAN real (ej. empieza por 84 o tiene longitud 13)
+                    // Priorizamos el que tenga longitud típica de EAN (8 o 13 dígitos)
                     eanEncontrado = coincidenciasEan.find(e => e.length === 13 || e.length === 8) || coincidenciasEan[0];
                 }
 
-                // 2. Extraer Precio (buscamos patrones de precio como 1,95 o 1.95 o números decimales aislados)
+                // 2. FILTRO ESTRICTO: Sin EAN válido, no se procesa nada[cite: 6]
+                if (!eanEncontrado) {
+                    return; 
+                }
+
+                // 3. Buscar Precio asociado en el texto
                 const coincidenciasPrecio = textoCompleto.match(/\b\d+[\.,]\d{2}\b/g);
                 let precioEncontrado = "No detectado";
                 if (coincidenciasPrecio && coincidenciasPrecio.length > 0) {
                     precioEncontrado = coincidenciasPrecio[0].replace('.', ',') + ' €';
                 }
 
-                if (eanEncontrado || precioEncontrado !== "No detectado") {
-                    const eanFinal = eanEncontrado || "Desconocido";
-
-                    // Buscar en nuestra base de datos local
-                    const producto = window.articulos.find(item => 
-                        item.ean.toLowerCase() === eanFinal.toLowerCase() || 
-                        item.ean.replace(/^0+/, '') === eanFinal.replace(/^0+/, '')
-                    );
-
-                    listaChequeo.push({
-                        id: Date.now(),
-                        ean: eanFinal,
-                        descripcion: producto ? producto.descripcion : 'Artículo no registrado en BDD',
-                        precio: precioEncontrado
-                    });
-
-                    localStorage.setItem('chequeo_v2_data', JSON.stringify(listaChequeo));
-                    confirmarEscaneo();
-                    renderizarListaChequeo();
-
-                    // Limpiar input automáticamente para el siguiente escaneo rápido a toda velocidad
+                // 4. EVITAR DUPLICADOS EN LA MISMA SESIÓN DE ESCANEO
+                const yaExiste = listaChequeo.some(item => item.ean.toLowerCase() === eanEncontrado.toLowerCase());
+                if (yaExiste) {
+                    // Si ya está escaneado, limpiamos el input para que no lo repita y salimos
                     input.value = '';
+                    return;
                 }
+
+                // 5. Buscar coincidencia en la BDD local
+                const producto = window.articulos.find(item => 
+                    item.ean.toLowerCase() === eanEncontrado.toLowerCase() || 
+                    item.ean.replace(/^0+/, '') === eanEncontrado.replace(/^0+/, '')
+                );
+
+                listaChequeo.push({
+                    id: Date.now(),
+                    ean: eanEncontrado,
+                    descripcion: producto ? producto.descripcion : 'Artículo no registrado en BDD',
+                    precio: precioEncontrado
+                });
+
+                localStorage.setItem('chequeo_v2_data', JSON.stringify(listaChequeo));
+                confirmarEscaneo();
+                renderizarListaChequeo();
+
+                // Limpiar input automáticamente para el siguiente escaneo rápido
+                input.value = '';
             }
         }
 
