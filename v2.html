@@ -89,10 +89,10 @@
         <!-- PESTAÑA CHEQUEO INTELIGENTE (TECLADO OCR + EAN) -->
         <div id="tab-chequeo" class="tab-content">
             <div class="card">
-                <h3>🔍 Chequeo Masivo con Teclado OCR</h3>
-                <p style="font-size: 12px; color: #666; margin-bottom: 8px;">Usa el modo <strong>Text</strong> de tu teclado. Filtra estrictamente códigos EAN de 13 dígitos[cite: 6].</p>
+                <h3>🔍 Chequeo Masivo Estricto (EAN-13 + BDD + Precio)</h3>
+                <p style="font-size: 12px; color: #666; margin-bottom: 8px;">Usa el modo <strong>Text</strong> de tu teclado. Solo registrará si el EAN-13 está en la BDD y detecta su precio[cite: 6].</p>
                 <div class="input-group">
-                    <input type="text" id="input-chequeo" placeholder="Usa la función Text de tu teclado aquí..." autocomplete="off" oninput="procesarTextoTecladoOCR(this)">
+                    <input type="text" id="input-chequeo" placeholder="Escanea etiqueta completa aquí..." autocomplete="off" oninput="procesarTextoTecladoOCR(this)">
                     <button type="button" class="btn-action" onclick="limpiarInputChequeo()">Limpiar</button>
                 </div>
 
@@ -184,9 +184,20 @@
             }
         }
 
-        function confirmarEscaneo() {
+        function confirmarEscaneoExitoso() {
             try {
-                if (navigator.vibrate) navigator.vibrate(100);
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // Doble vibración corta de éxito
+                // Reproductor de sonido sintetizado corto (Beep)
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = 800; // Tono agudo limpio
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.15);
             } catch (e) {}
         }
 
@@ -213,57 +224,65 @@
             }
         }
 
-        // --- FILTRO ESTRICTO OCR MEJORADO ---
+        // --- FILTRO ESTRICTO DE CHEQUEO (EAN-13 + BDD + PRECIO LÓGICO) ---
         function procesarTextoTecladoOCR(input) {
             const textoCompleto = input.value;
             
-            // Esperar a que el texto tenga suficiente longitud de una etiqueta escaneada
-            if (textoCompleto.length > 10) {
-                // 1. Buscar estrictamente códigos EAN válidos de 13 dígitos (o 8 dígitos)
-                const coincidenciasEan = textoCompleto.match(/\b\d{13}\b|\b\d{8}\b/g);
+            // Esperar a que el texto acumulado tenga longitud suficiente para una etiqueta
+            if (textoCompleto.length > 8) {
                 
+                // 1. Extraer estrictamente códigos EAN de 13 dígitos
+                const coincidenciasEan = textoCompleto.match(/\b\d{13}\b/g);
                 if (!coincidenciasEan || coincidenciasEan.length === 0) {
-                    return; // Si no hay un EAN de 13 o 8 dígitos exacto, no procesar nada[cite: 6]
+                    return; // Si no hay un EAN de 13 dígitos perfecto, ignorar[cite: 6]
                 }
                 
                 const eanEncontrado = coincidenciasEan[0];
 
-                // 2. Buscar precio válido (formato X,XX o XX,XX precedido o seguido de € o en la etiqueta)
-                const coincidenciasPrecio = textoCompleto.match(/\b\d{1,2}[\.,]\d{2}\b/g);
-                let precioEncontrado = "No detectado";
-                if (coincidenciasPrecio && coincidenciasPrecio.length > 0) {
-                    // Descartar valores extraños mayores a 999 o que coincidan con partes del EAN
-                    const precioValido = coincidenciasPrecio.find(p => {
-                        let val = parseFloat(p.replace(',', '.'));
-                        return val < 500; // Unidades lógicas de precio de tienda
-                    });
-                    if (precioValido) {
-                        precioEncontrado = precioValido.replace('.', ',') + ' €';
+                // 2. Comprobar obligatoriamente que el EAN existe en la Base de Datos
+                const productoBDD = window.articulos.find(item => item.ean === eanEncontrado);
+                if (!productoBDD) {
+                    return; // Si el EAN no está en nuestra base de datos de tienda, descartar automáticamente
+                }
+
+                // 3. Buscar precio válido (habitualmente de 1 a 3 dígitos antes de la coma/punto: ej. 0,95 / 9,95 / 99,90 / 149,00)
+                const coincidenciasPrecio = textoCompleto.match(/\b\d{1,3}[\.,]\d{2}\b/g);
+                if (!coincidenciasPrecio || coincidenciasPrecio.length === 0) {
+                    return; // Si no encuentra un precio con formato decimal válido, descartar
+                }
+
+                // Filtrar el precio dentro de un rango lógico de tienda (< 1000 € y > 0 €)
+                let precioValidoStr = null;
+                for (let p of coincidenciasPrecio) {
+                    let valorNumerico = parseFloat(p.replace(',', '.'));
+                    if (valorNumerico > 0 && valorNumerico < 1000) {
+                        precioValidoStr = p.replace('.', ',') + ' €';
+                        break;
                     }
                 }
 
-                // 3. EVITAR DUPLICADOS EN LA LISTA
-                const yaExiste = listaChequeo.some(item => item.ean === eanEncontrado);
-                if (yaExiste) {
+                if (!precioValidoStr) {
+                    return; // Si no hay ningún precio en un rango lógico, descartar
+                }
+
+                // 4. Comprobar que no esté ya añadido en la lista de chequeo actual
+                const yaExisteEnChequeo = listaChequeo.some(item => item.ean === eanEncontrado);
+                if (yaExisteEnChequeo) {
                     limpiarInputChequeo();
                     return;
                 }
 
-                // 4. Buscar coincidencia en la BDD local
-                const producto = window.articulos.find(item => item.ean === eanEncontrado);
-
+                // 5. ¡TODO VÁLIDO! Registrar elemento, emitir sonido/vibración de éxito y limpiar para el siguiente
                 listaChequeo.push({
                     id: Date.now(),
                     ean: eanEncontrado,
-                    descripcion: producto ? producto.descripcion : 'Artículo no registrado en BDD',
-                    precio: precioEncontrado
+                    descripcion: productoBDD.descripcion,
+                    precio: precioValidoStr
                 });
 
                 localStorage.setItem('chequeo_v2_data', JSON.stringify(listaChequeo));
-                confirmarEscaneo();
+                confirmarEscaneoExitoso();
                 renderizarListaChequeo();
-                
-                // Limpiar automáticamente para la siguiente lectura
                 limpiarInputChequeo();
             }
         }
@@ -297,7 +316,7 @@
                 tr.innerHTML = `
                     <td><small style="color: #666; font-family: monospace;">${item.ean}</small></td>
                     <td><strong>${item.descripcion}</strong></td>
-                    <td style="color: #d32f2f; font-weight: bold;">${item.precio}</td>
+                    <td style="color: #2e7d32; font-weight: bold;">${item.precio}</td>
                     <td><button style="background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;" onclick="eliminarItemChequeo(${item.id})">✕</button></td>
                 `;
                 tbody.appendChild(tr);
@@ -311,7 +330,7 @@
             if (!input || !contenedor) return;
             const termino = input.value.trim().toLowerCase();
             if (!termino) return;
-            confirmarEscaneo();
+            confirmarEscaneoExitoso();
             const producto = window.articulos.find(item => item.ean.toLowerCase() === termino || item.descripcion.toLowerCase().includes(termino));
             if (producto) {
                 contenedor.innerHTML = `<div class="card" style="background-color: #e8f5e9; margin-top:10px;"><h4 style="color: #1b5e20;">${producto.descripcion}</h4><p><strong>EAN:</strong> ${producto.ean}</p><p><strong>Stock:</strong> ${producto.stock} Uds.</p>${producto.precio ? `<p><strong>Precio BDD:</strong> ${producto.precio} €</p>` : ''}</div>`;
