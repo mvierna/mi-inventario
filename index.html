@@ -263,14 +263,28 @@
                 });
         }
 
-        // LÓGICA DE BÚSQUEDA MIXTA (EAN Y TEXTO)
+        // LÓGICA DE BÚSQUEDA MIXTA (EAN Y TEXTO) ACTUALIZADA
         function procesarBusqueda(terminoBusqueda) {
             let termino = terminoBusqueda.trim().toUpperCase();
             if (!termino) return;
 
-            // 1. Comprobar si es un EAN exacto
+            // 1. Comprobar si es un EAN exacto o necesita ceros iniciales (para 11, 12 o 13 dígitos)
+            let eanDetectado = null;
             if (inventario.hasOwnProperty(termino)) {
-                mostrarArticuloCompleto(termino);
+                eanDetectado = termino;
+            } else if (/^\d+$/.test(termino)) {
+                // Si es numérico, probar a rellenar con ceros hasta 12 y 13 dígitos
+                let pad12 = termino.padStart(12, '0');
+                let pad13 = termino.padStart(13, '0');
+                if (inventario.hasOwnProperty(pad13)) {
+                    eanDetectado = pad13;
+                } else if (inventario.hasOwnProperty(pad12)) {
+                    eanDetectado = pad12;
+                }
+            }
+
+            if (eanDetectado) {
+                mostrarArticuloCompleto(eanDetectado);
                 return;
             }
 
@@ -294,6 +308,7 @@
                     <h3 style="color: #dc3545; margin: 0 0 4px 0; font-size: 16px;">No encontrado</h3>
                     <p style="font-size: 15px;">No hay coincidencias para <strong>${termino}</strong>.</p>
                 `;
+                inputCodigo.value = ""; // Limpia el campo si no hay resultados
             } else if (coincidencias.length === 1) {
                 // Si solo hay uno, mostrarlo directamente
                 mostrarArticuloCompleto(coincidencias[0].ean);
@@ -313,6 +328,7 @@
                 
                 htmlLista += `</ul>`;
                 resultadoDiv.innerHTML = htmlLista;
+                inputCodigo.value = ""; // Limpia el campo si hay múltiples coincidencias
             }
             
             // Ocultar teclado tras realizar búsqueda por texto para poder ver la lista
