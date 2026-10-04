@@ -263,23 +263,26 @@
                 });
         }
 
-        // LÓGICA DE BÚSQUEDA MIXTA (EAN Y TEXTO) ACTUALIZADA
+        // LÓGICA DEFINITIVA PARA 11, 12 y 13 DÍGITOS
         function procesarBusqueda(terminoBusqueda) {
             let termino = terminoBusqueda.trim().toUpperCase();
             if (!termino) return;
 
-            // 1. Comprobar si es un EAN exacto o necesita ceros iniciales (para 11, 12 o 13 dígitos)
             let eanDetectado = null;
+            
+            // 1. Comprobamos todas las combinaciones posibles de ceros a la izquierda
             if (inventario.hasOwnProperty(termino)) {
                 eanDetectado = termino;
             } else if (/^\d+$/.test(termino)) {
-                // Si es numérico, probar a rellenar con ceros hasta 12 y 13 dígitos
-                let pad12 = termino.padStart(12, '0');
-                let pad13 = termino.padStart(13, '0');
-                if (inventario.hasOwnProperty(pad13)) {
-                    eanDetectado = pad13;
-                } else if (inventario.hasOwnProperty(pad12)) {
-                    eanDetectado = pad12;
+                // Eliminamos todos los ceros de la izquierda como "denominador común"
+                let termLimpio = termino.replace(/^0+/, '');
+                
+                if (inventario.hasOwnProperty(termLimpio)) {
+                    eanDetectado = termLimpio; // Encontrado como 11 dígitos
+                } else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) {
+                    eanDetectado = termLimpio.padStart(12, '0'); // Encontrado como 12 dígitos
+                } else if (inventario.hasOwnProperty(termLimpio.padStart(13, '0'))) {
+                    eanDetectado = termLimpio.padStart(13, '0'); // Encontrado como 13 dígitos
                 }
             }
 
@@ -288,32 +291,28 @@
                 return;
             }
 
-            // 2. Si no es EAN, buscar en la descripción (separa palabras para filtro múltiple)
+            // 2. Si no es EAN, buscar en la descripción
             let palabras = termino.split(" ").filter(t => t.length > 0);
             let coincidencias = [];
 
             for (const [ean, articulo] of Object.entries(inventario)) {
                 let descUpper = articulo.descripcion.toUpperCase();
-                // Verifica que todas las palabras introducidas estén en la descripción
                 let coincideTodo = palabras.every(palabra => descUpper.includes(palabra));
-                
                 if (coincideTodo) {
                     coincidencias.push({ ean: ean, articulo: articulo });
                 }
             }
 
-            // 3. Manejar los resultados de texto
+            // 3. Resultados de texto y VACIADO DEL CAMPO (SOLUCIÓN A TU ERROR)
             if (coincidencias.length === 0) {
                 resultadoDiv.innerHTML = `
                     <h3 style="color: #dc3545; margin: 0 0 4px 0; font-size: 16px;">No encontrado</h3>
                     <p style="font-size: 15px;">No hay coincidencias para <strong>${termino}</strong>.</p>
                 `;
-                inputCodigo.value = ""; // Limpia el campo si no hay resultados
+                inputCodigo.value = ""; // VACIADO SI FALLA
             } else if (coincidencias.length === 1) {
-                // Si solo hay uno, mostrarlo directamente
                 mostrarArticuloCompleto(coincidencias[0].ean);
             } else {
-                // Si hay varios, crear la lista navegable
                 let htmlLista = `<h3 style="margin: 0 0 8px 0; font-size: 14px; color: #007bff;">${coincidencias.length} artículos encontrados:</h3>`;
                 htmlLista += `<ul class="lista-resultados">`;
                 
@@ -328,10 +327,9 @@
                 
                 htmlLista += `</ul>`;
                 resultadoDiv.innerHTML = htmlLista;
-                inputCodigo.value = ""; // Limpia el campo si hay múltiples coincidencias
+                inputCodigo.value = ""; // VACIADO SI HAY MÚLTIPLES
             }
             
-            // Ocultar teclado tras realizar búsqueda por texto para poder ver la lista
             inputCodigo.blur();
         }
 
@@ -355,7 +353,7 @@
                     <p class="numero-stock">${articulo.stock}</p>
                 </div>
             `;
-            inputCodigo.value = "";
+            inputCodigo.value = ""; // VACIADO SI TIENE ÉXITO
         }
 
         function procesarUrlConCodigo() {
@@ -387,6 +385,7 @@
                     })
                     .catch(err => {
                         resultadoDiv.innerHTML = `<h3 style="color: #dc3545;">No se detectó código</h3><p>Intenta enfocar mejor o acércate.</p>`;
+                        inputCodigo.value = "";
                     });
             };
         }
