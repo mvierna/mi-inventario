@@ -12,7 +12,6 @@ def clic_visual(nombre_imagen, tiempo_espera=2, precision=0.8, clics=1, timeout=
     Soporta múltiples clics y tiene un bucle que espera hasta 10 segundos 
     a que la imagen aparezca en pantalla.
     """
-    # Construir la ruta completa y segura hacia la imagen dentro de 'assets'
     ruta_imagen = os.path.join(CARPETA_ASSETS, nombre_imagen)
     
     print(f"Buscando en pantalla: {nombre_imagen}...")
@@ -62,31 +61,24 @@ def ejecutar_robot():
         # ---------------------------------------------------------
         # 3. NAVEGACIÓN INICIAL POR LOS MENÚS
         # ---------------------------------------------------------
-        if not clic_visual('boton_stocks.png', tiempo_espera=2.5): return
+        # Aumentado a 10 segundos para dar margen de carga tras abrir el programa
+        if not clic_visual('boton_stocks.png', tiempo_espera=10): return
         if not clic_visual('ANALISIS.png', tiempo_espera=1): return
         if not clic_visual('FILTRO.png', tiempo_espera=2): return
-        if not clic_visual('FILTRO 2.png', tiempo_espera=2): return
-
-        # 4. Introducción del modelo
-        print("Escribiendo el modelo '101'...")
-        pyautogui.write('101', interval=0.2)
-        time.sleep(0.5)
-
-        print("Confirmando el modelo (doble Enter)...")
-        pyautogui.press('enter', presses=2, interval=0.5)
-        time.sleep(1.5) 
 
         # ---------------------------------------------------------
-        # 5. SECUENCIA DE EXPORTACIÓN EN ABACO
+        # 4. NUEVA SECUENCIA RECORTE (Navegación directa por teclado)
         # ---------------------------------------------------------
         print("Navegando por filtros de Abaco...")
-        pyautogui.press('tab', presses=7, interval=0.3)
+        pyautogui.press('tab', presses=2, interval=0.3)
         pyautogui.press('enter')
-        time.sleep(8) 
+        time.sleep(0.5)
         
+        pyautogui.press('tab')
         pyautogui.press('enter')
-        time.sleep(3)
+        time.sleep(0.5)
         
+        # Incorporación a la instrucción vieja en la flecha izquierda
         pyautogui.press('left', presses=2, interval=0.3)
         pyautogui.press('enter')
         time.sleep(22) 
@@ -107,7 +99,7 @@ def ejecutar_robot():
         time.sleep(2)
         
         # ---------------------------------------------------------
-        # 6. RUTA DE GUARDADO VISUAL EN ABACO
+        # 5. RUTA DE GUARDADO VISUAL EN ABACO
         # ---------------------------------------------------------
         print("Escribiendo nombre del archivo en MAYÚSCULAS...")
         pyautogui.write('TIENDA', interval=0.1)
@@ -130,7 +122,7 @@ def ejecutar_robot():
         time.sleep(8)
         
         # ---------------------------------------------------------
-        # 7. EXTRACCIÓN VISUAL EN WINDOWS
+        # 6. EXTRACCIÓN VISUAL EN WINDOWS
         # ---------------------------------------------------------
         print("Pulsando Démarrer...")
         clic_visual('DEMARRER.png', tiempo_espera=2)
@@ -163,7 +155,7 @@ def ejecutar_robot():
         time.sleep(2)
 
         # ---------------------------------------------------------
-        # 8. SINCRONIZACIÓN FINAL VISUAL
+        # 7. SINCRONIZACIÓN FINAL VISUAL
         # ---------------------------------------------------------
         print("\n¡Proceso de Abaco finalizado con éxito!")
         print("Ejecutando actualizador.py visualmente...")
