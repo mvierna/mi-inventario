@@ -185,6 +185,7 @@
         let camaraManualId = null; 
         let ultimoModo = 'teclado'; 
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
+        let streamActivo = null;
 
         const inputCodigo = document.getElementById('inputCodigo');
         const resultadoDiv = document.getElementById('resultado');
@@ -414,14 +415,12 @@
             else { iniciarCamaraVideo(); }
         }
 
-        // RETORNO AL MOTOR ORIGINAL (CON TRY_HARDER PARA LEER VERTICAL)
         async function iniciarCamaraVideo() {
             const container = document.getElementById('video-container');
             container.style.display = 'block';
 
             if (!codeReader) {
                 const hints = new Map();
-                // Esta es la orden mágica que le permite leer códigos rotados sin romper el enfoque nativo
                 hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
                 codeReader = new ZXing.BrowserBarcodeReader(hints);
             }
