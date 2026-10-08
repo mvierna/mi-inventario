@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Inventario Hipermercado</title>
+    <title>Inventario BETA</title>
 
-    <!-- Configuración PWA -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#28a745">
+    <!-- Configuración PWA apuntando al NUEVO manifiesto -->
+    <link rel="manifest" href="manifest_pruebas.json">
+    <meta name="theme-color" content="#ff9800">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Inventario">
+    <meta name="apple-mobile-web-app-title" content="Inv. Beta">
     <link rel="apple-touch-icon" href="icono.png">
 
     <!-- Librerías externas -->
@@ -45,7 +45,7 @@
         }
         
         .cabecera-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
-        h1 { margin: 0; font-size: 16px; font-weight: 800; }
+        h1 { margin: 0; font-size: 16px; font-weight: 800; color: #ff9800; } /* Título naranja para saber que es beta */
         .controles-cabecera { display: flex; gap: 6px; }
         .btn-listas { padding: 6px 10px; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
         .btn-actualizar { padding: 6px 10px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
@@ -138,7 +138,7 @@
     </div>
 
     <div class="cabecera-top">
-        <h1>Inventario</h1>
+        <h1>BETA Inventario</h1>
         <div class="controles-cabecera">
             <button class="btn-listas" onclick="verListas()">📋 Lista</button>
             <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sinc</button>
@@ -384,3 +384,279 @@
         function mostrarInputCantidad(identificador, esDesconocido) {
             document.getElementById('panel-botones-accion').style.display = 'none';
             const panelCant = document.getElementById('panel-cantidad-accion');
+            panelCant.style.display = 'flex';
+            
+            const inputCant = document.getElementById('input-cant-accion');
+            inputCant.focus(); 
+            
+            inputCant.onkeypress = function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    guardarEnLista(identificador, esDesconocido);
+                }
+            };
+        }
+
+        function guardarEnLista(identificador, esDesconocido) {
+            const inputCant = document.getElementById('input-cant-accion');
+            const cantidad = parseInt(inputCant.value) || 0;
+            
+            if (cantidad > 0) {
+                let desc = esDesconocido ? "DESCONOCIDO/FUERA SURTIDO" : inventario[identificador].descripcion;
+                
+                listaTrabajo.push({
+                    ean: identificador,
+                    descripcion: desc,
+                    cantidad: cantidad,
+                    fecha: new Date().toISOString()
+                });
+                
+                localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
+                
+                estadoDiv.innerHTML = `¡Añadidas ${cantidad} uds!`;
+                estadoDiv.style.color = "#ff9800";
+                setTimeout(() => {
+                    estadoDiv.innerHTML = "Esperando código..."; 
+                    estadoDiv.style.color = "#28a745";
+                }, 2000);
+            }
+            
+            resultadoDiv.innerHTML = "Esperando código...";
+            inputCodigo.value = "";
+            
+            if (ultimoModo === 'camara') {
+                iniciarEscanerSegunOS();
+            } else {
+                inputCodigo.focus();
+            }
+        }
+
+        // --- MANEJO DE RESULTADOS DE CÁMARA ---
+        function procesarResultadoZXing(result) {
+            if (result && (result.text || result.rawValue)) {
+                let codigoLeido = result.text || result.rawValue;
+                ultimoModo = 'camara';
+                confirmarEscaneo();
+                procesarBusqueda(codigoLeido.trim());
+                cerrarCamara();
+            }
+        }
+
+        function iniciarEscanerSegunOS() {
+            ultimoModo = 'camara';
+            if (esIOS && !camaraManualId && !('BarcodeDetector' in window)) { 
+                fileInput.click(); 
+            } else { 
+                iniciarCamaraVideo(); 
+            }
+        }
+
+        // --- CÁMARA HÍBRIDA CON ALTA RESOLUCIÓN Y ZOOM ---
+        async function iniciarCamaraVideo() {
+            const container = document.getElementById('video-container');
+            const videoEl = document.getElementById('video-preview');
+            container.style.display = 'block';
+
+            try {
+                // 1. INTENTO DE ESCANEO NATIVO ACELERADO POR HARDWARE
+                if ('BarcodeDetector' in window) {
+                    const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'code_128'] });
+                    
+                    streamActivo = await navigator.mediaDevices.getUserMedia({
+                        video: { 
+                            facingMode: "environment",
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 }
+                        }
+                    });
+                    
+                    videoEl.srcObject = streamActivo;
+                    videoEl.setAttribute("playsinline", true);
+                    videoEl.play();
+
+                    try {
+                        const track = streamActivo.getVideoTracks()[0];
+                        const capabilities = track.getCapabilities();
+                        const advancedOpts = {};
+                        let applyAdvanced = false;
+
+                        if (capabilities.focusMode && capabilities.focusMode.includes("continuous")) {
+                            advancedOpts.focusMode = "continuous";
+                            applyAdvanced = true;
+                        }
+                        
+                        if (capabilities.zoom) {
+                            const zoomOptimo = Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min, 2.0));
+                            advancedOpts.zoom = zoomOptimo;
+                            applyAdvanced = true;
+                        }
+
+                        if (applyAdvanced) {
+                            await track.applyConstraints({ advanced: [advancedOpts] });
+                        }
+                    } catch (e) {
+                        console.log("No se pudo inyectar zoom o autoenfoque", e);
+                    }
+
+                    intervaloEscaneo = setInterval(async () => {
+                        try {
+                            const barcodes = await detector.detect(videoEl);
+                            if (barcodes.length > 0) {
+                                procesarResultadoZXing({ text: barcodes[0].rawValue });
+                            }
+                        } catch (e) {
+                            // Ignorar errores de frame vacío
+                        }
+                    }, 150);
+                } 
+                // 2. FALLBACK A ZXING ESTÁNDAR
+                else {
+                    if (!codeReader) {
+                        const hints = new Map();
+                        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+                        codeReader = new ZXing.BrowserBarcodeReader(hints);
+                    }
+                    const devices = await codeReader.listVideoInputDevices();
+                    let selected = camaraManualId;
+                    
+                    if (!selected && devices.length > 0) {
+                        const camaraTrasera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('trasera'));
+                        selected = camaraTrasera ? camaraTrasera.deviceId : devices[devices.length - 1].deviceId;
+                    }
+
+                    codeReader.decodeFromVideoDevice(selected, 'video-preview', (result, err) => {
+                        if (result) procesarResultadoZXing(result);
+                    });
+                }
+            } catch (err) {
+                alert("Error cámara: " + err.message);
+                container.style.display = 'none';
+            }
+        }
+
+        function cerrarCamara() {
+            if (intervaloEscaneo) clearInterval(intervaloEscaneo);
+            if (streamActivo) {
+                streamActivo.getTracks().forEach(track => track.stop());
+                streamActivo = null;
+            }
+            if (codeReader) codeReader.reset();
+            
+            document.getElementById('video-preview').srcObject = null;
+            document.getElementById('video-container').style.display = 'none';
+        }
+
+        function procesarFotoDeCamara(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            ultimoModo = 'camara';
+            resultadoDiv.innerHTML = "<p>Analizando...</p>";
+            
+            if (!codeReader) {
+                const hints = new Map();
+                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+                codeReader = new ZXing.BrowserBarcodeReader(hints);
+            }
+            
+            const imgURL = URL.createObjectURL(file);
+            const imgEl = document.createElement('img');
+            imgEl.src = imgURL;
+            imgEl.onload = () => {
+                codeReader.decodeFromImageElement(imgEl).then(res => {
+                    confirmarEscaneo();
+                    procesarBusqueda(res.text.trim());
+                }).catch(err => {
+                    resultadoDiv.innerHTML = `<h3 style="color:#dc3545;">Sin lectura</h3><p>Vuelve a intentarlo.</p>`;
+                });
+            };
+        }
+
+        // EVENTO TECLADO FÍSICO / PISTOLA
+        inputCodigo.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                ultimoModo = 'teclado';
+                procesarBusqueda(inputCodigo.value.trim());
+            }
+        });
+
+        // --- GESTIÓN DEL MODAL DE LISTA ---
+        function verListas() {
+            document.getElementById('modalListas').style.display = 'flex';
+            renderizarLista();
+        }
+
+        function cerrarModalListas() {
+            document.getElementById('modalListas').style.display = 'none';
+            if (ultimoModo === 'teclado') inputCodigo.focus();
+        }
+
+        function renderizarLista() {
+            const contenedor = document.getElementById('modal-body-listas');
+            
+            if (listaTrabajo.length === 0) {
+                contenedor.innerHTML = '<div style="display:flex; height:100%; justify-content:center; align-items:center; color:#666; font-weight:bold;">Lista vacía</div>';
+                return;
+            }
+
+            let html = '';
+            [...listaTrabajo].reverse().forEach((item, indexReverse) => {
+                const indexReal = listaTrabajo.length - 1 - indexReverse;
+                html += `
+                    <div class="item-lista-guardada">
+                        <div class="item-lista-info">
+                            <span class="item-desc-modal">${item.descripcion}</span>
+                            <span class="item-detalle-modal">EAN: ${item.ean}</span>
+                        </div>
+                        <div style="display:flex; align-items:center;">
+                            <span class="item-cant-modal">x${item.cantidad}</span>
+                            <button class="btn-borrar-item" onclick="eliminarItemLista(${indexReal})">✕</button>
+                        </div>
+                    </div>
+                `;
+            });
+            contenedor.innerHTML = html;
+        }
+
+        function eliminarItemLista(index) {
+            listaTrabajo.splice(index, 1);
+            localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
+            renderizarLista();
+        }
+
+        function borrarListaActual() {
+            if(confirm('¿Seguro que quieres VACIAR toda la lista de trabajo?')) {
+                listaTrabajo = [];
+                localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
+                renderizarLista();
+            }
+        }
+
+        function exportarListaCSV() {
+            if(listaTrabajo.length === 0) {
+                alert("No hay datos para exportar.");
+                return;
+            }
+            
+            let csv = "\ufeffEAN;Descripcion;Cantidad\n";
+            listaTrabajo.forEach(item => {
+                csv += `${item.ean};${item.descripcion};${item.cantidad}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            
+            const d = new Date();
+            const fechaTxt = `${d.getDate()}_${d.getMonth()+1}_${d.getHours()}${d.getMinutes()}`;
+            
+            link.setAttribute("download", `Trabajo_${fechaTxt}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        window.onload = () => cargarInventario();
+    </script>
+</body>
+</html>
