@@ -233,4 +233,302 @@
             .then(response => {
                 if (!response.ok) throw new Error("No se pudo descargar el CSV");
                 const lastModifiedHeader = response.headers.get('Last-Modified');
-                const fechaReal = lastModifiedHeader
+                const fechaReal = lastModifiedHeader ? new Date(lastModifiedHeader) : new Date();
+                return response.text().then(texto => ({ texto, fechaReal }));
+            })
+            .then(({ texto, fechaReal }) => {
+                Papa.parse(texto, {
+                    header: false, delimiter: ";", skipEmptyLines: true,
+                    complete: function(results) {
+                        inventario = {};
+                        let contador = 0;
+                        results.data.forEach(fila => {
+                            if(fila.length >= 3) {
+                                let ean = fila[0] ? fila[0].trim() : "";
+                                let desc = fila[1] ? fila[1].trim() : "";
+                                let stock = fila[2] ? fila[2].trim() : "";
+                                let val3 = fila[3] ? fila[3].trim() : "-";
+                                let val4 = fila[4] ? fila[4].trim() : "-";
+                                let precio = "-", rayon = "-";
+
+                                if (/[a-zA-Z]/.test(val3) || val3.includes(" ")) { rayon = val3; precio = val4; } 
+                                else { precio = val3; rayon = val4; }
+                                
+                                let fecha = fila[5] ? fila[5].trim() : "-";
+                                let ventas = (fila.length > 6 && fila[6]) ? fila[6].trim() : "0";
+                                
+                                if(ean) {
+                                    inventario[ean] = { descripcion: desc, stock, precio, rayon, fecha, ventas };
+                                    contador++;
+                                }
+                            }
+                        });
+                        
+                        const d = fechaReal;
+                        const fechaFmt = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+                        estadoDiv.innerHTML = `Base actualizada: ${contador} items <span class="texto-fecha">Últ. Sinc: ${fechaFmt}</span>`;
+                        estadoDiv.style.color = "#28a745";
+                    }
+                });
+            })
+            .catch(err => {
+                estadoDiv.innerText = "Error cargando CSV: " + err.message;
+                estadoDiv.style.color = "red";
+            });
+        }
+
+        function procesarBusqueda(terminoBusqueda) {
+            let termino = terminoBusqueda.trim().toUpperCase();
+            if (!termino) return;
+
+            let eanDetectado = null;
+            if (inventario.hasOwnProperty(termino)) { eanDetectado = termino; } 
+            else if (/^\d+$/.test(termino)) {
+                let termLimpio = termino.replace(/^0+/, '');
+                if (inventario.hasOwnProperty(termLimpio)) eanDetectado = termLimpio; 
+                else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) eanDetectado = termLimpio.padStart(12, '0'); 
+                else if (inventario.hasOwnProperty(termLimpio.padStart(13, '0'))) eanDetectado = termLimpio.padStart(13, '0'); 
+            }
+
+            if (eanDetectado) {
+                mostrarArticuloCompleto(eanDetectado);
+            } else {
+                let palabras = termino.split(" ").filter(t => t.length > 0);
+                let coincidencias = [];
+                for (const [ean, articulo] of Object.entries(inventario)) {
+                    if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) {
+                        coincidencias.push({ ean: ean, articulo: articulo });
+                    }
+                }
+
+                if (coincidencias.length === 0) {
+                    mostrarArticuloDesconocido(termino);
+                } else if (coincidencias.length === 1) {
+                    mostrarArticuloCompleto(coincidencias[0].ean);
+                } else {
+                    let htmlLista = `<h3 style="margin: 0 0 8px 0; font-size: 14px; color: #007bff;">${coincidencias.length} encontrados:</h3><ul class="lista-resultados">`;
+                    coincidencias.forEach(c => {
+                        htmlLista += `<li class="item-resultado" onclick="mostrarArticuloCompleto('${c.ean}')">
+                            <span class="item-desc">${c.articulo.descripcion}</span>
+                            <span class="item-ean">EAN: ${c.ean}</span></li>`;
+                    });
+                    htmlLista += `</ul>`;
+                    resultadoDiv.innerHTML = htmlLista;
+                    inputCodigo.value = ""; 
+                }
+            }
+            
+            setTimeout(() => inputCodigo.blur(), 100);
+        }
+
+        function mostrarArticuloCompleto(ean) {
+            let art = inventario[ean];
+            resultadoDiv.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <p class="titulo-encontrado">¡Artículo encontrado!</p>
+                    <p class="texto-ean">EAN: ${ean}</p>
+                    <div class="descripcion-producto">${art.descripcion}</div>
+                </div>
+                <div class="panel-secundario">
+                    <div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${art.rayon}</span></div>
+                    <div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${art.precio}</span></div>
+                    <div class="item-secundario"><span class="etiqueta-secundaria">Últ. Recep.</span><span class="valor-secundario">${art.fecha}</span></div>
+                    <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${art.ventas}</span></div>
+                </div>
+                <div class="caja-stock">
+                    <p class="etiqueta-stock">STOCK DISPONIBLE</p>
+                    <p class="numero-stock">${art.stock}</p>
+                </div>
+                
+                <div id="panel-botones-accion" class="panel-acciones">
+                    <button class="btn-accion-unica" onclick="mostrarInputCantidad('${ean}', false)">+ Añadir Cantidad</button>
+                </div>
+                <div id="panel-cantidad-accion" class="panel-cantidad">
+                    <input type="number" id="input-cant-accion" class="input-cantidad" inputmode="numeric" pattern="[0-9]*" placeholder="Uds...">
+                    <button class="btn-confirmar" onclick="guardarEnLista('${ean}', false)">OK</button>
+                </div>
+            `;
+            inputCodigo.value = ""; 
+        }
+
+        function mostrarArticuloDesconocido(termino) {
+            resultadoDiv.innerHTML = `
+                <h3 style="color: #dc3545; margin: 0 0 4px 0;">No encontrado</h3>
+                <p style="font-size: 15px;">Lectura: <strong>${termino}</strong></p>
+                
+                <div id="panel-botones-accion" class="panel-acciones">
+                    <button class="btn-accion-unica" style="background-color: #6c757d;" onclick="mostrarInputCantidad('${termino}', true)">Forzar Añadir</button>
+                </div>
+                <div id="panel-cantidad-accion" class="panel-cantidad">
+                    <input type="number" id="input-cant-accion" class="input-cantidad" inputmode="numeric" pattern="[0-9]*" placeholder="Uds...">
+                    <button class="btn-confirmar" onclick="guardarEnLista('${termino}', true)">OK</button>
+                </div>
+            `;
+            inputCodigo.value = ""; 
+        }
+
+        function mostrarInputCantidad(identificador, esDesconocido) {
+            document.getElementById('panel-botones-accion').style.display = 'none';
+            const panelCant = document.getElementById('panel-cantidad-accion');
+            panelCant.style.display = 'flex';
+            
+            const inputCant = document.getElementById('input-cant-accion');
+            inputCant.focus(); 
+            
+            inputCant.onkeypress = function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    guardarEnLista(identificador, esDesconocido);
+                }
+            };
+        }
+
+        function guardarEnLista(identificador, esDesconocido) {
+            const inputCant = document.getElementById('input-cant-accion');
+            const cantidad = parseInt(inputCant.value) || 0;
+            
+            if (cantidad > 0) {
+                let desc = esDesconocido ? "DESCONOCIDO/FUERA SURTIDO" : inventario[identificador].descripcion;
+                listaTrabajo.push({ ean: identificador, descripcion: desc, cantidad: cantidad, fecha: new Date().toISOString() });
+                localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
+                estadoDiv.innerHTML = `¡Añadidas ${cantidad} uds!`;
+                estadoDiv.style.color = "#ff9800";
+                setTimeout(() => { estadoDiv.innerHTML = "Esperando código..."; estadoDiv.style.color = "#28a745"; }, 2000);
+            }
+            
+            resultadoDiv.innerHTML = "Esperando código...";
+            inputCodigo.value = "";
+            if (ultimoModo === 'camara') { iniciarEscanerSegunOS(); } else { inputCodigo.focus(); }
+        }
+
+        function procesarResultadoZXing(result, err) {
+            if (result && (result.text || result.rawValue)) {
+                let codigoLeido = result.text || result.rawValue;
+                ultimoModo = 'camara';
+                confirmarEscaneo();
+                procesarBusqueda(codigoLeido.trim());
+                cerrarCamara();
+            }
+        }
+
+        function iniciarEscanerSegunOS() {
+            ultimoModo = 'camara';
+            if (esIOS && !camaraManualId) { fileInput.click(); } 
+            else { iniciarCamaraVideo(); }
+        }
+
+        // --- CÁMARA ORIGINAL DE TU INDEX QUE ENFOCA INSTANTÁNEAMENTE ---
+        async function iniciarCamaraVideo() {
+            const container = document.getElementById('video-container');
+            container.style.display = 'block';
+
+            if (!codeReader) {
+                codeReader = new ZXing.BrowserBarcodeReader();
+            }
+
+            try {
+                if (camaraManualId) {
+                    codeReader.decodeFromVideoDevice(camaraManualId, 'video-preview', procesarResultadoZXing);
+                    return; 
+                }
+                const devices = await codeReader.listVideoInputDevices();
+                
+                // Selección exacta de tu index.html original
+                const selected = devices.length > 0 ? devices[devices.length - 1].deviceId : undefined;
+                
+                codeReader.decodeFromVideoDevice(selected, 'video-preview', procesarResultadoZXing);
+            } catch (err) {
+                alert("Error cámara: " + err.message);
+                container.style.display = 'none';
+            }
+        }
+
+        function cerrarCamara() {
+            if (codeReader) codeReader.reset();
+            document.getElementById('video-container').style.display = 'none';
+        }
+
+        function procesarFotoDeCamara(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            ultimoModo = 'camara';
+            resultadoDiv.innerHTML = "<p>Analizando...</p>";
+            if (!codeReader) {
+                codeReader = new ZXing.BrowserBarcodeReader();
+            }
+            const imgURL = URL.createObjectURL(file);
+            const imgEl = document.createElement('img');
+            imgEl.src = imgURL;
+            imgEl.onload = () => {
+                codeReader.decodeFromImageElement(imgEl).then(res => {
+                    confirmarEscaneo();
+                    procesarBusqueda(res.text.trim());
+                }).catch(err => { resultadoDiv.innerHTML = `<h3 style="color:#dc3545;">Sin lectura</h3><p>Vuelve a intentarlo.</p>`; });
+            };
+        }
+
+        inputCodigo.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); ultimoModo = 'teclado'; procesarBusqueda(inputCodigo.value.trim()); }
+        });
+
+        function verListas() { document.getElementById('modalListas').style.display = 'flex'; renderizarLista(); }
+        function cerrarModalListas() { document.getElementById('modalListas').style.display = 'none'; if (ultimoModo === 'teclado') inputCodigo.focus(); }
+
+        function renderizarLista() {
+            const contenedor = document.getElementById('modal-body-listas');
+            if (listaTrabajo.length === 0) {
+                contenedor.innerHTML = '<div style="display:flex; height:100%; justify-content:center; align-items:center; color:#666; font-weight:bold;">Lista vacía</div>';
+                return;
+            }
+            let html = '';
+            [...listaTrabajo].reverse().forEach((item, indexReverse) => {
+                const indexReal = listaTrabajo.length - 1 - indexReverse;
+                html += `
+                    <div class="item-lista-guardada">
+                        <div class="item-lista-info">
+                            <span class="item-desc-modal">${item.descripcion}</span>
+                            <span class="item-detalle-modal">EAN: ${item.ean}</span>
+                        </div>
+                        <div style="display:flex; align-items:center;">
+                            <span class="item-cant-modal">x${item.cantidad}</span>
+                            <button class="btn-borrar-item" onclick="eliminarItemLista(${indexReal})">✕</button>
+                        </div>
+                    </div>
+                `;
+            });
+            contenedor.innerHTML = html;
+        }
+
+        function eliminarItemLista(index) {
+            listaTrabajo.splice(index, 1);
+            localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
+            renderizarLista();
+        }
+
+        function borrarListaActual() {
+            if(confirm('¿Seguro que quieres VACIAR toda la lista de trabajo?')) {
+                listaTrabajo = [];
+                localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
+                renderizarLista();
+            }
+        }
+
+        function exportarListaCSV() {
+            if(listaTrabajo.length === 0) { alert("No hay datos para exportar."); return; }
+            let csv = "\ufeffEAN;Descripcion;Cantidad\n";
+            listaTrabajo.forEach(item => { csv += `${item.ean};${item.descripcion};${item.cantidad}\n`; });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            const d = new Date();
+            const fechaTxt = `${d.getDate()}_${d.getMonth()+1}_${d.getHours()}${d.getMinutes()}`;
+            link.setAttribute("download", `Trabajo_${fechaTxt}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        window.onload = () => cargarInventario();
+    </script>
+</body>
+</html>
