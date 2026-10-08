@@ -168,7 +168,10 @@
 
         const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
-        inputCodigo.addEventListener('focus', () => document.body.classList.add('modo-teclado'));
+     inputCodigo.addEventListener('focus', () => {
+    document.body.classList.add('modo-teclado');
+    cerrarCamara(); // Detiene el escáner y oculta el video al tocar el input
+});
         inputCodigo.addEventListener('blur', () => document.body.classList.remove('modo-teclado'));
 
         function confirmarEscaneo() {
