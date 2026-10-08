@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Inventario BETA</title>
 
-    <!-- Configuración PWA apuntando al NUEVO manifiesto -->
     <link rel="manifest" href="manifest_pruebas.json">
     <meta name="theme-color" content="#ff9800">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,7 +12,6 @@
     <meta name="apple-mobile-web-app-title" content="Inv. Beta">
     <link rel="apple-touch-icon" href="icono.png">
 
-    <!-- Librerías externas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
 
@@ -27,7 +25,6 @@
             min-height: 100dvh; overflow-y: auto; 
         }
 
-        /* --- BLOQUEO DE ROTACIÓN --- */
         #aviso-rotacion {
             display: none;
             position: fixed;
@@ -45,7 +42,7 @@
         }
         
         .cabecera-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
-        h1 { margin: 0; font-size: 16px; font-weight: 800; color: #ff9800; } /* Título naranja para saber que es beta */
+        h1 { margin: 0; font-size: 16px; font-weight: 800; color: #ff9800; }
         .controles-cabecera { display: flex; gap: 6px; }
         .btn-listas { padding: 6px 10px; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
         .btn-actualizar { padding: 6px 10px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
@@ -100,6 +97,7 @@
         #controles-video { padding: 6px; background: rgba(0,0,0,0.7); text-align: left; display: none; }
         #selector-camara { width: 100%; max-width: 250px; padding: 4px; border-radius: 4px; font-size: 12px; }
         video { width: 100%; height: auto; display: block; object-fit: cover; }
+        .indicador-enfoque { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.7); font-size: 12px; pointer-events: none; border: 1px solid rgba(255,255,255,0.5); padding: 20px; border-radius: 10px; display: none; }
 
         .caja-interfaz { padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
@@ -109,7 +107,6 @@
 
         body.modo-teclado .cabecera-top, body.modo-teclado #estado { display: none !important; }
 
-        /* Modal Listas */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .modal-content { background: #f4f6f8; width: 92%; max-height: 85dvh; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -131,7 +128,6 @@
 </head>
 <body>
 
-    <!-- Aviso de Rotación -->
     <div id="aviso-rotacion">
         <h2>⚠️ Gira el dispositivo</h2>
         <p>El escáner de códigos y la interfaz solo funcionan correctamente en modo vertical.</p>
@@ -154,6 +150,7 @@
             </select>
         </div>
         <video id="video-preview" playsinline autoplay muted></video>
+        <div class="indicador-enfoque" id="indicadorEnfoque">[ ]</div>
         <button onclick="cerrarCamara()" style="position: absolute; bottom: 5px; right: 5px; background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">✕ Cerrar</button>
     </div>
 
@@ -170,7 +167,6 @@
         </div>
     </div>
 
-    <!-- Modal de la Lista de Trabajo -->
     <div id="modalListas" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
@@ -186,14 +182,11 @@
     </div>
 
     <script>
-        // --- VARIABLES GLOBALES ---
         let inventario = {};
         let codeReader = null;
         let camaraManualId = null; 
         let ultimoModo = 'teclado'; 
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
-
-        // Variables de cámara
         let streamActivo = null;
         let intervaloEscaneo = null;
 
@@ -201,6 +194,7 @@
         const resultadoDiv = document.getElementById('resultado');
         const estadoDiv = document.getElementById('estado');
         const fileInput = document.getElementById('captura-foto');
+        const videoEl = document.getElementById('video-preview');
 
         const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
@@ -209,6 +203,25 @@
             cerrarCamara();
         });
         inputCodigo.addEventListener('blur', () => document.body.classList.remove('modo-teclado'));
+
+        // Toque en pantalla para forzar enfoque manual en Android
+        videoEl.addEventListener('click', async () => {
+            if (!streamActivo) return;
+            const track = streamActivo.getVideoTracks()[0];
+            const indicador = document.getElementById('indicadorEnfoque');
+            indicador.style.display = 'block';
+            setTimeout(() => indicador.style.display = 'none', 500);
+
+            try {
+                const capabilities = track.getCapabilities();
+                if (capabilities.focusMode) {
+                    await track.applyConstraints({ advanced: [{ focusMode: "single-shot" }] });
+                    setTimeout(async () => {
+                        await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+                    }, 1000);
+                }
+            } catch (e) { console.log("Enfoque manual no soportado por hardware", e); }
+        });
 
         function confirmarEscaneo() {
             try {
@@ -229,20 +242,14 @@
             } catch (e) {}
         }
 
-        // --- CARGA DE INVENTARIO CON ANTI-CACHÉ ESTRICTO ---
         function cargarInventario() {
             estadoDiv.innerHTML = "Sincronizando...";
             estadoDiv.style.color = "blue";
-            
             const url = 'TIENDA.csv?v=' + new Date().getTime();
 
             fetch(url, {
                 cache: 'no-store',
-                headers: {
-                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                    'Pragma': 'no-cache',
-                    'Expires': '0'
-                }
+                headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' }
             })
             .then(response => {
                 if (!response.ok) throw new Error("No se pudo descargar el CSV");
@@ -403,35 +410,18 @@
             
             if (cantidad > 0) {
                 let desc = esDesconocido ? "DESCONOCIDO/FUERA SURTIDO" : inventario[identificador].descripcion;
-                
-                listaTrabajo.push({
-                    ean: identificador,
-                    descripcion: desc,
-                    cantidad: cantidad,
-                    fecha: new Date().toISOString()
-                });
-                
+                listaTrabajo.push({ ean: identificador, descripcion: desc, cantidad: cantidad, fecha: new Date().toISOString() });
                 localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-                
                 estadoDiv.innerHTML = `¡Añadidas ${cantidad} uds!`;
                 estadoDiv.style.color = "#ff9800";
-                setTimeout(() => {
-                    estadoDiv.innerHTML = "Esperando código..."; 
-                    estadoDiv.style.color = "#28a745";
-                }, 2000);
+                setTimeout(() => { estadoDiv.innerHTML = "Esperando código..."; estadoDiv.style.color = "#28a745"; }, 2000);
             }
             
             resultadoDiv.innerHTML = "Esperando código...";
             inputCodigo.value = "";
-            
-            if (ultimoModo === 'camara') {
-                iniciarEscanerSegunOS();
-            } else {
-                inputCodigo.focus();
-            }
+            if (ultimoModo === 'camara') { iniciarEscanerSegunOS(); } else { inputCodigo.focus(); }
         }
 
-        // --- MANEJO DE RESULTADOS DE CÁMARA ---
         function procesarResultadoZXing(result) {
             if (result && (result.text || result.rawValue)) {
                 let codigoLeido = result.text || result.rawValue;
@@ -444,30 +434,21 @@
 
         function iniciarEscanerSegunOS() {
             ultimoModo = 'camara';
-            if (esIOS && !camaraManualId && !('BarcodeDetector' in window)) { 
-                fileInput.click(); 
-            } else { 
-                iniciarCamaraVideo(); 
-            }
+            if (esIOS && !camaraManualId && !('BarcodeDetector' in window)) { fileInput.click(); } 
+            else { iniciarCamaraVideo(); }
         }
 
-        // --- CÁMARA HÍBRIDA CON ALTA RESOLUCIÓN Y ZOOM ---
         async function iniciarCamaraVideo() {
             const container = document.getElementById('video-container');
-            const videoEl = document.getElementById('video-preview');
             container.style.display = 'block';
 
             try {
-                // 1. INTENTO DE ESCANEO NATIVO ACELERADO POR HARDWARE
                 if ('BarcodeDetector' in window) {
                     const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'code_128'] });
                     
+                    // Resolución 4K extrema forzada para obligar al teléfono a usar la lente principal macro
                     streamActivo = await navigator.mediaDevices.getUserMedia({
-                        video: { 
-                            facingMode: "environment",
-                            width: { ideal: 1920 },
-                            height: { ideal: 1080 }
-                        }
+                        video: { facingMode: "environment", width: { ideal: 3840 }, height: { ideal: 2160 } }
                     });
                     
                     videoEl.srcObject = streamActivo;
@@ -476,40 +457,16 @@
 
                     try {
                         const track = streamActivo.getVideoTracks()[0];
-                        const capabilities = track.getCapabilities();
-                        const advancedOpts = {};
-                        let applyAdvanced = false;
-
-                        if (capabilities.focusMode && capabilities.focusMode.includes("continuous")) {
-                            advancedOpts.focusMode = "continuous";
-                            applyAdvanced = true;
-                        }
-                        
-                        if (capabilities.zoom) {
-                            const zoomOptimo = Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min, 2.0));
-                            advancedOpts.zoom = zoomOptimo;
-                            applyAdvanced = true;
-                        }
-
-                        if (applyAdvanced) {
-                            await track.applyConstraints({ advanced: [advancedOpts] });
-                        }
-                    } catch (e) {
-                        console.log("No se pudo inyectar zoom o autoenfoque", e);
-                    }
+                        await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+                    } catch (e) {}
 
                     intervaloEscaneo = setInterval(async () => {
                         try {
                             const barcodes = await detector.detect(videoEl);
-                            if (barcodes.length > 0) {
-                                procesarResultadoZXing({ text: barcodes[0].rawValue });
-                            }
-                        } catch (e) {
-                            // Ignorar errores de frame vacío
-                        }
+                            if (barcodes.length > 0) procesarResultadoZXing({ text: barcodes[0].rawValue });
+                        } catch (e) {}
                     }, 150);
                 } 
-                // 2. FALLBACK A ZXING ESTÁNDAR
                 else {
                     if (!codeReader) {
                         const hints = new Map();
@@ -523,7 +480,6 @@
                         const camaraTrasera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('trasera'));
                         selected = camaraTrasera ? camaraTrasera.deviceId : devices[devices.length - 1].deviceId;
                     }
-
                     codeReader.decodeFromVideoDevice(selected, 'video-preview', (result, err) => {
                         if (result) procesarResultadoZXing(result);
                     });
@@ -536,13 +492,9 @@
 
         function cerrarCamara() {
             if (intervaloEscaneo) clearInterval(intervaloEscaneo);
-            if (streamActivo) {
-                streamActivo.getTracks().forEach(track => track.stop());
-                streamActivo = null;
-            }
+            if (streamActivo) { streamActivo.getTracks().forEach(track => track.stop()); streamActivo = null; }
             if (codeReader) codeReader.reset();
-            
-            document.getElementById('video-preview').srcObject = null;
+            videoEl.srcObject = null;
             document.getElementById('video-container').style.display = 'none';
         }
 
@@ -551,13 +503,11 @@
             if (!file) return;
             ultimoModo = 'camara';
             resultadoDiv.innerHTML = "<p>Analizando...</p>";
-            
             if (!codeReader) {
                 const hints = new Map();
                 hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
                 codeReader = new ZXing.BrowserBarcodeReader(hints);
             }
-            
             const imgURL = URL.createObjectURL(file);
             const imgEl = document.createElement('img');
             imgEl.src = imgURL;
@@ -565,40 +515,23 @@
                 codeReader.decodeFromImageElement(imgEl).then(res => {
                     confirmarEscaneo();
                     procesarBusqueda(res.text.trim());
-                }).catch(err => {
-                    resultadoDiv.innerHTML = `<h3 style="color:#dc3545;">Sin lectura</h3><p>Vuelve a intentarlo.</p>`;
-                });
+                }).catch(err => { resultadoDiv.innerHTML = `<h3 style="color:#dc3545;">Sin lectura</h3><p>Vuelve a intentarlo.</p>`; });
             };
         }
 
-        // EVENTO TECLADO FÍSICO / PISTOLA
         inputCodigo.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                ultimoModo = 'teclado';
-                procesarBusqueda(inputCodigo.value.trim());
-            }
+            if (e.key === 'Enter') { e.preventDefault(); ultimoModo = 'teclado'; procesarBusqueda(inputCodigo.value.trim()); }
         });
 
-        // --- GESTIÓN DEL MODAL DE LISTA ---
-        function verListas() {
-            document.getElementById('modalListas').style.display = 'flex';
-            renderizarLista();
-        }
-
-        function cerrarModalListas() {
-            document.getElementById('modalListas').style.display = 'none';
-            if (ultimoModo === 'teclado') inputCodigo.focus();
-        }
+        function verListas() { document.getElementById('modalListas').style.display = 'flex'; renderizarLista(); }
+        function cerrarModalListas() { document.getElementById('modalListas').style.display = 'none'; if (ultimoModo === 'teclado') inputCodigo.focus(); }
 
         function renderizarLista() {
             const contenedor = document.getElementById('modal-body-listas');
-            
             if (listaTrabajo.length === 0) {
                 contenedor.innerHTML = '<div style="display:flex; height:100%; justify-content:center; align-items:center; color:#666; font-weight:bold;">Lista vacía</div>';
                 return;
             }
-
             let html = '';
             [...listaTrabajo].reverse().forEach((item, indexReverse) => {
                 const indexReal = listaTrabajo.length - 1 - indexReverse;
@@ -633,23 +566,14 @@
         }
 
         function exportarListaCSV() {
-            if(listaTrabajo.length === 0) {
-                alert("No hay datos para exportar.");
-                return;
-            }
-            
+            if(listaTrabajo.length === 0) { alert("No hay datos para exportar."); return; }
             let csv = "\ufeffEAN;Descripcion;Cantidad\n";
-            listaTrabajo.forEach(item => {
-                csv += `${item.ean};${item.descripcion};${item.cantidad}\n`;
-            });
-
+            listaTrabajo.forEach(item => { csv += `${item.ean};${item.descripcion};${item.cantidad}\n`; });
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            
             const d = new Date();
             const fechaTxt = `${d.getDate()}_${d.getMonth()+1}_${d.getHours()}${d.getMinutes()}`;
-            
             link.setAttribute("download", `Trabajo_${fechaTxt}.csv`);
             document.body.appendChild(link);
             link.click();
