@@ -5,13 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Inventario Hipermercado</title>
 
+    <!-- Configuración PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#28a745">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Inventario">
-    <link rel="apple-touch-icon" href="assets/icono.png">
+    <link rel="apple-touch-icon" href="icono.png">
 
+    <!-- Librerías externas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
 
@@ -25,6 +27,7 @@
             min-height: 100dvh; overflow-y: auto; 
         }
 
+        /* Bloqueo Vertical (Landscape) */
         #aviso-rotacion {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: #111; color: white; z-index: 99999;
@@ -60,10 +63,12 @@
         .etiqueta-secundaria { font-size: 10px; text-transform: uppercase; color: #555; font-weight: bold; }
         .valor-secundario { font-size: 16px; font-weight: 800; color: #111111; }
 
+        /* Estilo Stock Original (Verde) */
         .caja-stock { margin-top: 2px; padding: 6px; background-color: #28a745; color: #ffffff; border-radius: 8px; border: none; }
         .etiqueta-stock { font-size: 12px; text-transform: uppercase; margin: 0; font-weight: bold; letter-spacing: 0.5px; opacity: 0.95; }
         .numero-stock { font-size: 46px; font-weight: 900; margin: 0; line-height: 1; color: #ffffff; }
 
+        /* Estilos de Acción (Un solo botón naranja) */
         .panel-acciones { margin-top: 8px; }
         .btn-accion-unica { 
             width: 100%; padding: 14px; background-color: #ff9800; color: white; border: none; 
@@ -89,11 +94,13 @@
         .item-desc { font-weight: bold; font-size: 14px; display: block; color: #111; margin-bottom: 2px; }
         .item-ean { font-size: 12px; color: #6c757d; font-weight: bold; }
 
+        /* Cámara */
         #video-container { width: 100%; max-width: 320px; max-height: 250px; background: #000; margin: 4px auto; border-radius: 6px; overflow: hidden; position: relative; display: none; }
         #controles-video { padding: 6px; background: rgba(0,0,0,0.7); text-align: left; display: none; }
         #selector-camara { width: 100%; max-width: 250px; padding: 4px; border-radius: 4px; font-size: 12px; }
         video { width: 100%; height: auto; display: block; object-fit: cover; }
 
+        /* Buscador Inferior */
         .caja-interfaz { padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
         
@@ -102,4 +109,28 @@
 
         body.modo-teclado .cabecera-top, body.modo-teclado #estado { display: none !important; }
 
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height:
+        /* Modal Listas */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        .modal-content { background: #f4f6f8; width: 92%; max-height: 85dvh; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .modal-header h2 { margin: 0; font-size: 18px; color: #111; }
+        .btn-cerrar-modal { background: #e2e8f0; border: none; border-radius: 50%; width: 32px; height: 32px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        
+        .modal-body { overflow-y: auto; flex: 1; background: white; border-radius: 8px; border: 1px solid #dee2e6; }
+        .item-lista-guardada { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #dee2e6; align-items: center; }
+        .item-lista-guardada:last-child { border-bottom: none; }
+        .item-lista-info { display: flex; flex-direction: column; text-align: left; flex: 1;}
+        .item-desc-modal { font-size: 15px; font-weight: bold; color: #111; }
+        .item-detalle-modal { font-size: 13px; color: #666; margin-top: 2px; }
+        .item-cant-modal { font-size: 20px; font-weight: 900; color: #ff9800; margin-left: 10px; margin-right: 15px; }
+        .btn-borrar-item { background: #dc3545; color: white; border: none; border-radius: 8px; padding: 10px 14px; font-weight: bold; font-size: 16px;}
+        
+        .modal-footer { margin-top: 12px; display: flex; gap: 8px; justify-content: space-between; }
+        .btn-footer { flex: 1; padding: 14px; border: none; border-radius: 8px; font-weight: 900; font-size: 15px; color: white; cursor: pointer; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+    <div id="aviso-rotacion">
+        <div class="icono-giro">📱🔄</div>
+        <div>Por favor, gira el teléfono en vertical para poder usar el esc
