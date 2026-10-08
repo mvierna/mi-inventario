@@ -204,7 +204,7 @@
         });
         inputCodigo.addEventListener('blur', () => document.body.classList.remove('modo-teclado'));
 
-        // Toque en pantalla para forzar enfoque manual en Android
+        // Toque en pantalla para forzar enfoque manual
         videoEl.addEventListener('click', async () => {
             if (!streamActivo) return;
             const track = streamActivo.getVideoTracks()[0];
@@ -220,7 +220,7 @@
                         await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
                     }, 1000);
                 }
-            } catch (e) { console.log("Enfoque manual no soportado por hardware", e); }
+            } catch (e) { console.log("Enfoque manual no soportado", e); }
         });
 
         function confirmarEscaneo() {
@@ -443,23 +443,41 @@
             container.style.display = 'block';
 
             try {
+                // 1. OBTENEMOS EL ID EXACTO DE LA CÁMARA PRINCIPAL (Como lo hacía el código que funcionaba bien)
+                if (!codeReader) {
+                    const hints = new Map();
+                    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+                    codeReader = new ZXing.BrowserBarcodeReader(hints);
+                }
+                const devices = await codeReader.listVideoInputDevices();
+                let selected = camaraManualId;
+                
+                if (!selected && devices.length > 0) {
+                    const camaraTrasera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('trasera'));
+                    selected = camaraTrasera ? camaraTrasera.deviceId : devices[devices.length - 1].deviceId;
+                }
+
+                // 2. INICIAMOS EL VÍDEO FORZANDO ESA CÁMARA ESPECÍFICA Y RESOLUCIÓN 1080p (El 4K rompía el enfoque)
+                streamActivo = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        deviceId: selected ? { exact: selected } : undefined,
+                        width: { ideal: 1920 }, 
+                        height: { ideal: 1080 }
+                    }
+                });
+                
+                videoEl.srcObject = streamActivo;
+                videoEl.setAttribute("playsinline", true);
+                videoEl.play();
+
+                try {
+                    const track = streamActivo.getVideoTracks()[0];
+                    await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+                } catch (e) {}
+
+                // 3. PASAMOS EL VÍDEO DE ALTA CALIDAD AL LECTOR RÁPIDO OMNIDIRECCIONAL
                 if ('BarcodeDetector' in window) {
                     const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'code_128'] });
-                    
-                    // Resolución 4K extrema forzada para obligar al teléfono a usar la lente principal macro
-                    streamActivo = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: "environment", width: { ideal: 3840 }, height: { ideal: 2160 } }
-                    });
-                    
-                    videoEl.srcObject = streamActivo;
-                    videoEl.setAttribute("playsinline", true);
-                    videoEl.play();
-
-                    try {
-                        const track = streamActivo.getVideoTracks()[0];
-                        await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-                    } catch (e) {}
-
                     intervaloEscaneo = setInterval(async () => {
                         try {
                             const barcodes = await detector.detect(videoEl);
@@ -468,19 +486,8 @@
                     }, 150);
                 } 
                 else {
-                    if (!codeReader) {
-                        const hints = new Map();
-                        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-                        codeReader = new ZXing.BrowserBarcodeReader(hints);
-                    }
-                    const devices = await codeReader.listVideoInputDevices();
-                    let selected = camaraManualId;
-                    
-                    if (!selected && devices.length > 0) {
-                        const camaraTrasera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('trasera'));
-                        selected = camaraTrasera ? camaraTrasera.deviceId : devices[devices.length - 1].deviceId;
-                    }
-                    codeReader.decodeFromVideoDevice(selected, 'video-preview', (result, err) => {
+                    // Fallback a ZXing nativo
+                    codeReader.decodeFromVideoElement(videoEl, (result, err) => {
                         if (result) procesarResultadoZXing(result);
                     });
                 }
