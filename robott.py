@@ -61,8 +61,8 @@ def ejecutar_robot():
         # ---------------------------------------------------------
         # 3. NAVEGACIÓN INICIAL POR LOS MENÚS
         # ---------------------------------------------------------
-        # Aumentado a 10 segundos para dar margen de carga tras abrir el programa
-        if not clic_visual('boton_stocks.png', tiempo_espera=10): return
+        # Aumentado a 13 segundos para dar margen de carga tras abrir el programa
+        if not clic_visual('boton_stocks.png', tiempo_espera=1): return
         if not clic_visual('ANALISIS.png', tiempo_espera=1): return
         if not clic_visual('FILTRO.png', tiempo_espera=2): return
 
@@ -119,7 +119,7 @@ def ejecutar_robot():
         pyautogui.press('enter')
         
         print("Esperando a que el archivo se guarde físicamente...")
-        time.sleep(8)
+        time.sleep(10)
         
         # ---------------------------------------------------------
         # 6. EXTRACCIÓN VISUAL EN WINDOWS
