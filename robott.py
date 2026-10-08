@@ -1,6 +1,7 @@
 import pyautogui
 import time
 import os
+import subprocess
 
 # Obtener la ruta absoluta del directorio actual (mi-inventario) y definir la carpeta assets
 DIRECTORIO_BASE = os.path.dirname(os.path.abspath(__file__))
@@ -162,8 +163,9 @@ def ejecutar_robot():
         pyautogui.hotkey('alt', 'f4')
         time.sleep(1.5)
         
-        print("Cerrando el programa principal (mRemoteNG)...")
-        pyautogui.hotkey('alt', 'f4') 
+        print("Forzando el cierre de mRemoteNG sin pasar por CMD...")
+        # Lanza el cierre directo para evitar el bloqueo del administrador
+        subprocess.run(["taskkill", "/f", "/im", "mRemoteNG.exe"], creationflags=subprocess.CREATE_NO_WINDOW)
         time.sleep(1.5)
         
         print("Ejecutando actualizador.py en segundo plano...")
@@ -172,7 +174,6 @@ def ejecutar_robot():
         
         print("¡Automatización completada y ventanas cerradas!")
 
-    # --- ESTAS LÍNEAS SON IMPRESCINDIBLES PARA QUE NO FALLE ---
     except pyautogui.FailSafeException:
         print("\n[ALERTA] Robot detenido de emergencia por el usuario (ratón en la esquina superior izquierda).")
     except Exception as e:
