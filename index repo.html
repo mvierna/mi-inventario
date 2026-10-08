@@ -26,6 +26,23 @@
             background-color: #f4f6f8; display: flex; flex-direction: column; 
             min-height: 100dvh; overflow-y: auto; 
         }
+
+        /* --- BLOQUEO DE ROTACIÓN --- */
+        #aviso-rotacion {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100dvh;
+            background: #f4f6f8; color: #111;
+            z-index: 9999;
+            flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 20px;
+        }
+        #aviso-rotacion h2 { color: #dc3545; font-size: 22px; margin-bottom: 8px; }
+        
+        @media screen and (orientation: landscape) {
+            body > *:not(#aviso-rotacion) { display: none !important; }
+            #aviso-rotacion { display: flex; }
+        }
         
         .cabecera-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
         h1 { margin: 0; font-size: 16px; font-weight: 800; }
@@ -117,6 +134,12 @@
     </style>
 </head>
 <body>
+
+    <!-- Aviso de Rotación -->
+    <div id="aviso-rotacion">
+        <h2>⚠️ Gira el dispositivo</h2>
+        <p>El escáner de códigos y la interfaz solo funcionan correctamente en modo vertical.</p>
+    </div>
 
     <div class="cabecera-top">
         <h1>Inventario</h1>
@@ -422,10 +445,17 @@
             else { iniciarCamaraVideo(); }
         }
 
+        // --- CÁMARA MEJORADA CON TRY_HARDER Y AUTOENFOQUE ---
         async function iniciarCamaraVideo() {
             const container = document.getElementById('video-container');
             container.style.display = 'block';
-            if (!codeReader) codeReader = new ZXing.BrowserBarcodeReader();
+            
+            if (!codeReader) {
+                // Configuramos ZXing para que busque en todas las direcciones (incluyendo vertical)
+                const hints = new Map();
+                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+                codeReader = new ZXing.BrowserBarcodeReader(hints);
+            }
 
             try {
                 if (camaraManualId) {
@@ -433,8 +463,29 @@
                     return; 
                 }
                 const devices = await codeReader.listVideoInputDevices();
-                const selected = devices.length > 0 ? devices[devices.length - 1].deviceId : undefined;
-                codeReader.decodeFromVideoDevice(selected, 'video-preview', procesarResultadoZXing);
+                
+                let selected = undefined;
+                if (devices.length > 0) {
+                    // Intenta localizar proactivamente la cámara principal trasera ("back" o "trasera")
+                    const camaraTrasera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('trasera'));
+                    selected = camaraTrasera ? camaraTrasera.deviceId : devices[devices.length - 1].deviceId;
+                }
+
+                codeReader.decodeFromVideoDevice(selected, 'video-preview', (result, err) => {
+                    // Intento de forzar autoenfoque continuo al stream nativo de iOS/Android
+                    try {
+                        const videoEl = document.getElementById('video-preview');
+                        if (videoEl && videoEl.srcObject) {
+                            const track = videoEl.srcObject.getVideoTracks()[0];
+                            const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+                            if (capabilities.focusMode && capabilities.focusMode.includes("continuous")) {
+                                track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+                            }
+                        }
+                    } catch(e) {}
+                    
+                    procesarResultadoZXing(result, err);
+                });
             } catch (err) {
                 alert("Error cámara: " + err);
                 container.style.display = 'none';
@@ -451,7 +502,13 @@
             if (!file) return;
             ultimoModo = 'camara';
             resultadoDiv.innerHTML = "<p>Analizando...</p>";
-            if (!codeReader) codeReader = new ZXing.BrowserBarcodeReader();
+            
+            if (!codeReader) {
+                // Configuramos ZXing para que busque en todas las direcciones (incluyendo vertical) en fotos
+                const hints = new Map();
+                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+                codeReader = new ZXing.BrowserBarcodeReader(hints);
+            }
             
             const imgURL = URL.createObjectURL(file);
             const imgEl = document.createElement('img');
