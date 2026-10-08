@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Inventario">
-    <link rel="apple-touch-icon" href="assets/icono.png">
+    <link rel="apple-touch-icon" href="icono.png">
 
     <!-- Librerías externas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -22,12 +22,12 @@
         html, body { height: 100%; margin: 0; padding: 0; }
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            padding: 8px; text-align: center; 
+            padding: 6px; text-align: center; 
             background-color: #f4f6f8; display: flex; flex-direction: column; 
             min-height: 100dvh; overflow-y: auto; 
         }
-        
-        /* Bloqueo Vertical (Landscape) */
+
+        /* Novedad: Pantalla de bloqueo si giran el móvil */
         #aviso-rotacion {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: #111; color: white; z-index: 99999;
@@ -39,33 +39,20 @@
             body > *:not(#aviso-rotacion) { display: none !important; }
             #aviso-rotacion { display: flex !important; }
         }
-
-        /* Cabecera y Estado */
-        .cabecera-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+        
+        .cabecera-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
         h1 { margin: 0; font-size: 16px; font-weight: 800; }
         .controles-cabecera { display: flex; gap: 6px; }
         .btn-listas { padding: 6px 10px; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
         .btn-actualizar { padding: 6px 10px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
-        #estado { font-weight: bold; font-size: 11px; color: #28a745; margin-bottom: 6px; }
+        
+        #estado { font-weight: bold; font-size: 11px; color: #28a745; margin-bottom: 2px; }
         .texto-fecha { font-size: 11px; color: #444444; font-weight: bold; display: block; margin-top: 1px; text-transform: uppercase; }
         
-        /* CAJA DE INTERFAZ (Arriba) */
-        .caja-interfaz { width: 100%; margin-bottom: 8px; }
-        .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
-        #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 16px; text-align: center; border: 2px solid #007bff; border-radius: 8px; outline: none; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .btn-camara-cuadrado { flex: 0 0 100px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-
-        /* Cámara */
-        #video-container { width: 100%; max-width: 320px; max-height: 250px; background: #000; margin: 0 auto 8px auto; border-radius: 8px; overflow: hidden; position: relative; display: none; }
-        #controles-video { padding: 6px; background: rgba(0,0,0,0.7); text-align: left; display: none; }
-        #selector-camara { width: 100%; max-width: 250px; padding: 4px; border-radius: 4px; font-size: 12px; }
-        video { width: 100%; height: auto; display: block; object-fit: cover; }
-
-        /* Resultado */
         .resultado { 
-            margin-bottom: max(10px, env(safe-area-inset-bottom)); padding: 12px; border: 2px solid #222222; 
+            margin-top: auto; margin-bottom: 4px; padding: 10px; border: 2px solid #222222; 
             border-radius: 12px; background-color: #ffffff; display: flex; flex-direction: column; gap: 6px; 
-            box-shadow: 0 4px 8px rgba(0,0,0,0.08); height: auto; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: auto; 
         }
         .titulo-encontrado { color: #28a745; margin: 0; font-size: 15px; font-weight: bold; }
         .texto-ean { font-size: 13px; color: #555; margin: 0; }
@@ -76,11 +63,12 @@
         .etiqueta-secundaria { font-size: 10px; text-transform: uppercase; color: #555; font-weight: bold; }
         .valor-secundario { font-size: 16px; font-weight: 800; color: #111111; }
 
+        /* Estilo Stock Original (Verde) */
         .caja-stock { margin-top: 2px; padding: 6px; background-color: #28a745; color: #ffffff; border-radius: 8px; border: none; }
         .etiqueta-stock { font-size: 12px; text-transform: uppercase; margin: 0; font-weight: bold; letter-spacing: 0.5px; opacity: 0.95; }
         .numero-stock { font-size: 46px; font-weight: 900; margin: 0; line-height: 1; color: #ffffff; }
 
-        /* Estilos de Acción */
+        /* Estilos de Acción (Un solo botón naranja) */
         .panel-acciones { margin-top: 8px; }
         .btn-accion-unica { 
             width: 100%; padding: 14px; background-color: #ff9800; color: white; border: none; 
@@ -106,12 +94,28 @@
         .item-desc { font-weight: bold; font-size: 14px; display: block; color: #111; margin-bottom: 2px; }
         .item-ean { font-size: 12px; color: #6c757d; font-weight: bold; }
 
+        /* Cámara */
+        #video-container { width: 100%; max-width: 320px; max-height: 250px; background: #000; margin: 4px auto; border-radius: 6px; overflow: hidden; position: relative; display: none; }
+        #controles-video { padding: 6px; background: rgba(0,0,0,0.7); text-align: left; display: none; }
+        #selector-camara { width: 100%; max-width: 250px; padding: 4px; border-radius: 4px; font-size: 12px; }
+        video { width: 100%; height: auto; display: block; object-fit: cover; }
+
+        /* Buscador Inferior (Mantenido abajo como solicitaste) */
+        .caja-interfaz { padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+        .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
+        
+        #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 16px; text-align: center; border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; }
+        .btn-camara-cuadrado { flex: 0 0 100px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
+
+        body.modo-teclado .cabecera-top, body.modo-teclado #estado { display: none !important; }
+
         /* Modal Listas */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .modal-content { background: #f4f6f8; width: 92%; max-height: 85dvh; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .modal-header h2 { margin: 0; font-size: 18px; color: #111; }
         .btn-cerrar-modal { background: #e2e8f0; border: none; border-radius: 50%; width: 32px; height: 32px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        
         .modal-body { overflow-y: auto; flex: 1; background: white; border-radius: 8px; border: 1px solid #dee2e6; }
         .item-lista-guardada { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #dee2e6; align-items: center; }
         .item-lista-guardada:last-child { border-bottom: none; }
@@ -120,12 +124,14 @@
         .item-detalle-modal { font-size: 13px; color: #666; margin-top: 2px; }
         .item-cant-modal { font-size: 20px; font-weight: 900; color: #ff9800; margin-left: 10px; margin-right: 15px; }
         .btn-borrar-item { background: #dc3545; color: white; border: none; border-radius: 8px; padding: 10px 14px; font-weight: bold; font-size: 16px;}
+        
         .modal-footer { margin-top: 12px; display: flex; gap: 8px; justify-content: space-between; }
         .btn-footer { flex: 1; padding: 14px; border: none; border-radius: 8px; font-weight: 900; font-size: 15px; color: white; cursor: pointer; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
+    <!-- Novedad: Contenedor del aviso de rotación -->
     <div id="aviso-rotacion">
         <div class="icono-giro">📱🔄</div>
         <div>Por favor, gira el teléfono en vertical para poder usar el escáner y la aplicación.</div>
@@ -141,15 +147,6 @@
 
     <div id="estado">Conectando...</div>
 
-    <!-- CAJA DE INTERFAZ ARRIBA -->
-    <div class="caja-interfaz">
-        <div class="grupo-input-camara">
-            <input type="text" id="inputCodigo" inputmode="numeric" pattern="[0-9]*" placeholder="Escáner o EAN..." autocomplete="off">
-            <button class="btn-camara-cuadrado" onclick="iniciarEscanerSegunOS()">📷 CÁMARA</button>
-        </div>
-    </div>
-
-    <!-- CONTENEDOR DE CÁMARA -->
     <div id="video-container">
         <div id="controles-video">
             <select id="selector-camara" onchange="cambiarCamaraManual()">
@@ -160,12 +157,19 @@
         <button onclick="cerrarCamara()" style="position: absolute; bottom: 5px; right: 5px; background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">✕ Cerrar</button>
     </div>
 
-    <!-- RESULTADO DE BÚSQUEDA -->
     <div id="resultado" class="resultado">
         Esperando código...
     </div>
 
     <input type="file" id="captura-foto" accept="image/*" capture="environment" style="display: none;" onchange="procesarFotoDeCamara(event)">
+
+    <div class="caja-interfaz">
+        <div class="grupo-input-camara">
+            <!-- Atributos para forzar teclado numérico automático -->
+            <input type="text" id="inputCodigo" inputmode="numeric" pattern="[0-9]*" placeholder="Escáner o EAN..." autocomplete="off">
+            <button class="btn-camara-cuadrado" onclick="iniciarEscanerSegunOS()">📷 CÁMARA</button>
+        </div>
+    </div>
 
     <!-- Modal de la Lista de Trabajo -->
     <div id="modalListas" class="modal-overlay">
@@ -175,6 +179,7 @@
                 <button class="btn-cerrar-modal" onclick="cerrarModalListas()">✕</button>
             </div>
             <div id="modal-body-listas" class="modal-body">
+                <!-- Se inyecta JS -->
             </div>
             <div class="modal-footer">
                 <button class="btn-footer" style="background: #dc3545;" onclick="borrarListaActual()">🗑 Vaciar</button>
@@ -198,6 +203,7 @@
 
         const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
+        // Novedad: Función para forzar bloqueo vertical en dispositivos compatibles (Android)
         function forzarBloqueoVertical() {
             try {
                 if (screen.orientation && screen.orientation.lock) {
@@ -206,9 +212,12 @@
             } catch(err) {}
         }
 
+        // Al tocar el input: cerramos cámara y adaptamos interfaz (pistola bluetooth/teclado numérico)
         inputCodigo.addEventListener('focus', () => {
+            document.body.classList.add('modo-teclado');
             cerrarCamara();
         });
+        inputCodigo.addEventListener('blur', () => document.body.classList.remove('modo-teclado'));
 
         function confirmarEscaneo() {
             try {
@@ -334,237 +343,4 @@
                     <div class="descripcion-producto">${art.descripcion}</div>
                 </div>
                 <div class="panel-secundario">
-                    <div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${art.rayon}</span></div>
-                    <div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${art.precio}</span></div>
-                    <div class="item-secundario"><span class="etiqueta-secundaria">Últ. Recep.</span><span class="valor-secundario">${art.fecha}</span></div>
-                    <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${art.ventas}</span></div>
-                </div>
-                <div class="caja-stock">
-                    <p class="etiqueta-stock">STOCK DISPONIBLE</p>
-                    <p class="numero-stock">${art.stock}</p>
-                </div>
-                
-                <div id="panel-botones-accion" class="panel-acciones">
-                    <button class="btn-accion-unica" onclick="mostrarInputCantidad('${ean}', false)">+ Añadir Cantidad</button>
-                </div>
-                <div id="panel-cantidad-accion" class="panel-cantidad">
-                    <input type="number" id="input-cant-accion" class="input-cantidad" inputmode="numeric" pattern="[0-9]*" placeholder="Uds...">
-                    <button class="btn-confirmar" onclick="guardarEnLista('${ean}', false)">OK</button>
-                </div>
-            `;
-            inputCodigo.value = ""; 
-        }
-
-        function mostrarArticuloDesconocido(termino) {
-            resultadoDiv.innerHTML = `
-                <h3 style="color: #dc3545; margin: 0 0 4px 0;">No encontrado</h3>
-                <p style="font-size: 15px;">Lectura: <strong>${termino}</strong></p>
-                
-                <div id="panel-botones-accion" class="panel-acciones">
-                    <button class="btn-accion-unica" style="background-color: #6c757d;" onclick="mostrarInputCantidad('${termino}', true)">Forzar Añadir</button>
-                </div>
-                <div id="panel-cantidad-accion" class="panel-cantidad">
-                    <input type="number" id="input-cant-accion" class="input-cantidad" inputmode="numeric" pattern="[0-9]*" placeholder="Uds...">
-                    <button class="btn-confirmar" onclick="guardarEnLista('${termino}', true)">OK</button>
-                </div>
-            `;
-            inputCodigo.value = ""; 
-        }
-
-        function mostrarInputCantidad(identificador, esDesconocido) {
-            document.getElementById('panel-botones-accion').style.display = 'none';
-            const panelCant = document.getElementById('panel-cantidad-accion');
-            panelCant.style.display = 'flex';
-            
-            const inputCant = document.getElementById('input-cant-accion');
-            inputCant.focus(); 
-            
-            inputCant.onkeypress = function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    guardarEnLista(identificador, esDesconocido);
-                }
-            };
-        }
-
-        function guardarEnLista(identificador, esDesconocido) {
-            const inputCant = document.getElementById('input-cant-accion');
-            const cantidad = parseInt(inputCant.value) || 0;
-            
-            if (cantidad > 0) {
-                let desc = esDesconocido ? "DESCONOCIDO/FUERA SURTIDO" : inventario[identificador].descripcion;
-                
-                listaTrabajo.push({
-                    ean: identificador,
-                    descripcion: desc,
-                    cantidad: cantidad,
-                    fecha: new Date().toISOString()
-                });
-                
-                localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-                
-                estadoDiv.innerHTML = `¡Añadidas ${cantidad} uds!`;
-                estadoDiv.style.color = "#ff9800";
-                setTimeout(() => {
-                    estadoDiv.innerHTML = "Esperando código..."; 
-                    estadoDiv.style.color = "#28a745";
-                }, 2000);
-            }
-            
-            resultadoDiv.innerHTML = "Esperando código...";
-            inputCodigo.value = "";
-            
-            if (ultimoModo === 'camara') {
-                iniciarEscanerSegunOS();
-            } else {
-                inputCodigo.focus();
-            }
-        }
-
-        function procesarResultadoZXing(result, err) {
-            if (result) {
-                ultimoModo = 'camara';
-                confirmarEscaneo();
-                procesarBusqueda(result.text.trim());
-                cerrarCamara();
-            }
-        }
-
-        function iniciarEscanerSegunOS() {
-            ultimoModo = 'camara';
-            if (esIOS && !camaraManualId) { fileInput.click(); } 
-            else { iniciarCamaraVideo(); }
-        }
-
-        async function iniciarCamaraVideo() {
-            forzarBloqueoVertical();
-            const container = document.getElementById('video-container');
-            container.style.display = 'block';
-            if (!codeReader) codeReader = new ZXing.BrowserBarcodeReader();
-
-            try {
-                if (camaraManualId) {
-                    codeReader.decodeFromVideoDevice(camaraManualId, 'video-preview', procesarResultadoZXing);
-                    return; 
-                }
-                const devices = await codeReader.listVideoInputDevices();
-                const selected = devices.length > 0 ? devices[devices.length - 1].deviceId : undefined;
-                codeReader.decodeFromVideoDevice(selected, 'video-preview', procesarResultadoZXing);
-            } catch (err) {
-                alert("Error cámara: " + err);
-                container.style.display = 'none';
-            }
-        }
-
-        function cerrarCamara() {
-            if (codeReader) codeReader.reset();
-            document.getElementById('video-container').style.display = 'none';
-        }
-
-        function procesarFotoDeCamara(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            ultimoModo = 'camara';
-            resultadoDiv.innerHTML = "<p>Analizando...</p>";
-            if (!codeReader) codeReader = new ZXing.BrowserBarcodeReader();
-            
-            const imgURL = URL.createObjectURL(file);
-            const imgEl = document.createElement('img');
-            imgEl.src = imgURL;
-            imgEl.onload = () => {
-                codeReader.decodeFromImageElement(imgEl).then(res => {
-                    confirmarEscaneo();
-                    procesarBusqueda(res.text.trim());
-                }).catch(err => {
-                    resultadoDiv.innerHTML = `<h3 style="color:#dc3545;">Sin lectura</h3><p>Vuelve a intentarlo.</p>`;
-                });
-            };
-        }
-
-        inputCodigo.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                ultimoModo = 'teclado';
-                procesarBusqueda(inputCodigo.value.trim());
-            }
-        });
-
-        function verListas() {
-            document.getElementById('modalListas').style.display = 'flex';
-            renderizarLista();
-        }
-
-        function cerrarModalListas() {
-            document.getElementById('modalListas').style.display = 'none';
-            if (ultimoModo === 'teclado') inputCodigo.focus();
-        }
-
-        function renderizarLista() {
-            const contenedor = document.getElementById('modal-body-listas');
-            
-            if (listaTrabajo.length === 0) {
-                contenedor.innerHTML = '<div style="display:flex; height:100%; justify-content:center; align-items:center; color:#666; font-weight:bold;">Lista vacía</div>';
-                return;
-            }
-
-            let html = '';
-            [...listaTrabajo].reverse().forEach((item, indexReverse) => {
-                const indexReal = listaTrabajo.length - 1 - indexReverse;
-                html += `
-                    <div class="item-lista-guardada">
-                        <div class="item-lista-info">
-                            <span class="item-desc-modal">${item.descripcion}</span>
-                            <span class="item-detalle-modal">EAN: ${item.ean}</span>
-                        </div>
-                        <div style="display:flex; align-items:center;">
-                            <span class="item-cant-modal">x${item.cantidad}</span>
-                            <button class="btn-borrar-item" onclick="eliminarItemLista(${indexReal})">✕</button>
-                        </div>
-                    </div>
-                `;
-            });
-            contenedor.innerHTML = html;
-        }
-
-        function eliminarItemLista(index) {
-            listaTrabajo.splice(index, 1);
-            localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-            renderizarLista();
-        }
-
-        function borrarListaActual() {
-            if(confirm('¿Seguro que quieres VACIAR toda la lista de trabajo?')) {
-                listaTrabajo = [];
-                localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-                renderizarLista();
-            }
-        }
-
-        function exportarListaCSV() {
-            if(listaTrabajo.length === 0) {
-                alert("No hay datos para exportar.");
-                return;
-            }
-            
-            let csv = "\ufeffEAN;Descripcion;Cantidad\n";
-            listaTrabajo.forEach(item => {
-                csv += `${item.ean};${item.descripcion};${item.cantidad}\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            
-            const d = new Date();
-            const fechaTxt = `${d.getDate()}_${d.getMonth()+1}_${d.getHours()}${d.getMinutes()}`;
-            
-            link.setAttribute("download", `Trabajo_${fechaTxt}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        window.onload = () => cargarInventario();
-    </script>
-</body>
-</html>
+                    <div class="item-secundario"><span class="etiqueta-secundaria">Ray
