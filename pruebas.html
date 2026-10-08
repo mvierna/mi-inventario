@@ -97,7 +97,6 @@
         #controles-video { padding: 6px; background: rgba(0,0,0,0.7); text-align: left; display: none; }
         #selector-camara { width: 100%; max-width: 250px; padding: 4px; border-radius: 4px; font-size: 12px; }
         video { width: 100%; height: auto; display: block; object-fit: cover; }
-        .indicador-enfoque { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.7); font-size: 12px; pointer-events: none; border: 1px solid rgba(255,255,255,0.5); padding: 20px; border-radius: 10px; display: none; }
 
         .caja-interfaz { padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
@@ -150,7 +149,6 @@
             </select>
         </div>
         <video id="video-preview" playsinline autoplay muted></video>
-        <div class="indicador-enfoque" id="indicadorEnfoque">[ ]</div>
         <button onclick="cerrarCamara()" style="position: absolute; bottom: 5px; right: 5px; background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">✕ Cerrar</button>
     </div>
 
@@ -187,14 +185,11 @@
         let camaraManualId = null; 
         let ultimoModo = 'teclado'; 
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
-        let streamActivo = null;
-        let intervaloEscaneo = null;
 
         const inputCodigo = document.getElementById('inputCodigo');
         const resultadoDiv = document.getElementById('resultado');
         const estadoDiv = document.getElementById('estado');
         const fileInput = document.getElementById('captura-foto');
-        const videoEl = document.getElementById('video-preview');
 
         const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
@@ -203,25 +198,6 @@
             cerrarCamara();
         });
         inputCodigo.addEventListener('blur', () => document.body.classList.remove('modo-teclado'));
-
-        // Toque en pantalla para forzar enfoque manual
-        videoEl.addEventListener('click', async () => {
-            if (!streamActivo) return;
-            const track = streamActivo.getVideoTracks()[0];
-            const indicador = document.getElementById('indicadorEnfoque');
-            indicador.style.display = 'block';
-            setTimeout(() => indicador.style.display = 'none', 500);
-
-            try {
-                const capabilities = track.getCapabilities();
-                if (capabilities.focusMode) {
-                    await track.applyConstraints({ advanced: [{ focusMode: "single-shot" }] });
-                    setTimeout(async () => {
-                        await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-                    }, 1000);
-                }
-            } catch (e) { console.log("Enfoque manual no soportado", e); }
-        });
 
         function confirmarEscaneo() {
             try {
@@ -438,17 +414,19 @@
             else { iniciarCamaraVideo(); }
         }
 
+        // RETORNO AL MOTOR ORIGINAL (CON TRY_HARDER PARA LEER VERTICAL)
         async function iniciarCamaraVideo() {
             const container = document.getElementById('video-container');
             container.style.display = 'block';
 
+            if (!codeReader) {
+                const hints = new Map();
+                // Esta es la orden mágica que le permite leer códigos rotados sin romper el enfoque nativo
+                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+                codeReader = new ZXing.BrowserBarcodeReader(hints);
+            }
+
             try {
-                // 1. OBTENEMOS EL ID EXACTO DE LA CÁMARA PRINCIPAL (Como lo hacía el código que funcionaba bien)
-                if (!codeReader) {
-                    const hints = new Map();
-                    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-                    codeReader = new ZXing.BrowserBarcodeReader(hints);
-                }
                 const devices = await codeReader.listVideoInputDevices();
                 let selected = camaraManualId;
                 
@@ -457,137 +435,4 @@
                     selected = camaraTrasera ? camaraTrasera.deviceId : devices[devices.length - 1].deviceId;
                 }
 
-                // 2. INICIAMOS EL VÍDEO FORZANDO ESA CÁMARA ESPECÍFICA Y RESOLUCIÓN 1080p (El 4K rompía el enfoque)
-                streamActivo = await navigator.mediaDevices.getUserMedia({
-                    video: { 
-                        deviceId: selected ? { exact: selected } : undefined,
-                        width: { ideal: 1920 }, 
-                        height: { ideal: 1080 }
-                    }
-                });
-                
-                videoEl.srcObject = streamActivo;
-                videoEl.setAttribute("playsinline", true);
-                videoEl.play();
-
-                try {
-                    const track = streamActivo.getVideoTracks()[0];
-                    await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-                } catch (e) {}
-
-                // 3. PASAMOS EL VÍDEO DE ALTA CALIDAD AL LECTOR RÁPIDO OMNIDIRECCIONAL
-                if ('BarcodeDetector' in window) {
-                    const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'code_128'] });
-                    intervaloEscaneo = setInterval(async () => {
-                        try {
-                            const barcodes = await detector.detect(videoEl);
-                            if (barcodes.length > 0) procesarResultadoZXing({ text: barcodes[0].rawValue });
-                        } catch (e) {}
-                    }, 150);
-                } 
-                else {
-                    // Fallback a ZXing nativo
-                    codeReader.decodeFromVideoElement(videoEl, (result, err) => {
-                        if (result) procesarResultadoZXing(result);
-                    });
-                }
-            } catch (err) {
-                alert("Error cámara: " + err.message);
-                container.style.display = 'none';
-            }
-        }
-
-        function cerrarCamara() {
-            if (intervaloEscaneo) clearInterval(intervaloEscaneo);
-            if (streamActivo) { streamActivo.getTracks().forEach(track => track.stop()); streamActivo = null; }
-            if (codeReader) codeReader.reset();
-            videoEl.srcObject = null;
-            document.getElementById('video-container').style.display = 'none';
-        }
-
-        function procesarFotoDeCamara(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            ultimoModo = 'camara';
-            resultadoDiv.innerHTML = "<p>Analizando...</p>";
-            if (!codeReader) {
-                const hints = new Map();
-                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-                codeReader = new ZXing.BrowserBarcodeReader(hints);
-            }
-            const imgURL = URL.createObjectURL(file);
-            const imgEl = document.createElement('img');
-            imgEl.src = imgURL;
-            imgEl.onload = () => {
-                codeReader.decodeFromImageElement(imgEl).then(res => {
-                    confirmarEscaneo();
-                    procesarBusqueda(res.text.trim());
-                }).catch(err => { resultadoDiv.innerHTML = `<h3 style="color:#dc3545;">Sin lectura</h3><p>Vuelve a intentarlo.</p>`; });
-            };
-        }
-
-        inputCodigo.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') { e.preventDefault(); ultimoModo = 'teclado'; procesarBusqueda(inputCodigo.value.trim()); }
-        });
-
-        function verListas() { document.getElementById('modalListas').style.display = 'flex'; renderizarLista(); }
-        function cerrarModalListas() { document.getElementById('modalListas').style.display = 'none'; if (ultimoModo === 'teclado') inputCodigo.focus(); }
-
-        function renderizarLista() {
-            const contenedor = document.getElementById('modal-body-listas');
-            if (listaTrabajo.length === 0) {
-                contenedor.innerHTML = '<div style="display:flex; height:100%; justify-content:center; align-items:center; color:#666; font-weight:bold;">Lista vacía</div>';
-                return;
-            }
-            let html = '';
-            [...listaTrabajo].reverse().forEach((item, indexReverse) => {
-                const indexReal = listaTrabajo.length - 1 - indexReverse;
-                html += `
-                    <div class="item-lista-guardada">
-                        <div class="item-lista-info">
-                            <span class="item-desc-modal">${item.descripcion}</span>
-                            <span class="item-detalle-modal">EAN: ${item.ean}</span>
-                        </div>
-                        <div style="display:flex; align-items:center;">
-                            <span class="item-cant-modal">x${item.cantidad}</span>
-                            <button class="btn-borrar-item" onclick="eliminarItemLista(${indexReal})">✕</button>
-                        </div>
-                    </div>
-                `;
-            });
-            contenedor.innerHTML = html;
-        }
-
-        function eliminarItemLista(index) {
-            listaTrabajo.splice(index, 1);
-            localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-            renderizarLista();
-        }
-
-        function borrarListaActual() {
-            if(confirm('¿Seguro que quieres VACIAR toda la lista de trabajo?')) {
-                listaTrabajo = [];
-                localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-                renderizarLista();
-            }
-        }
-
-        function exportarListaCSV() {
-            if(listaTrabajo.length === 0) { alert("No hay datos para exportar."); return; }
-            let csv = "\ufeffEAN;Descripcion;Cantidad\n";
-            listaTrabajo.forEach(item => { csv += `${item.ean};${item.descripcion};${item.cantidad}\n`; });
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            const d = new Date();
-            const fechaTxt = `${d.getDate()}_${d.getMonth()+1}_${d.getHours()}${d.getMinutes()}`;
-            link.setAttribute("download", `Trabajo_${fechaTxt}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        window.onload = () => cargarInventario();
-    </script>
-</body>
-</html>
+                codeReader.decodeFromVideo
