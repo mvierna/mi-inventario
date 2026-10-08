@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Inventario BETA</title>
 
+    <!-- Configuración PWA -->
     <link rel="manifest" href="manifest_pruebas.json">
     <meta name="theme-color" content="#ff9800">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -26,6 +27,7 @@
             min-height: 100dvh; overflow-y: auto; 
         }
 
+        /* --- BLOQUEO DE ROTACIÓN --- */
         #aviso-rotacion {
             display: none;
             position: fixed;
@@ -187,9 +189,10 @@
         let ultimoModo = 'teclado'; 
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
         
-        let escaneoActivo = false;
-        const canvasRotado = document.createElement('canvas');
-        const ctxRotado = canvasRotado.getContext('2d', { willReadFrequently: true });
+        // CANVAS SECUNDARIO PARA ROTACIÓN PERPENDICULAR (MEMORIA)
+        let bucleRotacion = null;
+        const canvasVirtual = document.createElement('canvas');
+        const ctxVirtual = canvasVirtual.getContext('2d', { willReadFrequently: true });
 
         const inputCodigo = document.getElementById('inputCodigo');
         const resultadoDiv = document.getElementById('resultado');
@@ -360,211 +363,4 @@
                 <p style="font-size: 15px;">Lectura: <strong>${termino}</strong></p>
                 
                 <div id="panel-botones-accion" class="panel-acciones">
-                    <button class="btn-accion-unica" style="background-color: #6c757d;" onclick="mostrarInputCantidad('${termino}', true)">Forzar Añadir</button>
-                </div>
-                <div id="panel-cantidad-accion" class="panel-cantidad">
-                    <input type="number" id="input-cant-accion" class="input-cantidad" inputmode="numeric" pattern="[0-9]*" placeholder="Uds...">
-                    <button class="btn-confirmar" onclick="guardarEnLista('${termino}', true)">OK</button>
-                </div>
-            `;
-            inputCodigo.value = ""; 
-        }
-
-        function mostrarInputCantidad(identificador, esDesconocido) {
-            document.getElementById('panel-botones-accion').style.display = 'none';
-            const panelCant = document.getElementById('panel-cantidad-accion');
-            panelCant.style.display = 'flex';
-            
-            const inputCant = document.getElementById('input-cant-accion');
-            inputCant.focus(); 
-            
-            inputCant.onkeypress = function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    guardarEnLista(identificador, esDesconocido);
-                }
-            };
-        }
-
-        function guardarEnLista(identificador, esDesconocido) {
-            const inputCant = document.getElementById('input-cant-accion');
-            const cantidad = parseInt(inputCant.value) || 0;
-            
-            if (cantidad > 0) {
-                let desc = esDesconocido ? "DESCONOCIDO/FUERA SURTIDO" : inventario[identificador].descripcion;
-                listaTrabajo.push({ ean: identificador, descripcion: desc, cantidad: cantidad, fecha: new Date().toISOString() });
-                localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-                estadoDiv.innerHTML = `¡Añadidas ${cantidad} uds!`;
-                estadoDiv.style.color = "#ff9800";
-                setTimeout(() => { estadoDiv.innerHTML = "Esperando código..."; estadoDiv.style.color = "#28a745"; }, 2000);
-            }
-            
-            resultadoDiv.innerHTML = "Esperando código...";
-            inputCodigo.value = "";
-            if (ultimoModo === 'camara') { iniciarEscanerSegunOS(); } else { inputCodigo.focus(); }
-        }
-
-        function procesarResultadoZXing(result) {
-            if (result && (result.text || result.rawValue)) {
-                let codigoLeido = result.text || result.rawValue;
-                ultimoModo = 'camara';
-                confirmarEscaneo();
-                procesarBusqueda(codigoLeido.trim());
-                cerrarCamara();
-            }
-        }
-
-        function iniciarEscanerSegunOS() {
-            ultimoModo = 'camara';
-            if (esIOS && !camaraManualId) { fileInput.click(); } 
-            else { iniciarCamaraVideo(); }
-        }
-
-        // SELECCIÓN DE CÁMARA ORIGINAL (ENFOQUE RÁPIDO) + DUAL SCAN EN MEMORIA
-        async function iniciarCamaraVideo() {
-            const container = document.getElementById('video-container');
-            container.style.display = 'block';
-
-            if (!codeReader) {
-                const hints = new Map();
-                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-                codeReader = new ZXing.BrowserBarcodeReader(hints);
-            }
-
-            try {
-                const devices = await codeReader.listVideoInputDevices();
-                let selected = camaraManualId;
-                
-                // Selección nativa exacta del index original
-                if (!selected && devices.length > 0) {
-                    selected = devices[devices.length - 1].deviceId;
-                }
-
-                escaneoActivo = true;
-                
-                // Iniciar vídeo estándar
-                codeReader.decodeFromVideoDevice(selected, 'video-preview', (result, err) => {
-                    if (result) {
-                        procesarResultadoZXing(result);
-                    } else {
-                        // Si en el frame normal no lee nada, intentamos rotar 90deg en memoria
-                        intentarEscaneoVertical();
-                    }
-                });
-            } catch (err) {
-                alert("Error cámara: " + err.message);
-                container.style.display = 'none';
-            }
-        }
-
-        async function intentarEscaneoVertical() {
-            if (!escaneoActivo || !videoEl || videoEl.readyState !== videoEl.HAVE_ENOUGH_DATA) return;
-            
-            try {
-                canvasRotado.width = videoEl.videoHeight;
-                canvasRotado.height = videoEl.videoWidth;
-                
-                ctxRotado.translate(canvasRotado.width / 2, canvasRotado.height / 2);
-                ctxRotado.rotate(90 * Math.PI / 180);
-                ctxRotado.drawImage(videoEl, -videoEl.videoWidth / 2, -videoEl.videoHeight / 2);
-                ctxRotado.setTransform(1, 0, 0, 1, 0, 0);
-
-                const resRotado = await codeReader.decodeFromCanvas(canvasRotado);
-                if (resRotado) procesarResultadoZXing(resRotado);
-            } catch (e) {
-                // Falla silenciosa si en la captura vertical tampoco hay código
-            }
-        }
-
-        function cerrarCamara() {
-            escaneoActivo = false;
-            if (codeReader) codeReader.reset();
-            document.getElementById('video-container').style.display = 'none';
-        }
-
-        function procesarFotoDeCamara(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            ultimoModo = 'camara';
-            resultadoDiv.innerHTML = "<p>Analizando...</p>";
-            if (!codeReader) {
-                const hints = new Map();
-                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-                codeReader = new ZXing.BrowserBarcodeReader(hints);
-            }
-            const imgURL = URL.createObjectURL(file);
-            const imgEl = document.createElement('img');
-            imgEl.src = imgURL;
-            imgEl.onload = () => {
-                codeReader.decodeFromImageElement(imgEl).then(res => {
-                    confirmarEscaneo();
-                    procesarBusqueda(res.text.trim());
-                }).catch(err => { resultadoDiv.innerHTML = `<h3 style="color:#dc3545;">Sin lectura</h3><p>Vuelve a intentarlo.</p>`; });
-            };
-        }
-
-        inputCodigo.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') { e.preventDefault(); ultimoModo = 'teclado'; procesarBusqueda(inputCodigo.value.trim()); }
-        });
-
-        function verListas() { document.getElementById('modalListas').style.display = 'flex'; renderizarLista(); }
-        function cerrarModalListas() { document.getElementById('modalListas').style.display = 'none'; if (ultimoModo === 'teclado') inputCodigo.focus(); }
-
-        function renderizarLista() {
-            const contenedor = document.getElementById('modal-body-listas');
-            if (listaTrabajo.length === 0) {
-                contenedor.innerHTML = '<div style="display:flex; height:100%; justify-content:center; align-items:center; color:#666; font-weight:bold;">Lista vacía</div>';
-                return;
-            }
-            let html = '';
-            [...listaTrabajo].reverse().forEach((item, indexReverse) => {
-                const indexReal = listaTrabajo.length - 1 - indexReverse;
-                html += `
-                    <div class="item-lista-guardada">
-                        <div class="item-lista-info">
-                            <span class="item-desc-modal">${item.descripcion}</span>
-                            <span class="item-detalle-modal">EAN: ${item.ean}</span>
-                        </div>
-                        <div style="display:flex; align-items:center;">
-                            <span class="item-cant-modal">x${item.cantidad}</span>
-                            <button class="btn-borrar-item" onclick="eliminarItemLista(${indexReal})">✕</button>
-                        </div>
-                    </div>
-                `;
-            });
-            contenedor.innerHTML = html;
-        }
-
-        function eliminarItemLista(index) {
-            listaTrabajo.splice(index, 1);
-            localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-            renderizarLista();
-        }
-
-        function borrarListaActual() {
-            if(confirm('¿Seguro que quieres VACIAR toda la lista de trabajo?')) {
-                listaTrabajo = [];
-                localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-                renderizarLista();
-            }
-        }
-
-        function exportarListaCSV() {
-            if(listaTrabajo.length === 0) { alert("No hay datos para exportar."); return; }
-            let csv = "\ufeffEAN;Descripcion;Cantidad\n";
-            listaTrabajo.forEach(item => { csv += `${item.ean};${item.descripcion};${item.cantidad}\n`; });
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            const d = new Date();
-            const fechaTxt = `${d.getDate()}_${d.getMonth()+1}_${d.getHours()}${d.getMinutes()}`;
-            link.setAttribute("download", `Trabajo_${fechaTxt}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        window.onload = () => cargarInventario();
-    </script>
-</body>
-</html>
+                    <button class="btn-accion-unica"
