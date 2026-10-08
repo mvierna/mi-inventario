@@ -61,8 +61,7 @@ def ejecutar_robot():
         # ---------------------------------------------------------
         # 3. NAVEGACIÓN INICIAL POR LOS MENÚS
         # ---------------------------------------------------------
-        # Aumentado a 10 segundos para dar margen de carga tras abrir el programa
-        if not clic_visual('boton_stocks.png', tiempo_espera=10): return
+        if not clic_visual('boton_stocks.png', tiempo_espera=2): return
         if not clic_visual('ANALISIS.png', tiempo_espera=1): return
         if not clic_visual('FILTRO.png', tiempo_espera=2): return
 
@@ -154,15 +153,26 @@ def ejecutar_robot():
         pyautogui.hotkey('ctrl', 'v')
         time.sleep(2)
 
-       # ---------------------------------------------------------
-        # 7. SINCRONIZACIÓN FINAL VISUAL
+        # ---------------------------------------------------------
+        # 7. CIERRE DE VENTANAS Y SINCRONIZACIÓN FINAL
         # ---------------------------------------------------------
         print("\n¡Proceso de Abaco finalizado con éxito!")
-        print("Ejecutando actualizador.py visualmente...")
-        if not clic_visual('actualizador.png', tiempo_espera=5, clics=2): return
         
-        print("¡Sincronización lanzada correctamente!")
+        print("Cerrando la carpeta mi-inventario...")
+        pyautogui.hotkey('alt', 'f4')
+        time.sleep(1.5)
+        
+        print("Cerrando el programa principal (mRemoteNG)...")
+        pyautogui.hotkey('alt', 'f4') 
+        time.sleep(1.5)
+        
+        print("Ejecutando actualizador.py en segundo plano...")
+        ruta_actualizador = os.path.join(DIRECTORIO_BASE, 'actualizador.py')
+        os.startfile(ruta_actualizador)
+        
+        print("¡Automatización completada y ventanas cerradas!")
 
+    # --- ESTAS LÍNEAS SON IMPRESCINDIBLES PARA QUE NO FALLE ---
     except pyautogui.FailSafeException:
         print("\n[ALERTA] Robot detenido de emergencia por el usuario (ratón en la esquina superior izquierda).")
     except Exception as e:
@@ -170,4 +180,3 @@ def ejecutar_robot():
 
 if __name__ == '__main__':
     ejecutar_robot()
-    input("\nPresiona ENTER para salir...")
