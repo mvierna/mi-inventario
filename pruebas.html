@@ -12,6 +12,7 @@
     <meta name="apple-mobile-web-app-title" content="Inv. Beta">
     <link rel="apple-touch-icon" href="icono.png">
 
+    <!-- Librerías externas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
 
@@ -185,11 +186,16 @@
         let camaraManualId = null; 
         let ultimoModo = 'teclado'; 
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
+        
+        let escaneoActivo = false;
+        const canvasRotado = document.createElement('canvas');
+        const ctxRotado = canvasRotado.getContext('2d', { willReadFrequently: true });
 
         const inputCodigo = document.getElementById('inputCodigo');
         const resultadoDiv = document.getElementById('resultado');
         const estadoDiv = document.getElementById('estado');
         const fileInput = document.getElementById('captura-foto');
+        const videoEl = document.getElementById('video-preview');
 
         const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
@@ -398,7 +404,7 @@
             if (ultimoModo === 'camara') { iniciarEscanerSegunOS(); } else { inputCodigo.focus(); }
         }
 
-        function procesarResultadoZXing(result, err) {
+        function procesarResultadoZXing(result) {
             if (result && (result.text || result.rawValue)) {
                 let codigoLeido = result.text || result.rawValue;
                 ultimoModo = 'camara';
@@ -414,35 +420,64 @@
             else { iniciarCamaraVideo(); }
         }
 
-        // --- RETORNO AL MOTOR ORIGINAL (PERFECTO ENFOQUE) + TRY_HARDER (LECTURA VERTICAL) ---
+        // SELECCIÓN DE CÁMARA ORIGINAL (ENFOQUE RÁPIDO) + DUAL SCAN EN MEMORIA
         async function iniciarCamaraVideo() {
             const container = document.getElementById('video-container');
             container.style.display = 'block';
 
             if (!codeReader) {
                 const hints = new Map();
-                hints.set(ZXing.DecodeHintType.TRY_HARDER, true); // Esto le permite leer en vertical
+                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
                 codeReader = new ZXing.BrowserBarcodeReader(hints);
             }
 
             try {
-                if (camaraManualId) {
-                    codeReader.decodeFromVideoDevice(camaraManualId, 'video-preview', procesarResultadoZXing);
-                    return; 
-                }
                 const devices = await codeReader.listVideoInputDevices();
+                let selected = camaraManualId;
                 
-                // LÓGICA ORIGINAL RESTAURADA: Cogemos el último dispositivo (Suele ser la cámara principal estándar)
-                const selected = devices.length > 0 ? devices[devices.length - 1].deviceId : undefined;
+                // Selección nativa exacta del index original
+                if (!selected && devices.length > 0) {
+                    selected = devices[devices.length - 1].deviceId;
+                }
+
+                escaneoActivo = true;
                 
-                codeReader.decodeFromVideoDevice(selected, 'video-preview', procesarResultadoZXing);
+                // Iniciar vídeo estándar
+                codeReader.decodeFromVideoDevice(selected, 'video-preview', (result, err) => {
+                    if (result) {
+                        procesarResultadoZXing(result);
+                    } else {
+                        // Si en el frame normal no lee nada, intentamos rotar 90deg en memoria
+                        intentarEscaneoVertical();
+                    }
+                });
             } catch (err) {
                 alert("Error cámara: " + err.message);
                 container.style.display = 'none';
             }
         }
 
+        async function intentarEscaneoVertical() {
+            if (!escaneoActivo || !videoEl || videoEl.readyState !== videoEl.HAVE_ENOUGH_DATA) return;
+            
+            try {
+                canvasRotado.width = videoEl.videoHeight;
+                canvasRotado.height = videoEl.videoWidth;
+                
+                ctxRotado.translate(canvasRotado.width / 2, canvasRotado.height / 2);
+                ctxRotado.rotate(90 * Math.PI / 180);
+                ctxRotado.drawImage(videoEl, -videoEl.videoWidth / 2, -videoEl.videoHeight / 2);
+                ctxRotado.setTransform(1, 0, 0, 1, 0, 0);
+
+                const resRotado = await codeReader.decodeFromCanvas(canvasRotado);
+                if (resRotado) procesarResultadoZXing(resRotado);
+            } catch (e) {
+                // Falla silenciosa si en la captura vertical tampoco hay código
+            }
+        }
+
         function cerrarCamara() {
+            escaneoActivo = false;
             if (codeReader) codeReader.reset();
             document.getElementById('video-container').style.display = 'none';
         }
