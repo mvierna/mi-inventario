@@ -136,4 +136,4 @@ if __name__ == '__main__':
     else:
         print("\n[CANCELADO] No se realizarán cambios en GitHub.")
     
-    input("\nPresiona ENTER para cerrar esta ventana...")
+   # input("\nPresiona ENTER para cerrar esta ventana...")
