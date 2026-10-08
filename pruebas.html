@@ -185,7 +185,6 @@
         let camaraManualId = null; 
         let ultimoModo = 'teclado'; 
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
-        let streamActivo = null;
 
         const inputCodigo = document.getElementById('inputCodigo');
         const resultadoDiv = document.getElementById('resultado');
@@ -399,7 +398,7 @@
             if (ultimoModo === 'camara') { iniciarEscanerSegunOS(); } else { inputCodigo.focus(); }
         }
 
-        function procesarResultadoZXing(result) {
+        function procesarResultadoZXing(result, err) {
             if (result && (result.text || result.rawValue)) {
                 let codigoLeido = result.text || result.rawValue;
                 ultimoModo = 'camara';
@@ -411,32 +410,32 @@
 
         function iniciarEscanerSegunOS() {
             ultimoModo = 'camara';
-            if (esIOS && !camaraManualId && !('BarcodeDetector' in window)) { fileInput.click(); } 
+            if (esIOS && !camaraManualId) { fileInput.click(); } 
             else { iniciarCamaraVideo(); }
         }
 
+        // --- RETORNO AL MOTOR ORIGINAL (PERFECTO ENFOQUE) + TRY_HARDER (LECTURA VERTICAL) ---
         async function iniciarCamaraVideo() {
             const container = document.getElementById('video-container');
             container.style.display = 'block';
 
             if (!codeReader) {
                 const hints = new Map();
-                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+                hints.set(ZXing.DecodeHintType.TRY_HARDER, true); // Esto le permite leer en vertical
                 codeReader = new ZXing.BrowserBarcodeReader(hints);
             }
 
             try {
-                const devices = await codeReader.listVideoInputDevices();
-                let selected = camaraManualId;
-                
-                if (!selected && devices.length > 0) {
-                    const camaraTrasera = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('trasera'));
-                    selected = camaraTrasera ? camaraTrasera.deviceId : devices[devices.length - 1].deviceId;
+                if (camaraManualId) {
+                    codeReader.decodeFromVideoDevice(camaraManualId, 'video-preview', procesarResultadoZXing);
+                    return; 
                 }
-
-                codeReader.decodeFromVideoDevice(selected, 'video-preview', (result, err) => {
-                    if (result) procesarResultadoZXing(result);
-                });
+                const devices = await codeReader.listVideoInputDevices();
+                
+                // LÓGICA ORIGINAL RESTAURADA: Cogemos el último dispositivo (Suele ser la cámara principal estándar)
+                const selected = devices.length > 0 ? devices[devices.length - 1].deviceId : undefined;
+                
+                codeReader.decodeFromVideoDevice(selected, 'video-preview', procesarResultadoZXing);
             } catch (err) {
                 alert("Error cámara: " + err.message);
                 container.style.display = 'none';
