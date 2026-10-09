@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Inventario BETA</title>
 
+    <!-- Configuración PWA -->
     <link rel="manifest" href="manifest_pruebas.json">
     <meta name="theme-color" content="#ff9800">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,6 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Inv. Beta">
     <link rel="apple-touch-icon" href="icono.png">
 
+    <!-- Librerías externas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
 
@@ -25,6 +27,7 @@
             min-height: 100dvh; overflow-y: auto; 
         }
 
+        /* BLOQUEO DE ROTACIÓN VISUAL */
         #aviso-rotacion {
             display: none;
             position: fixed;
@@ -185,15 +188,11 @@
         let camaraManualId = null; 
         let ultimoModo = 'teclado'; 
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
-        
-        let streamActivo = null;
-        let intervaloEscanerNativo = null;
 
         const inputCodigo = document.getElementById('inputCodigo');
         const resultadoDiv = document.getElementById('resultado');
         const estadoDiv = document.getElementById('estado');
         const fileInput = document.getElementById('captura-foto');
-        const videoEl = document.getElementById('video-preview');
 
         const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
@@ -414,45 +413,27 @@
 
         function iniciarEscanerSegunOS() {
             ultimoModo = 'camara';
-            if (esIOS && !camaraManualId && !('BarcodeDetector' in window)) { fileInput.click(); } 
+            if (esIOS && !camaraManualId) { fileInput.click(); } 
             else { iniciarCamaraVideo(); }
         }
 
-        // MOTOR HÍBRIDO DEFINITIVO: NATIVO MULTIDIRECCIONAL PARA ANDROID / ZXING RESTAURADO PARA IOS
+        // MOTOR RÁPIDO ORIGINAL (ENFOQUE MÁXIMO)
         async function iniciarCamaraVideo() {
             const container = document.getElementById('video-container');
             container.style.display = 'block';
 
-            try {
-                // SI EL NAVEGADOR SOPORTA LECTURA NATIVA (Android/Chrome): Usamos el procesador por Hardware omnidireccional
-                if ('BarcodeDetector' in window) {
-                    const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'code_128'] });
-                    
-                    streamActivo = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: "environment" }
-                    });
-                    
-                    videoEl.srcObject = streamActivo;
-                    videoEl.play();
+            if (!codeReader) {
+                codeReader = new ZXing.BrowserBarcodeReader();
+            }
 
-                    intervaloEscanerNativo = setInterval(async () => {
-                        try {
-                            const barcodes = await detector.detect(videoEl);
-                            if (barcodes.length > 0) {
-                                procesarResultadoZXing({ text: barcodes[0].rawValue });
-                            }
-                        } catch (e) {}
-                    }, 100);
-                } 
-                // FALLBACK A ZXING CLÁSICO (El mismo selector exacto de tu index.html original)
-                else {
-                    if (!codeReader) {
-                        codeReader = new ZXing.BrowserBarcodeReader();
-                    }
-                    const devices = await codeReader.listVideoInputDevices();
-                    const selected = devices.length > 0 ? devices[devices.length - 1].deviceId : undefined;
-                    codeReader.decodeFromVideoDevice(selected, 'video-preview', procesarResultadoZXing);
+            try {
+                if (camaraManualId) {
+                    codeReader.decodeFromVideoDevice(camaraManualId, 'video-preview', procesarResultadoZXing);
+                    return; 
                 }
+                const devices = await codeReader.listVideoInputDevices();
+                const selected = devices.length > 0 ? devices[devices.length - 1].deviceId : undefined;
+                codeReader.decodeFromVideoDevice(selected, 'video-preview', procesarResultadoZXing);
             } catch (err) {
                 alert("Error cámara: " + err.message);
                 container.style.display = 'none';
@@ -460,13 +441,7 @@
         }
 
         function cerrarCamara() {
-            if (intervaloEscanerNativo) clearInterval(intervaloEscanerNativo);
-            if (streamActivo) {
-                streamActivo.getTracks().forEach(track => track.stop());
-                streamActivo = null;
-            }
             if (codeReader) codeReader.reset();
-            videoEl.srcObject = null;
             document.getElementById('video-container').style.display = 'none';
         }
 
