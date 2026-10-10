@@ -123,6 +123,7 @@
         .modal-header h2 { margin: 0; font-size: 18px; color: #111; }
         .btn-cerrar-modal { background: #e2e8f0; border: none; border-radius: 50%; width: 32px; height: 32px; font-weight: bold; font-size: 16px; cursor: pointer; }
         
+        .input-email-config { width: 100%; padding: 12px; border: 2px solid #007bff; border-radius: 6px; margin-bottom: 12px; font-size: 16px; font-weight: bold; outline: none; text-align: center; }
         .modal-body { overflow-y: auto; flex: 1; background: white; border-radius: 8px; border: 1px solid #dee2e6; margin-bottom: 10px; }
         .item-lista-guardada { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #dee2e6; align-items: center; }
         .item-lista-guardada:last-child { border-bottom: none; }
@@ -207,6 +208,9 @@
                 <button class="btn-cerrar-modal" onclick="cerrarModalListas()">✕</button>
             </div>
             
+            <!-- NUEVO CAMPO DE USUARIO / TERMINAL -->
+            <input type="text" id="nombre-usuario-input" class="input-email-config" placeholder="👤 Tu nombre o Nº Terminal..." onchange="guardarUsuario()">
+            
             <div id="modal-body-listas" class="modal-body"></div>
             
             <div class="modal-footer">
@@ -221,7 +225,7 @@
         // ==========================================
         // ⚠️ PEGA AQUÍ LA URL DE TU APPS SCRIPT
         // ==========================================
-        const URL_GOOGLE_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbw2-pK4sW5Aoxa61xtqHl1S9TTlLXcpcUhrgz08YctKlELMgRle4cergU6n1_HNvWsL/exec";
+        const URL_GOOGLE_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwa09QI3B2Vb0qd3lCRtkTe0Lcq1VNOaz6zhkuber3fMhnuMPHhYs1QfsdM_6m6sNwV/exec";
 
         let inventario = {};
         let codeReader = null;
@@ -229,6 +233,7 @@
         
         let ultimoModo = 'teclado'; 
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
+        let usuarioGuardado = localStorage.getItem('inventarioUsuario') || '';
         let inputActivoId = 'inputCodigo';
         let itemActual = { ean: null, esDesconocido: false };
 
@@ -239,7 +244,15 @@
         const fileInput = document.getElementById('captura-foto');
         const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
-        // --- NUEVA LÓGICA DE SINCRONIZACIÓN CON GOOGLE DRIVE ---
+        // Inicializamos el input con el nombre guardado en la memoria
+        document.getElementById('nombre-usuario-input').value = usuarioGuardado;
+
+        function guardarUsuario() {
+            usuarioGuardado = document.getElementById('nombre-usuario-input').value.trim();
+            localStorage.setItem('inventarioUsuario', usuarioGuardado);
+        }
+
+        // --- LÓGICA DE SINCRONIZACIÓN CON GOOGLE DRIVE (AÑADIDA IDENTIFICACIÓN DE USUARIO) ---
         async function enviarADrive() {
             if (listaTrabajo.length === 0) {
                 alert("La lista está vacía.");
@@ -249,17 +262,32 @@
                 alert("Error: Falla la conexión. Debes configurar la URL de Google Apps Script en el código index.html");
                 return;
             }
+            if (!usuarioGuardado) {
+                alert("Por favor, introduce tu nombre o el número de terminal en la casilla de arriba antes de sincronizar.");
+                document.getElementById('nombre-usuario-input').focus();
+                return;
+            }
 
             const btnDrive = document.getElementById('btn-drive');
             btnDrive.classList.add('loading');
             btnDrive.innerText = "⏳ Enviando...";
 
+            // Añadimos el "usuarioGuardado" a cada item antes de enviarlo
+            const datosAEnviar = listaTrabajo.map(item => {
+                return {
+                    ean: item.ean,
+                    cantidad: item.cantidad,
+                    descripcion: item.descripcion,
+                    fecha: item.fecha,
+                    usuario: usuarioGuardado // <-- Aquí va la etiqueta
+                };
+            });
+
             try {
-                // Se envía como text/plain para evitar bloqueos CORS del navegador
                 const response = await fetch(URL_GOOGLE_APPS_SCRIPT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(listaTrabajo)
+                    body: JSON.stringify(datosAEnviar)
                 });
                 
                 const result = await response.json();
