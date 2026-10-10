@@ -99,13 +99,21 @@
         video { width: 100%; height: auto; display: block; object-fit: cover; }
 
         .caja-interfaz { padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
-        .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
         
+        /* BOTÓN MODO RÁPIDO */
+        #btn-modo-rapido {
+            width: 100%; padding: 12px; margin-bottom: 8px; background-color: #6c757d; color: white; 
+            border: none; border-radius: 6px; font-weight: 900; font-size: 14px; text-transform: uppercase;
+            box-shadow: 0 3px 0 rgba(0,0,0,0.2); cursor: pointer; transition: all 0.2s;
+        }
+        #btn-modo-rapido.activo { background-color: #ffc107; color: #000; box-shadow: 0 3px 0 #d39e00; }
+        #btn-modo-rapido:active { transform: translateY(3px); box-shadow: none !important; }
+
+        .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
         .btn-teclado { flex: 0 0 50px; height: 50px; background-color: #6c757d; color: white; border: none; border-radius: 6px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 16px; text-align: center; border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; }
         .btn-camara-cuadrado { flex: 0 0 90px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
 
-        /* TECLADO VIRTUAL DE 4 COLUMNAS */
         #teclado-virtual { display: none; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; background: #f8f9fa; padding: 8px; border-radius: 8px; border: 1px solid #dee2e6; }
         .tecla-v { height: 55px; font-size: 24px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
         .tecla-v:active { transform: translateY(2px); box-shadow: none; background: #e9ecef; }
@@ -116,7 +124,6 @@
 
         body.modo-teclado .cabecera-top, body.modo-teclado #estado { display: none !important; }
 
-        /* Modal Listas */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .modal-content { background: #f4f6f8; width: 92%; max-height: 85dvh; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
@@ -136,7 +143,6 @@
         .modal-footer { display: flex; gap: 6px; justify-content: space-between; }
         .btn-footer { flex: 1; padding: 14px 6px; border: none; border-radius: 8px; font-weight: 900; font-size: 14px; color: white; cursor: pointer; text-transform: uppercase; }
         
-        /* Botón animado de sincronización */
         .btn-sync-drive { background: #007bff; transition: background 0.3s; }
         .btn-sync-drive.loading { background: #6c757d; pointer-events: none; opacity: 0.8; }
     </style>
@@ -175,6 +181,8 @@
     <input type="file" id="captura-foto" accept="image/*" capture="environment" style="display: none;" onchange="procesarFotoDeCamara(event)">
 
     <div class="caja-interfaz">
+        <button id="btn-modo-rapido" onclick="toggleModoRapido()">⚡ MODO 1 AUTOMÁTICO: DESACTIVADO</button>
+        
         <div class="grupo-input-camara">
             <button class="btn-teclado" onclick="toggleTecladoVirtual()">🔢</button>
             <input type="text" id="inputCodigo" placeholder="Escribe, escanea o EAN..." autocomplete="off">
@@ -208,7 +216,6 @@
                 <button class="btn-cerrar-modal" onclick="cerrarModalListas()">✕</button>
             </div>
             
-            <!-- NUEVO CAMPO DE USUARIO / TERMINAL -->
             <input type="text" id="nombre-usuario-input" class="input-email-config" placeholder="👤 Tu nombre o Nº Terminal..." onchange="guardarUsuario()">
             
             <div id="modal-body-listas" class="modal-body"></div>
@@ -232,6 +239,7 @@
         let camaraManualId = localStorage.getItem('camaraPreferida') || null; 
         
         let ultimoModo = 'teclado'; 
+        let modoRapidoActivado = false; 
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
         let usuarioGuardado = localStorage.getItem('inventarioUsuario') || '';
         let inputActivoId = 'inputCodigo';
@@ -244,7 +252,6 @@
         const fileInput = document.getElementById('captura-foto');
         const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
-        // Inicializamos el input con el nombre guardado en la memoria
         document.getElementById('nombre-usuario-input').value = usuarioGuardado;
 
         function guardarUsuario() {
@@ -252,34 +259,80 @@
             localStorage.setItem('inventarioUsuario', usuarioGuardado);
         }
 
-        // --- LÓGICA DE SINCRONIZACIÓN CON GOOGLE DRIVE (AÑADIDA IDENTIFICACIÓN DE USUARIO) ---
+        // --- LÓGICA DEL MODO RÁPIDO (AÑADE DIRECTO A LA LISTA, NO A DRIVE) ---
+        function toggleModoRapido() {
+            modoRapidoActivado = !modoRapidoActivado;
+            const btn = document.getElementById('btn-modo-rapido');
+            if (modoRapidoActivado) {
+                btn.classList.add('activo');
+                btn.innerText = "⚡ MODO 1 AUTOMÁTICO: ACTIVADO";
+                resultadoDiv.innerHTML = "<h3 style='color:#ffc107; margin:0;'>⚡ MODO RÁPIDO ACTIVO</h3><p style='font-size:14px; margin-top:4px;'>Se guardarán a tu Lista de Trabajo con cantidad 1 automáticamente.</p>";
+            } else {
+                btn.classList.remove('activo');
+                btn.innerText = "⚡ MODO 1 AUTOMÁTICO: DESACTIVADO";
+                resultadoDiv.innerHTML = "Esperando código...";
+            }
+            inputCodigo.focus();
+        }
+
+        function procesarEscaneoRapido(termino) {
+            let desc = "ETIQUETA RÁPIDA (Sin datos)";
+            let eanDetectado = termino;
+
+            if (inventario.hasOwnProperty(termino)) { 
+                eanDetectado = termino; desc = inventario[termino].descripcion;
+            } else if (/^\d+$/.test(termino)) {
+                let termLimpio = termino.replace(/^0+/, '');
+                if (inventario.hasOwnProperty(termLimpio)) { eanDetectado = termLimpio; desc = inventario[termLimpio].descripcion; }
+                else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) { eanDetectado = termLimpio.padStart(12, '0'); desc = inventario[termLimpio.padStart(12, '0')].descripcion; }
+                else if (inventario.hasOwnProperty(termLimpio.padStart(13, '0'))) { eanDetectado = termLimpio.padStart(13, '0'); desc = inventario[termLimpio.padStart(13, '0')].descripcion; }
+            }
+
+            listaTrabajo.push({
+                ean: eanDetectado,
+                descripcion: desc,
+                cantidad: 1,
+                fecha: new Date().toISOString()
+            });
+            
+            localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
+
+            estadoDiv.innerHTML = `✅ ¡Añadido a lista!`;
+            estadoDiv.style.color = "#28a745";
+            
+            resultadoDiv.innerHTML = `
+                <p style="margin:0; font-size:14px; color:#666;">Añadido a tu lista:</p>
+                <h3 style="margin:2px 0; color:#28a745;">${eanDetectado}</h3>
+                <p style="margin:0; font-weight:bold;">${desc}</p>
+                <div style="margin-top:8px; font-size:20px;">📦 x1</div>
+            `;
+
+            inputCodigo.value = "";
+            inputCodigo.focus();
+
+            if (ultimoModo === 'camara') {
+                setTimeout(iniciarEscanerSegunOS, 800);
+            }
+        }
+        // --- FIN LÓGICA MODO RÁPIDO ---
+
+
         async function enviarADrive() {
-            if (listaTrabajo.length === 0) {
-                alert("La lista está vacía.");
-                return;
-            }
-            if (URL_GOOGLE_APPS_SCRIPT === "PEGA_TU_URL_AQUÍ") {
-                alert("Error: Falla la conexión. Debes configurar la URL de Google Apps Script en el código index.html");
-                return;
-            }
-            if (!usuarioGuardado) {
-                alert("Por favor, introduce tu nombre o el número de terminal en la casilla de arriba antes de sincronizar.");
-                document.getElementById('nombre-usuario-input').focus();
-                return;
-            }
+            if (listaTrabajo.length === 0) { alert("La lista está vacía."); return; }
+            if (URL_GOOGLE_APPS_SCRIPT === "PEGA_TU_URL_AQUÍ") { alert("Falta URL."); return; }
+            if (!usuarioGuardado) { alert("Pon tu nombre en la casilla de arriba primero."); return; }
 
             const btnDrive = document.getElementById('btn-drive');
             btnDrive.classList.add('loading');
             btnDrive.innerText = "⏳ Enviando...";
 
-            // Añadimos el "usuarioGuardado" a cada item antes de enviarlo
             const datosAEnviar = listaTrabajo.map(item => {
                 return {
                     ean: item.ean,
                     cantidad: item.cantidad,
                     descripcion: item.descripcion,
                     fecha: item.fecha,
-                    usuario: usuarioGuardado // <-- Aquí va la etiqueta
+                    usuario: usuarioGuardado 
                 };
             });
 
@@ -289,7 +342,6 @@
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(datosAEnviar)
                 });
-                
                 const result = await response.json();
                 
                 if (result.status === "success") {
@@ -303,14 +355,13 @@
                     alert("Error en el servidor de Drive: " + result.message);
                 }
             } catch (error) {
-                alert("Error de conexión. Comprueba que tienes internet. Detalle: " + error);
+                alert("Error de conexión. Detalle: " + error);
             } finally {
                 btnDrive.classList.remove('loading');
                 btnDrive.innerText = "☁️ A Drive";
             }
         }
 
-        // LÓGICA DEL TECLADO VIRTUAL MULTI-CAMPO
         function toggleTecladoVirtual() {
             if (tecladoVirtual.style.display === 'grid' && inputActivoId === 'inputCodigo') {
                 tecladoVirtual.style.display = 'none';
@@ -437,6 +488,12 @@
             let termino = terminoBusqueda.trim().toUpperCase();
             if (!termino) return;
 
+            // En Modo Rápido lo lanzamos directo a la lista y cortamos
+            if (modoRapidoActivado) {
+                procesarEscaneoRapido(termino);
+                return;
+            }
+
             let eanDetectado = null;
             if (inventario.hasOwnProperty(termino)) { eanDetectado = termino; } 
             else if (/^\d+$/.test(termino)) {
@@ -473,7 +530,6 @@
                     inputCodigo.value = ""; 
                 }
             }
-            
             setTimeout(() => inputCodigo.blur(), 100);
         }
 
@@ -666,7 +722,6 @@
 
         function renderizarLista() {
             const contenedor = document.getElementById('modal-body-listas');
-            
             if (listaTrabajo.length === 0) {
                 contenedor.innerHTML = '<div style="display:flex; height:100%; justify-content:center; align-items:center; color:#666; font-weight:bold;">Lista vacía</div>';
                 return;
@@ -706,23 +761,17 @@
         }
 
         function exportarListaCSV() {
-            if(listaTrabajo.length === 0) {
-                alert("No hay datos para exportar.");
-                return;
-            }
-            
+            if(listaTrabajo.length === 0) { alert("No hay datos para exportar."); return; }
             let csv = "\ufeffEAN;Cantidad;Descripcion\n";
             listaTrabajo.forEach(item => {
                 csv += `${item.ean};${item.cantidad};${item.descripcion}\n`;
             });
-
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
             
             const d = new Date();
             const fechaTxt = `${d.getDate()}_${d.getMonth()+1}_${d.getHours()}${d.getMinutes()}`;
-            
             link.setAttribute("download", `Trabajo_${fechaTxt}.csv`);
             document.body.appendChild(link);
             link.click();
