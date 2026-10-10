@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Inventario Hipermercado</title>
 
-    <!-- Configuración PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#28a745">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,7 +12,6 @@
     <meta name="apple-mobile-web-app-title" content="Inventario">
     <link rel="apple-touch-icon" href="icono.png">
 
-    <!-- Librerías externas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
 
@@ -27,7 +25,6 @@
             min-height: 100dvh; overflow-y: auto; 
         }
         
-        /* BLOQUEO DE ROTACIÓN VISUAL */
         #aviso-rotacion {
             display: none;
             position: fixed;
@@ -67,12 +64,10 @@
         .etiqueta-secundaria { font-size: 10px; text-transform: uppercase; color: #555; font-weight: bold; }
         .valor-secundario { font-size: 16px; font-weight: 800; color: #111111; }
 
-        /* Estilo Stock Original (Verde) */
         .caja-stock { margin-top: 2px; padding: 6px; background-color: #28a745; color: #ffffff; border-radius: 8px; border: none; }
         .etiqueta-stock { font-size: 12px; text-transform: uppercase; margin: 0; font-weight: bold; letter-spacing: 0.5px; opacity: 0.95; }
         .numero-stock { font-size: 46px; font-weight: 900; margin: 0; line-height: 1; color: #ffffff; }
 
-        /* Estilos de Acción */
         .panel-acciones { margin-top: 8px; }
         .btn-accion-unica { 
             width: 100%; padding: 14px; background-color: #ff9800; color: white; border: none; 
@@ -98,13 +93,11 @@
         .item-desc { font-weight: bold; font-size: 14px; display: block; color: #111; margin-bottom: 2px; }
         .item-ean { font-size: 12px; color: #6c757d; font-weight: bold; }
 
-        /* Cámara rediseñada con selector */
         #video-container { width: 100%; max-width: 320px; max-height: 250px; background: #000; margin: 4px auto; border-radius: 6px; overflow: hidden; position: relative; display: none; }
         #controles-video { padding: 6px; background: rgba(0,0,0,0.7); display: flex; justify-content: space-between; align-items: center; }
         #selector-camara { width: 100%; max-width: 200px; padding: 6px; border-radius: 4px; font-size: 12px; background: white; color: black; border: 1px solid #ccc; }
         video { width: 100%; height: auto; display: block; object-fit: cover; }
 
-        /* Buscador Inferior */
         .caja-interfaz { padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
         
@@ -113,7 +106,6 @@
 
         body.modo-teclado .cabecera-top, body.modo-teclado #estado { display: none !important; }
 
-        /* Modal Listas */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .modal-content { background: #f4f6f8; width: 92%; max-height: 85dvh; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -151,7 +143,6 @@
     <div id="estado">Conectando...</div>
 
     <div id="video-container">
-        <!-- Controles de vídeo rediseñados -->
         <div id="controles-video">
             <select id="selector-camara" onchange="cambiarCamaraManual()">
                 <option value="">Detectando cámaras...</option>
@@ -169,22 +160,18 @@
 
     <div class="caja-interfaz">
         <div class="grupo-input-camara">
-            <!-- INPUT LIBRE: Sin bloqueo numérico para permitir OCR en iOS y descripciones -->
             <input type="text" id="inputCodigo" placeholder="Escribe, escanea o EAN..." autocomplete="off">
             <button class="btn-camara-cuadrado" onclick="iniciarEscanerSegunOS()">📷 CÁMARA</button>
         </div>
     </div>
 
-    <!-- Modal de la Lista de Trabajo -->
     <div id="modalListas" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Lista de Trabajo</h2>
                 <button class="btn-cerrar-modal" onclick="cerrarModalListas()">✕</button>
             </div>
-            <div id="modal-body-listas" class="modal-body">
-                <!-- Se inyecta JS -->
-            </div>
+            <div id="modal-body-listas" class="modal-body"></div>
             <div class="modal-footer">
                 <button class="btn-footer" style="background: #dc3545;" onclick="borrarListaActual()">🗑 Vaciar</button>
                 <button class="btn-footer" style="background: #28a745;" onclick="exportarListaCSV()">📤 CSV</button>
@@ -195,7 +182,7 @@
     <script>
         let inventario = {};
         let codeReader = null;
-        let camaraManualId = null; 
+        let camaraManualId = localStorage.getItem('camaraPreferida') || null; 
         
         let ultimoModo = 'teclado'; 
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
@@ -207,7 +194,6 @@
 
         const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
-        // Al tocar el input: cerramos cámara y adaptamos interfaz (pistola bluetooth/teclado numérico)
         inputCodigo.addEventListener('focus', () => {
             document.body.classList.add('modo-teclado');
             cerrarCamara();
@@ -329,7 +315,6 @@
             setTimeout(() => inputCodigo.blur(), 100);
         }
 
-        // VISTA ARTÍCULO CONOCIDO
         function mostrarArticuloCompleto(ean) {
             let art = inventario[ean];
             resultadoDiv.innerHTML = `
@@ -360,7 +345,6 @@
             inputCodigo.value = ""; 
         }
 
-        // VISTA ARTÍCULO DESCONOCIDO
         function mostrarArticuloDesconocido(termino) {
             resultadoDiv.innerHTML = `
                 <h3 style="color: #dc3545; margin: 0 0 4px 0;">No encontrado</h3>
@@ -377,7 +361,6 @@
             inputCodigo.value = ""; 
         }
 
-        // LÓGICA DE AÑADIR A LA LISTA
         function mostrarInputCantidad(identificador, esDesconocido) {
             document.getElementById('panel-botones-accion').style.display = 'none';
             const panelCant = document.getElementById('panel-cantidad-accion');
@@ -418,7 +401,6 @@
                 }, 2000);
             }
             
-            // Restaurar estado visual y control
             resultadoDiv.innerHTML = "Esperando código...";
             inputCodigo.value = "";
             
@@ -429,7 +411,6 @@
             }
         }
 
-        // CÁMARA (ZXing)
         function procesarResultadoZXing(result, err) {
             if (result) {
                 ultimoModo = 'camara';
@@ -445,7 +426,6 @@
             else { iniciarCamaraVideo(); }
         }
 
-        // --- CÁMARA MEJORADA: SELECTOR DE LENTES Y LECTURA VERTICAL (TRY_HARDER) ---
         async function iniciarCamaraVideo() {
             const container = document.getElementById('video-container');
             container.style.display = 'block';
@@ -460,7 +440,6 @@
                 const devices = await codeReader.listVideoInputDevices();
                 const selector = document.getElementById('selector-camara');
                 
-                // Rellenar el selector para dispositivos con múltiples cámaras
                 if (selector.options.length <= 1 && devices.length > 0) {
                     selector.innerHTML = '';
                     devices.forEach((device, index) => {
@@ -473,10 +452,16 @@
 
                 let selected = camaraManualId;
                 
-                // Preseleccionar la cámara principal si no se ha elegido ninguna
                 if (!selected && devices.length > 0) {
-                    const camarasTraseras = devices.filter(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('trasera'));
-                    selected = camarasTraseras.length > 0 ? camarasTraseras[0].deviceId : devices[devices.length - 1].deviceId;
+                    if (esIOS) {
+                        const camarasTraseras = devices.filter(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('trasera'));
+                        selected = camarasTraseras.length > 0 ? camarasTraseras[0].deviceId : devices[devices.length - 1].deviceId;
+                    } else {
+                        selected = devices[devices.length - 1].deviceId;
+                    }
+                }
+
+                if (selected) {
                     selector.value = selected; 
                 }
 
@@ -492,6 +477,7 @@
         function cambiarCamaraManual() {
             const selector = document.getElementById('selector-camara');
             camaraManualId = selector.value;
+            localStorage.setItem('camaraPreferida', camaraManualId);
             cerrarCamara();
             setTimeout(iniciarEscanerSegunOS, 300);
         }
@@ -526,7 +512,6 @@
             };
         }
 
-        // EVENTO TECLADO FÍSICO / PISTOLA
         inputCodigo.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -535,7 +520,6 @@
             }
         });
 
-        // --- GESTIÓN DEL MODAL DE LISTA ---
         function verListas() {
             document.getElementById('modalListas').style.display = 'flex';
             renderizarLista();
@@ -555,7 +539,6 @@
             }
 
             let html = '';
-            // Renderizamos del último al primero (para ver lo más reciente arriba)
             [...listaTrabajo].reverse().forEach((item, indexReverse) => {
                 const indexReal = listaTrabajo.length - 1 - indexReverse;
                 html += `
@@ -564,57 +547,4 @@
                             <span class="item-desc-modal">${item.descripcion}</span>
                             <span class="item-detalle-modal">EAN: ${item.ean}</span>
                         </div>
-                        <div style="display:flex; align-items:center;">
-                            <span class="item-cant-modal">x${item.cantidad}</span>
-                            <button class="btn-borrar-item" onclick="eliminarItemLista(${indexReal})">✕</button>
-                        </div>
-                    </div>
-                `;
-            });
-            contenedor.innerHTML = html;
-        }
-
-        function eliminarItemLista(index) {
-            listaTrabajo.splice(index, 1);
-            localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-            renderizarLista();
-        }
-
-        function borrarListaActual() {
-            if(confirm('¿Seguro que quieres VACIAR toda la lista de trabajo?')) {
-                listaTrabajo = [];
-                localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-                renderizarLista();
-            }
-        }
-
-        function exportarListaCSV() {
-            if(listaTrabajo.length === 0) {
-                alert("No hay datos para exportar.");
-                return;
-            }
-            
-            // UTF-8 BOM para acentos en Excel y ; como separador
-            let csv = "\ufeffEAN;Descripcion;Cantidad\n";
-            listaTrabajo.forEach(item => {
-                csv += `${item.ean};${item.descripcion};${item.cantidad}\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            
-            // Formatear fecha para el nombre del archivo
-            const d = new Date();
-            const fechaTxt = `${d.getDate()}_${d.getMonth()+1}_${d.getHours()}${d.getMinutes()}`;
-            
-            link.setAttribute("download", `Trabajo_${fechaTxt}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        window.onload = () => cargarInventario();
-    </script>
-</body>
-</html>
+                        <div style="display:flex; align
