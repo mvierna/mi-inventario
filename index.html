@@ -587,3 +587,109 @@
                     if (result) procesarResultadoZXing(result);
                 });
             } catch (err) {
+                alert("Error cámara: " + err.message);
+                container.style.display = 'none';
+            }
+        }
+
+        function cambiarCamaraManual() {
+            const selector = document.getElementById('selector-camara');
+            camaraManualId = selector.value;
+            localStorage.setItem('camaraPreferida', camaraManualId);
+            cerrarCamara();
+            setTimeout(iniciarEscanerSegunOS, 300);
+        }
+
+        function cerrarCamara() {
+            if (codeReader) codeReader.reset();
+            document.getElementById('video-container').style.display = 'none';
+        }
+
+        inputCodigo.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                ultimoModo = 'teclado';
+                procesarBusqueda(inputCodigo.value.trim());
+            }
+        });
+
+        function verListas() {
+            document.getElementById('modalListas').style.display = 'flex';
+            renderizarLista();
+        }
+
+        function cerrarModalListas() {
+            document.getElementById('modalListas').style.display = 'none';
+            if (ultimoModo === 'teclado') inputCodigo.focus();
+        }
+
+        function renderizarLista() {
+            const contenedor = document.getElementById('modal-body-listas');
+            
+            if (listaTrabajo.length === 0) {
+                contenedor.innerHTML = '<div style="display:flex; height:100%; justify-content:center; align-items:center; color:#666; font-weight:bold;">Lista vacía</div>';
+                return;
+            }
+
+            let html = '';
+            [...listaTrabajo].reverse().forEach((item, indexReverse) => {
+                const indexReal = listaTrabajo.length - 1 - indexReverse;
+                html += `
+                    <div class="item-lista-guardada">
+                        <div class="item-lista-info">
+                            <span class="item-desc-modal">${item.descripcion}</span>
+                            <span class="item-detalle-modal">EAN: ${item.ean}</span>
+                        </div>
+                        <div style="display:flex; align-items:center;">
+                            <span class="item-cant-modal">x${item.cantidad}</span>
+                            <button class="btn-borrar-item" onclick="eliminarItemLista(${indexReal})">✕</button>
+                        </div>
+                    </div>
+                `;
+            });
+            contenedor.innerHTML = html;
+        }
+
+        function eliminarItemLista(index) {
+            listaTrabajo.splice(index, 1);
+            localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
+            renderizarLista();
+        }
+
+        function borrarListaActual() {
+            if(confirm('¿Seguro que quieres VACIAR toda la lista de trabajo?')) {
+                listaTrabajo = [];
+                localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
+                renderizarLista();
+            }
+        }
+
+        // --- EXPORTAR A CSV (MISMO ORDEN: EAN, Cantidad, Descripcion) ---
+        function exportarListaCSV() {
+            if(listaTrabajo.length === 0) {
+                alert("No hay datos para exportar.");
+                return;
+            }
+            
+            let csv = "\ufeffEAN;Cantidad;Descripcion\n";
+            listaTrabajo.forEach(item => {
+                csv += `${item.ean};${item.cantidad};${item.descripcion}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            
+            const d = new Date();
+            const fechaTxt = `${d.getDate()}_${d.getMonth()+1}_${d.getHours()}${d.getMinutes()}`;
+            
+            link.setAttribute("download", `Trabajo_${fechaTxt}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        window.onload = () => cargarInventario();
+    </script>
+</body>
+</html>
