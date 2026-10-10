@@ -177,7 +177,7 @@
             <button class="btn-camara-cuadrado" onclick="iniciarEscanerSegunOS()">📷 CÁMARA</button>
         </div>
         
-        <!-- TECLADO VIRTUAL -->
+        <!-- TECLADO VIRTUAL DE 4 COLUMNAS -->
         <div id="teclado-virtual">
             <button class="tecla-v" onclick="pulsarTecla('7')">7</button>
             <button class="tecla-v" onclick="pulsarTecla('8')">8</button>
@@ -204,7 +204,7 @@
                 <h2>Lista de Trabajo</h2>
                 <button class="btn-cerrar-modal" onclick="cerrarModalListas()">✕</button>
             </div>
-            <!-- Nuevo campo para guardar el email predeterminado -->
+            
             <input type="email" id="email-destino-input" class="input-email-config" placeholder="Email predeterminado (ej: jefe@tienda.com)..." onchange="guardarEmail()">
             
             <div id="modal-body-listas" class="modal-body"></div>
@@ -235,7 +235,6 @@
         const fileInput = document.getElementById('captura-foto');
         const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
-        // Inicializar input de email con el guardado
         document.getElementById('email-destino-input').value = emailGuardado;
 
         function guardarEmail() {
@@ -243,7 +242,7 @@
             localStorage.setItem('inventarioEmailDestino', emailGuardado);
         }
 
-        // --- LÓGICA DE ENVÍO POR EMAIL ---
+        // --- LÓGICA DE ENVÍO POR EMAIL (SEPARADO POR TABULACIONES PARA EXCEL) ---
         function enviarPorEmail() {
             if (listaTrabajo.length === 0) {
                 alert("La lista está vacía.");
@@ -255,18 +254,18 @@
                 return;
             }
 
-            let csvData = "EAN;Descripcion;Cantidad\n";
+            // Usamos tabulaciones (\t) para que al pegar en Excel se reconozcan como celdas
+            let bodyData = "EAN\tCANTIDAD\tDESCRIPCION\n";
             listaTrabajo.forEach(item => {
-                csvData += `${item.ean};${item.descripcion};${item.cantidad}\n`;
+                bodyData += `${item.ean}\t${item.cantidad}\t${item.descripcion}\n`;
             });
 
             const d = new Date();
             const fechaTxt = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} a las ${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
             
             const asunto = encodeURIComponent(`Inventario - Lista de trabajo (${fechaTxt})`);
-            const cuerpo = encodeURIComponent(`Adjunto los datos escaneados:\n\n${csvData}`);
+            const cuerpo = encodeURIComponent(`Adjunto los datos escaneados (puedes copiar y pegar el texto de abajo directamente en Excel):\n\n${bodyData}`);
             
-            // Lanza el cliente de correo predeterminado del móvil
             window.location.href = `mailto:${emailGuardado}?subject=${asunto}&body=${cuerpo}`;
         }
 
@@ -588,108 +587,3 @@
                     if (result) procesarResultadoZXing(result);
                 });
             } catch (err) {
-                alert("Error cámara: " + err.message);
-                container.style.display = 'none';
-            }
-        }
-
-        function cambiarCamaraManual() {
-            const selector = document.getElementById('selector-camara');
-            camaraManualId = selector.value;
-            localStorage.setItem('camaraPreferida', camaraManualId);
-            cerrarCamara();
-            setTimeout(iniciarEscanerSegunOS, 300);
-        }
-
-        function cerrarCamara() {
-            if (codeReader) codeReader.reset();
-            document.getElementById('video-container').style.display = 'none';
-        }
-
-        inputCodigo.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                ultimoModo = 'teclado';
-                procesarBusqueda(inputCodigo.value.trim());
-            }
-        });
-
-        function verListas() {
-            document.getElementById('modalListas').style.display = 'flex';
-            renderizarLista();
-        }
-
-        function cerrarModalListas() {
-            document.getElementById('modalListas').style.display = 'none';
-            if (ultimoModo === 'teclado') inputCodigo.focus();
-        }
-
-        function renderizarLista() {
-            const contenedor = document.getElementById('modal-body-listas');
-            
-            if (listaTrabajo.length === 0) {
-                contenedor.innerHTML = '<div style="display:flex; height:100%; justify-content:center; align-items:center; color:#666; font-weight:bold;">Lista vacía</div>';
-                return;
-            }
-
-            let html = '';
-            [...listaTrabajo].reverse().forEach((item, indexReverse) => {
-                const indexReal = listaTrabajo.length - 1 - indexReverse;
-                html += `
-                    <div class="item-lista-guardada">
-                        <div class="item-lista-info">
-                            <span class="item-desc-modal">${item.descripcion}</span>
-                            <span class="item-detalle-modal">EAN: ${item.ean}</span>
-                        </div>
-                        <div style="display:flex; align-items:center;">
-                            <span class="item-cant-modal">x${item.cantidad}</span>
-                            <button class="btn-borrar-item" onclick="eliminarItemLista(${indexReal})">✕</button>
-                        </div>
-                    </div>
-                `;
-            });
-            contenedor.innerHTML = html;
-        }
-
-        function eliminarItemLista(index) {
-            listaTrabajo.splice(index, 1);
-            localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-            renderizarLista();
-        }
-
-        function borrarListaActual() {
-            if(confirm('¿Seguro que quieres VACIAR toda la lista de trabajo?')) {
-                listaTrabajo = [];
-                localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-                renderizarLista();
-            }
-        }
-
-        function exportarListaCSV() {
-            if(listaTrabajo.length === 0) {
-                alert("No hay datos para exportar.");
-                return;
-            }
-            
-            let csv = "\ufeffEAN;Descripcion;Cantidad\n";
-            listaTrabajo.forEach(item => {
-                csv += `${item.ean};${item.descripcion};${item.cantidad}\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            
-            const d = new Date();
-            const fechaTxt = `${d.getDate()}_${d.getMonth()+1}_${d.getHours()}${d.getMinutes()}`;
-            
-            link.setAttribute("download", `Trabajo_${fechaTxt}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        window.onload = () => cargarInventario();
-    </script>
-</body>
-</html>
