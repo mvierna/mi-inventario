@@ -27,6 +27,23 @@
             min-height: 100dvh; overflow-y: auto; 
         }
         
+        /* BLOQUEO DE ROTACIÓN VISUAL */
+        #aviso-rotacion {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100dvh;
+            background: #f4f6f8; color: #111;
+            z-index: 9999;
+            flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 20px;
+        }
+        #aviso-rotacion h2 { color: #dc3545; font-size: 22px; margin-bottom: 8px; }
+        
+        @media screen and (orientation: landscape) {
+            body > *:not(#aviso-rotacion) { display: none !important; }
+            #aviso-rotacion { display: flex; }
+        }
+
         .cabecera-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
         h1 { margin: 0; font-size: 16px; font-weight: 800; }
         .controles-cabecera { display: flex; gap: 6px; }
@@ -55,7 +72,7 @@
         .etiqueta-stock { font-size: 12px; text-transform: uppercase; margin: 0; font-weight: bold; letter-spacing: 0.5px; opacity: 0.95; }
         .numero-stock { font-size: 46px; font-weight: 900; margin: 0; line-height: 1; color: #ffffff; }
 
-        /* Estilos de Acción (Un solo botón naranja) */
+        /* Estilos de Acción */
         .panel-acciones { margin-top: 8px; }
         .btn-accion-unica { 
             width: 100%; padding: 14px; background-color: #ff9800; color: white; border: none; 
@@ -118,6 +135,11 @@
 </head>
 <body>
 
+    <div id="aviso-rotacion">
+        <h2>⚠️ Gira el dispositivo</h2>
+        <p>El escáner de códigos y la interfaz solo funcionan correctamente en modo vertical.</p>
+    </div>
+
     <div class="cabecera-top">
         <h1>Inventario</h1>
         <div class="controles-cabecera">
@@ -129,6 +151,7 @@
     <div id="estado">Conectando...</div>
 
     <div id="video-container">
+        <!-- Controles de vídeo rediseñados -->
         <div id="controles-video">
             <select id="selector-camara" onchange="cambiarCamaraManual()">
                 <option value="">Detectando cámaras...</option>
@@ -146,7 +169,7 @@
 
     <div class="caja-interfaz">
         <div class="grupo-input-camara">
-            <!-- Input sin bloqueo numérico para permitir la lectura OCR de iOS y búsquedas por nombre -->
+            <!-- INPUT LIBRE: Sin bloqueo numérico para permitir OCR en iOS y descripciones -->
             <input type="text" id="inputCodigo" placeholder="Escribe, escanea o EAN..." autocomplete="off">
             <button class="btn-camara-cuadrado" onclick="iniciarEscanerSegunOS()">📷 CÁMARA</button>
         </div>
@@ -184,7 +207,7 @@
 
         const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
-        // Al tocar el input: cerramos cámara y adaptamos interfaz
+        // Al tocar el input: cerramos cámara y adaptamos interfaz (pistola bluetooth/teclado numérico)
         inputCodigo.addEventListener('focus', () => {
             document.body.classList.add('modo-teclado');
             cerrarCamara();
@@ -306,6 +329,7 @@
             setTimeout(() => inputCodigo.blur(), 100);
         }
 
+        // VISTA ARTÍCULO CONOCIDO
         function mostrarArticuloCompleto(ean) {
             let art = inventario[ean];
             resultadoDiv.innerHTML = `
@@ -336,6 +360,7 @@
             inputCodigo.value = ""; 
         }
 
+        // VISTA ARTÍCULO DESCONOCIDO
         function mostrarArticuloDesconocido(termino) {
             resultadoDiv.innerHTML = `
                 <h3 style="color: #dc3545; margin: 0 0 4px 0;">No encontrado</h3>
@@ -352,6 +377,7 @@
             inputCodigo.value = ""; 
         }
 
+        // LÓGICA DE AÑADIR A LA LISTA
         function mostrarInputCantidad(identificador, esDesconocido) {
             document.getElementById('panel-botones-accion').style.display = 'none';
             const panelCant = document.getElementById('panel-cantidad-accion');
@@ -392,6 +418,7 @@
                 }, 2000);
             }
             
+            // Restaurar estado visual y control
             resultadoDiv.innerHTML = "Esperando código...";
             inputCodigo.value = "";
             
@@ -402,6 +429,7 @@
             }
         }
 
+        // CÁMARA (ZXing)
         function procesarResultadoZXing(result, err) {
             if (result) {
                 ultimoModo = 'camara';
@@ -432,7 +460,7 @@
                 const devices = await codeReader.listVideoInputDevices();
                 const selector = document.getElementById('selector-camara');
                 
-                // Rellenar el selector para dispositivos con múltiples cámaras (ej. iPhone 11)
+                // Rellenar el selector para dispositivos con múltiples cámaras
                 if (selector.options.length <= 1 && devices.length > 0) {
                     selector.innerHTML = '';
                     devices.forEach((device, index) => {
@@ -498,7 +526,7 @@
             };
         }
 
-        // EVENTO TECLADO FÍSICO / PISTOLA / LECTURA NATIVA iOS
+        // EVENTO TECLADO FÍSICO / PISTOLA
         inputCodigo.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -527,6 +555,7 @@
             }
 
             let html = '';
+            // Renderizamos del último al primero (para ver lo más reciente arriba)
             [...listaTrabajo].reverse().forEach((item, indexReverse) => {
                 const indexReal = listaTrabajo.length - 1 - indexReverse;
                 html += `
@@ -565,6 +594,7 @@
                 return;
             }
             
+            // UTF-8 BOM para acentos en Excel y ; como separador
             let csv = "\ufeffEAN;Descripcion;Cantidad\n";
             listaTrabajo.forEach(item => {
                 csv += `${item.ean};${item.descripcion};${item.cantidad}\n`;
@@ -574,6 +604,7 @@
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
             
+            // Formatear fecha para el nombre del archivo
             const d = new Date();
             const fechaTxt = `${d.getDate()}_${d.getMonth()+1}_${d.getHours()}${d.getMinutes()}`;
             
