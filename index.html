@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Inventario Hipermercado</title>
 
+    <!-- Configuración PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#28a745">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,6 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Inventario">
     <link rel="apple-touch-icon" href="icono.png">
 
+    <!-- Librerías externas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
 
@@ -25,6 +27,7 @@
             min-height: 100dvh; overflow-y: auto; 
         }
         
+        /* BLOQUEO DE ROTACIÓN VISUAL */
         #aviso-rotacion {
             display: none;
             position: fixed;
@@ -98,14 +101,26 @@
         #selector-camara { width: 100%; max-width: 200px; padding: 6px; border-radius: 4px; font-size: 12px; background: white; color: black; border: 1px solid #ccc; }
         video { width: 100%; height: auto; display: block; object-fit: cover; }
 
+        /* Contenedor Inferior Rediseñado */
         .caja-interfaz { padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
         
+        .btn-teclado { flex: 0 0 50px; height: 50px; background-color: #6c757d; color: white; border: none; border-radius: 6px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 16px; text-align: center; border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; }
-        .btn-camara-cuadrado { flex: 0 0 100px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
+        .btn-camara-cuadrado { flex: 0 0 90px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
+
+        /* Estilos del Teclado Virtual Integrado */
+        #teclado-virtual { display: none; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; background: #f8f9fa; padding: 8px; border-radius: 8px; border: 1px solid #dee2e6; }
+        .tecla-v { height: 55px; font-size: 24px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; }
+        .tecla-v:active { transform: translateY(2px); box-shadow: none; background: #e9ecef; }
+        .tecla-accion { background: #dc3545; color: white; border-color: #b02a37; box-shadow: 0 2px 0 #b02a37; }
+        .tecla-accion:active { background: #c82333; }
+        .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; grid-column: span 2; }
+        .tecla-ok:active { background: #218838; }
 
         body.modo-teclado .cabecera-top, body.modo-teclado #estado { display: none !important; }
 
+        /* Modal Listas */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .modal-content { background: #f4f6f8; width: 92%; max-height: 85dvh; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -160,8 +175,27 @@
 
     <div class="caja-interfaz">
         <div class="grupo-input-camara">
+            <!-- Botón para alternar el teclado virtual -->
+            <button class="btn-teclado" onclick="toggleTecladoVirtual()">🔢</button>
+            <!-- Input principal -->
             <input type="text" id="inputCodigo" placeholder="Escribe, escanea o EAN..." autocomplete="off">
             <button class="btn-camara-cuadrado" onclick="iniciarEscanerSegunOS()">📷 CÁMARA</button>
+        </div>
+        
+        <!-- TECLADO VIRTUAL INDEPENDIENTE -->
+        <div id="teclado-virtual">
+            <button class="tecla-v" onclick="pulsarTecla('7')">7</button>
+            <button class="tecla-v" onclick="pulsarTecla('8')">8</button>
+            <button class="tecla-v" onclick="pulsarTecla('9')">9</button>
+            <button class="tecla-v" onclick="pulsarTecla('4')">4</button>
+            <button class="tecla-v" onclick="pulsarTecla('5')">5</button>
+            <button class="tecla-v" onclick="pulsarTecla('6')">6</button>
+            <button class="tecla-v" onclick="pulsarTecla('1')">1</button>
+            <button class="tecla-v" onclick="pulsarTecla('2')">2</button>
+            <button class="tecla-v" onclick="pulsarTecla('3')">3</button>
+            <button class="tecla-v tecla-accion" onclick="pulsarTecla('DEL')">⌫</button>
+            <button class="tecla-v" onclick="pulsarTecla('0')">0</button>
+            <button class="tecla-v tecla-ok" onclick="pulsarTecla('ENTER')">BUSCAR</button>
         </div>
     </div>
 
@@ -191,12 +225,46 @@
         const resultadoDiv = document.getElementById('resultado');
         const estadoDiv = document.getElementById('estado');
         const fileInput = document.getElementById('captura-foto');
+        const tecladoVirtual = document.getElementById('teclado-virtual');
 
+        // LÓGICA DEL TECLADO VIRTUAL
+        function toggleTecladoVirtual() {
+            if (tecladoVirtual.style.display === 'grid') {
+                tecladoVirtual.style.display = 'none';
+                document.body.classList.remove('modo-teclado');
+            } else {
+                cerrarCamara();
+                inputCodigo.blur(); // Oculta el teclado nativo del móvil
+                tecladoVirtual.style.display = 'grid';
+                document.body.classList.add('modo-teclado');
+            }
+        }
+
+        function pulsarTecla(valor) {
+            if (valor === 'DEL') {
+                inputCodigo.value = inputCodigo.value.slice(0, -1);
+            } else if (valor === 'ENTER') {
+                ultimoModo = 'teclado';
+                procesarBusqueda(inputCodigo.value.trim());
+                tecladoVirtual.style.display = 'none'; // Auto-ocultar al buscar
+                document.body.classList.remove('modo-teclado');
+            } else {
+                inputCodigo.value += valor;
+            }
+        }
+
+        // Si el usuario toca el input manualmente, ocultamos el teclado virtual para que salga el del móvil
         inputCodigo.addEventListener('focus', () => {
             document.body.classList.add('modo-teclado');
+            tecladoVirtual.style.display = 'none';
             cerrarCamara();
         });
-        inputCodigo.addEventListener('blur', () => document.body.classList.remove('modo-teclado'));
+        
+        inputCodigo.addEventListener('blur', () => {
+            if (tecladoVirtual.style.display !== 'grid') {
+                document.body.classList.remove('modo-teclado');
+            }
+        });
 
         function confirmarEscaneo() {
             try {
@@ -405,7 +473,7 @@
             if (ultimoModo === 'camara') {
                 iniciarEscanerSegunOS();
             } else {
-                inputCodigo.focus();
+                inputCodigo.focus(); // Si usamos pistola física, que vuelva el foco
             }
         }
 
@@ -420,12 +488,14 @@
 
         function iniciarEscanerSegunOS() {
             ultimoModo = 'camara';
-            iniciarCamaraVideo(); 
+            if (esIOS && !camaraManualId) { fileInput.click(); } 
+            else { iniciarCamaraVideo(); }
         }
 
         async function iniciarCamaraVideo() {
             const container = document.getElementById('video-container');
             container.style.display = 'block';
+            tecladoVirtual.style.display = 'none'; // Ocultar teclado virtual al abrir cámara
 
             if (!codeReader) {
                 const hints = new Map();
@@ -450,7 +520,12 @@
                 let selected = camaraManualId;
                 
                 if (!selected && devices.length > 0) {
-                    selected = devices[devices.length - 1].deviceId;
+                    if (esIOS) {
+                        const camarasTraseras = devices.filter(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('trasera'));
+                        selected = camarasTraseras.length > 0 ? camarasTraseras[0].deviceId : devices[devices.length - 1].deviceId;
+                    } else {
+                        selected = devices[devices.length - 1].deviceId;
+                    }
                 }
 
                 if (selected) {

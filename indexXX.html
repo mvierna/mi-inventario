@@ -192,8 +192,6 @@
         const estadoDiv = document.getElementById('estado');
         const fileInput = document.getElementById('captura-foto');
 
-        const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
-
         inputCodigo.addEventListener('focus', () => {
             document.body.classList.add('modo-teclado');
             cerrarCamara();
@@ -422,8 +420,7 @@
 
         function iniciarEscanerSegunOS() {
             ultimoModo = 'camara';
-            if (esIOS && !camaraManualId) { fileInput.click(); } 
-            else { iniciarCamaraVideo(); }
+            iniciarCamaraVideo(); 
         }
 
         async function iniciarCamaraVideo() {
@@ -453,12 +450,7 @@
                 let selected = camaraManualId;
                 
                 if (!selected && devices.length > 0) {
-                    if (esIOS) {
-                        const camarasTraseras = devices.filter(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('trasera'));
-                        selected = camarasTraseras.length > 0 ? camarasTraseras[0].deviceId : devices[devices.length - 1].deviceId;
-                    } else {
-                        selected = devices[devices.length - 1].deviceId;
-                    }
+                    selected = devices[devices.length - 1].deviceId;
                 }
 
                 if (selected) {
