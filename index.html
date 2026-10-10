@@ -105,7 +105,7 @@
         #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 16px; text-align: center; border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; }
         .btn-camara-cuadrado { flex: 0 0 90px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
 
-        /* TECLADO VIRTUAL DE 4 COLUMNAS CON ACCIONES A LA DERECHA */
+        /* TECLADO VIRTUAL DE 4 COLUMNAS */
         #teclado-virtual { display: none; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; background: #f8f9fa; padding: 8px; border-radius: 8px; border: 1px solid #dee2e6; }
         .tecla-v { height: 55px; font-size: 24px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
         .tecla-v:active { transform: translateY(2px); box-shadow: none; background: #e9ecef; }
@@ -116,14 +116,14 @@
 
         body.modo-teclado .cabecera-top, body.modo-teclado #estado { display: none !important; }
 
+        /* Modal Listas */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .modal-content { background: #f4f6f8; width: 92%; max-height: 85dvh; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .modal-header h2 { margin: 0; font-size: 18px; color: #111; }
         .btn-cerrar-modal { background: #e2e8f0; border: none; border-radius: 50%; width: 32px; height: 32px; font-weight: bold; font-size: 16px; cursor: pointer; }
         
-        .input-email-config { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 12px; font-size: 14px; outline: none; }
-        .modal-body { overflow-y: auto; flex: 1; background: white; border-radius: 8px; border: 1px solid #dee2e6; }
+        .modal-body { overflow-y: auto; flex: 1; background: white; border-radius: 8px; border: 1px solid #dee2e6; margin-bottom: 10px; }
         .item-lista-guardada { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #dee2e6; align-items: center; }
         .item-lista-guardada:last-child { border-bottom: none; }
         .item-lista-info { display: flex; flex-direction: column; text-align: left; flex: 1;}
@@ -132,8 +132,12 @@
         .item-cant-modal { font-size: 20px; font-weight: 900; color: #ff9800; margin-left: 10px; margin-right: 15px; }
         .btn-borrar-item { background: #dc3545; color: white; border: none; border-radius: 8px; padding: 10px 14px; font-weight: bold; font-size: 16px;}
         
-        .modal-footer { margin-top: 12px; display: flex; gap: 6px; justify-content: space-between; }
-        .btn-footer { flex: 1; padding: 12px 6px; border: none; border-radius: 8px; font-weight: 900; font-size: 14px; color: white; cursor: pointer; text-transform: uppercase; }
+        .modal-footer { display: flex; gap: 6px; justify-content: space-between; }
+        .btn-footer { flex: 1; padding: 14px 6px; border: none; border-radius: 8px; font-weight: 900; font-size: 14px; color: white; cursor: pointer; text-transform: uppercase; }
+        
+        /* Botón animado de sincronización */
+        .btn-sync-drive { background: #007bff; transition: background 0.3s; }
+        .btn-sync-drive.loading { background: #6c757d; pointer-events: none; opacity: 0.8; }
     </style>
 </head>
 <body>
@@ -176,7 +180,6 @@
             <button class="btn-camara-cuadrado" onclick="iniciarEscanerSegunOS()">📷 CÁMARA</button>
         </div>
         
-        <!-- TECLADO VIRTUAL DE 4 COLUMNAS -->
         <div id="teclado-virtual">
             <button class="tecla-v" onclick="pulsarTecla('7')">7</button>
             <button class="tecla-v" onclick="pulsarTecla('8')">8</button>
@@ -204,23 +207,25 @@
                 <button class="btn-cerrar-modal" onclick="cerrarModalListas()">✕</button>
             </div>
             
-            <input type="email" id="email-destino-input" class="input-email-config" placeholder="Email predeterminado (ej: jefe@tienda.com)..." onchange="guardarEmail()">
-            
             <div id="modal-body-listas" class="modal-body"></div>
             
             <div class="modal-footer">
-                <button class="btn-footer" style="background: #dc3545; flex: 0.5;" onclick="borrarListaActual()">🗑</button>
-                <button class="btn-footer" style="background: #17a2b8;" onclick="enviarPorEmail()">📧 Correo</button>
-                <button class="btn-footer" style="background: #28a745;" onclick="exportarListaCSV()">📥 CSV</button>
+                <button class="btn-footer" style="background: #dc3545; flex: 0.3;" onclick="borrarListaActual()">🗑</button>
+                <button id="btn-drive" class="btn-footer btn-sync-drive" onclick="enviarADrive()">☁️ A Drive</button>
+                <button class="btn-footer" style="background: #28a745; flex: 0.8;" onclick="exportarListaCSV()">📥 CSV</button>
             </div>
         </div>
     </div>
 
     <script>
+        // ==========================================
+        // ⚠️ PEGA AQUÍ LA URL DE TU APPS SCRIPT
+        // ==========================================
+        const URL_GOOGLE_APPS_SCRIPT = "https://script.google.com/a/macros/leon.leclerc/s/AKfycbxPkCFJCMjXSeGU8gnGGmKIf7vCDbW5_VEfwOTypRTulj1a-5JD2w8IeJUQaFSRDSiq/exec";
+
         let inventario = {};
         let codeReader = null;
         let camaraManualId = localStorage.getItem('camaraPreferida') || null; 
-        let emailGuardado = localStorage.getItem('inventarioEmailDestino') || '';
         
         let ultimoModo = 'teclado'; 
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
@@ -234,42 +239,47 @@
         const fileInput = document.getElementById('captura-foto');
         const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
-        document.getElementById('email-destino-input').value = emailGuardado;
-
-        function guardarEmail() {
-            emailGuardado = document.getElementById('email-destino-input').value.trim();
-            localStorage.setItem('inventarioEmailDestino', emailGuardado);
-        }
-
-        // --- LÓGICA DE ENVÍO POR EMAIL MEJORADA PARA EXCEL (EAN, Cantidad, Descripcion) ---
-        function enviarPorEmail() {
+        // --- NUEVA LÓGICA DE SINCRONIZACIÓN CON GOOGLE DRIVE ---
+        async function enviarADrive() {
             if (listaTrabajo.length === 0) {
                 alert("La lista está vacía.");
                 return;
             }
-            if (!emailGuardado) {
-                alert("Por favor, introduce un correo electrónico en la casilla de arriba primero.");
-                document.getElementById('email-destino-input').focus();
+            if (URL_GOOGLE_APPS_SCRIPT === "PEGA_TU_URL_AQUÍ") {
+                alert("Error: Falla la conexión. Debes configurar la URL de Google Apps Script en el código index.html");
                 return;
             }
 
-            // Utilizamos punto y coma (;) como separador para compatibilidad europea en Excel
-            let bodyData = "EAN;CANTIDAD;DESCRIPCION\n";
-            listaTrabajo.forEach(item => {
-                bodyData += `${item.ean};${item.cantidad};${item.descripcion}\n`;
-            });
+            const btnDrive = document.getElementById('btn-drive');
+            btnDrive.classList.add('loading');
+            btnDrive.innerText = "⏳ Enviando...";
 
-            const d = new Date();
-            const fechaTxt = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} a las ${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
-            
-            const asunto = encodeURIComponent(`Inventario - Lista de trabajo (${fechaTxt})`);
-            
-            // Instrucciones claras para el receptor
-            const instrucciones = "Hola,\n\nAdjunto los datos del inventario.\n\nPara pasarlo a Excel:\n1. Copia todo el bloque de texto inferior.\n2. Pégalo en la celda A1 de un Excel vacío.\n3. Si no se separa en columnas automáticamente, ve a la pestaña 'Datos' > 'Texto en columnas' > 'Delimitado' y selecciona 'Punto y coma'.\n\n------------------------\n\n";
-            
-            const cuerpo = encodeURIComponent(instrucciones + bodyData);
-            
-            window.location.href = `mailto:${emailGuardado}?subject=${asunto}&body=${cuerpo}`;
+            try {
+                // Se envía como text/plain para evitar bloqueos CORS del navegador
+                const response = await fetch(URL_GOOGLE_APPS_SCRIPT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(listaTrabajo)
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === "success") {
+                    alert("¡Datos sincronizados correctamente con Google Drive!");
+                    if(confirm("¿Quieres vaciar la lista de trabajo ahora que ya está guardada?")) {
+                        listaTrabajo = [];
+                        localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
+                        renderizarLista();
+                    }
+                } else {
+                    alert("Error en el servidor de Drive: " + result.message);
+                }
+            } catch (error) {
+                alert("Error de conexión. Comprueba que tienes internet. Detalle: " + error);
+            } finally {
+                btnDrive.classList.remove('loading');
+                btnDrive.innerText = "☁️ A Drive";
+            }
         }
 
         // LÓGICA DEL TECLADO VIRTUAL MULTI-CAMPO
