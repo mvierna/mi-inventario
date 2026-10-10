@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Inventario Hipermercado</title>
 
-    <!-- Configuración PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#28a745">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,7 +12,6 @@
     <meta name="apple-mobile-web-app-title" content="Inventario">
     <link rel="apple-touch-icon" href="icono.png">
 
-    <!-- Librerías externas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
 
@@ -27,7 +25,6 @@
             min-height: 100dvh; overflow-y: auto; 
         }
         
-        /* BLOQUEO DE ROTACIÓN VISUAL */
         #aviso-rotacion {
             display: none;
             position: fixed;
@@ -82,7 +79,7 @@
         .panel-cantidad { display: none; flex-direction: row; gap: 8px; margin-top: 8px; }
         .input-cantidad { 
             flex: 1; padding: 12px; border: 3px solid #ff9800; border-radius: 8px; 
-            font-size: 22px; text-align: center; font-weight: bold; outline: none;
+            font-size: 22px; text-align: center; font-weight: bold; outline: none; background-color: white; color: #111;
         }
         .btn-confirmar { 
             padding: 12px 24px; background-color: #28a745; color: white; 
@@ -101,7 +98,6 @@
         #selector-camara { width: 100%; max-width: 200px; padding: 6px; border-radius: 4px; font-size: 12px; background: white; color: black; border: 1px solid #ccc; }
         video { width: 100%; height: auto; display: block; object-fit: cover; }
 
-        /* Contenedor Inferior Rediseñado */
         .caja-interfaz { padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
         
@@ -109,18 +105,17 @@
         #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 16px; text-align: center; border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; }
         .btn-camara-cuadrado { flex: 0 0 90px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
 
-        /* Estilos del Teclado Virtual Integrado */
-        #teclado-virtual { display: none; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; background: #f8f9fa; padding: 8px; border-radius: 8px; border: 1px solid #dee2e6; }
-        .tecla-v { height: 55px; font-size: 24px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; }
+        /* TECLADO VIRTUAL DE 4 COLUMNAS CON ACCIONES A LA DERECHA */
+        #teclado-virtual { display: none; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; background: #f8f9fa; padding: 8px; border-radius: 8px; border: 1px solid #dee2e6; }
+        .tecla-v { height: 55px; font-size: 24px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
         .tecla-v:active { transform: translateY(2px); box-shadow: none; background: #e9ecef; }
-        .tecla-accion { background: #dc3545; color: white; border-color: #b02a37; box-shadow: 0 2px 0 #b02a37; }
+        .tecla-accion { background: #dc3545; color: white; border-color: #b02a37; box-shadow: 0 2px 0 #b02a37; font-size: 18px; grid-column: 4; grid-row: 1 / span 2; height: 100%; }
         .tecla-accion:active { background: #c82333; }
-        .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; grid-column: span 2; }
+        .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; font-size: 16px; grid-column: 4; grid-row: 3 / span 2; height: 100%; }
         .tecla-ok:active { background: #218838; }
 
         body.modo-teclado .cabecera-top, body.modo-teclado #estado { display: none !important; }
 
-        /* Modal Listas */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .modal-content { background: #f4f6f8; width: 92%; max-height: 85dvh; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -149,520 +144,4 @@
 
     <div class="cabecera-top">
         <h1>Inventario</h1>
-        <div class="controles-cabecera">
-            <button class="btn-listas" onclick="verListas()">📋 Lista</button>
-            <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sinc</button>
-        </div>
-    </div>
-
-    <div id="estado">Conectando...</div>
-
-    <div id="video-container">
-        <div id="controles-video">
-            <select id="selector-camara" onchange="cambiarCamaraManual()">
-                <option value="">Detectando cámaras...</option>
-            </select>
-            <button onclick="cerrarCamara()" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">✕ Cerrar</button>
-        </div>
-        <video id="video-preview" playsinline autoplay muted></video>
-    </div>
-
-    <div id="resultado" class="resultado">
-        Esperando código...
-    </div>
-
-    <input type="file" id="captura-foto" accept="image/*" capture="environment" style="display: none;" onchange="procesarFotoDeCamara(event)">
-
-    <div class="caja-interfaz">
-        <div class="grupo-input-camara">
-            <!-- Botón para alternar el teclado virtual -->
-            <button class="btn-teclado" onclick="toggleTecladoVirtual()">🔢</button>
-            <!-- Input principal -->
-            <input type="text" id="inputCodigo" placeholder="Escribe, escanea o EAN..." autocomplete="off">
-            <button class="btn-camara-cuadrado" onclick="iniciarEscanerSegunOS()">📷 CÁMARA</button>
-        </div>
-        
-        <!-- TECLADO VIRTUAL INDEPENDIENTE -->
-        <div id="teclado-virtual">
-            <button class="tecla-v" onclick="pulsarTecla('7')">7</button>
-            <button class="tecla-v" onclick="pulsarTecla('8')">8</button>
-            <button class="tecla-v" onclick="pulsarTecla('9')">9</button>
-            <button class="tecla-v" onclick="pulsarTecla('4')">4</button>
-            <button class="tecla-v" onclick="pulsarTecla('5')">5</button>
-            <button class="tecla-v" onclick="pulsarTecla('6')">6</button>
-            <button class="tecla-v" onclick="pulsarTecla('1')">1</button>
-            <button class="tecla-v" onclick="pulsarTecla('2')">2</button>
-            <button class="tecla-v" onclick="pulsarTecla('3')">3</button>
-            <button class="tecla-v tecla-accion" onclick="pulsarTecla('DEL')">⌫</button>
-            <button class="tecla-v" onclick="pulsarTecla('0')">0</button>
-            <button class="tecla-v tecla-ok" onclick="pulsarTecla('ENTER')">BUSCAR</button>
-        </div>
-    </div>
-
-    <div id="modalListas" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Lista de Trabajo</h2>
-                <button class="btn-cerrar-modal" onclick="cerrarModalListas()">✕</button>
-            </div>
-            <div id="modal-body-listas" class="modal-body"></div>
-            <div class="modal-footer">
-                <button class="btn-footer" style="background: #dc3545;" onclick="borrarListaActual()">🗑 Vaciar</button>
-                <button class="btn-footer" style="background: #28a745;" onclick="exportarListaCSV()">📤 CSV</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let inventario = {};
-        let codeReader = null;
-        let camaraManualId = localStorage.getItem('camaraPreferida') || null; 
-        
-        let ultimoModo = 'teclado'; 
-        let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
-
-        const inputCodigo = document.getElementById('inputCodigo');
-        const resultadoDiv = document.getElementById('resultado');
-        const estadoDiv = document.getElementById('estado');
-        const fileInput = document.getElementById('captura-foto');
-        const tecladoVirtual = document.getElementById('teclado-virtual');
-
-        // LÓGICA DEL TECLADO VIRTUAL
-        function toggleTecladoVirtual() {
-            if (tecladoVirtual.style.display === 'grid') {
-                tecladoVirtual.style.display = 'none';
-                document.body.classList.remove('modo-teclado');
-            } else {
-                cerrarCamara();
-                inputCodigo.blur(); // Oculta el teclado nativo del móvil
-                tecladoVirtual.style.display = 'grid';
-                document.body.classList.add('modo-teclado');
-            }
-        }
-
-        function pulsarTecla(valor) {
-            if (valor === 'DEL') {
-                inputCodigo.value = inputCodigo.value.slice(0, -1);
-            } else if (valor === 'ENTER') {
-                ultimoModo = 'teclado';
-                procesarBusqueda(inputCodigo.value.trim());
-                tecladoVirtual.style.display = 'none'; // Auto-ocultar al buscar
-                document.body.classList.remove('modo-teclado');
-            } else {
-                inputCodigo.value += valor;
-            }
-        }
-
-        // Si el usuario toca el input manualmente, ocultamos el teclado virtual para que salga el del móvil
-        inputCodigo.addEventListener('focus', () => {
-            document.body.classList.add('modo-teclado');
-            tecladoVirtual.style.display = 'none';
-            cerrarCamara();
-        });
-        
-        inputCodigo.addEventListener('blur', () => {
-            if (tecladoVirtual.style.display !== 'grid') {
-                document.body.classList.remove('modo-teclado');
-            }
-        });
-
-        function confirmarEscaneo() {
-            try {
-                if (navigator.vibrate) navigator.vibrate(100);
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (AudioCtx) {
-                    const ctx = new AudioCtx();
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(880, ctx.currentTime);
-                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.12);
-                }
-            } catch (e) {}
-        }
-
-        function cargarInventario() {
-            estadoDiv.innerHTML = "Sincronizando...";
-            estadoDiv.style.color = "blue";
-            const url = 'TIENDA.csv?' + new Date().getTime();
-
-            fetch(url)
-                .then(response => {
-                    const lastModifiedHeader = response.headers.get('Last-Modified');
-                    const fechaReal = lastModifiedHeader ? new Date(lastModifiedHeader) : new Date();
-                    return response.text().then(texto => ({ texto, fechaReal }));
-                })
-                .then(({ texto, fechaReal }) => {
-                    Papa.parse(texto, {
-                        header: false, delimiter: ";", skipEmptyLines: true,
-                        complete: function(results) {
-                            inventario = {};
-                            let contador = 0;
-                            results.data.forEach(fila => {
-                                if(fila.length >= 3) {
-                                    let ean = fila[0] ? fila[0].trim() : "";
-                                    let desc = fila[1] ? fila[1].trim() : "";
-                                    let stock = fila[2] ? fila[2].trim() : "";
-                                    let val3 = fila[3] ? fila[3].trim() : "-";
-                                    let val4 = fila[4] ? fila[4].trim() : "-";
-                                    let precio = "-", rayon = "-";
-
-                                    if (/[a-zA-Z]/.test(val3) || val3.includes(" ")) { rayon = val3; precio = val4; } 
-                                    else { precio = val3; rayon = val4; }
-                                    
-                                    let fecha = fila[5] ? fila[5].trim() : "-";
-                                    let ventas = (fila.length > 6 && fila[6]) ? fila[6].trim() : "0";
-                                    
-                                    if(ean) {
-                                        inventario[ean] = { descripcion: desc, stock, precio, rayon, fecha, ventas };
-                                        contador++;
-                                    }
-                                }
-                            });
-                            
-                            const d = fechaReal;
-                            const fechaFmt = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-                            estadoDiv.innerHTML = `Base actualizada: ${contador} items <span class="texto-fecha">Últ. Sinc: ${fechaFmt}</span>`;
-                            estadoDiv.style.color = "#28a745";
-                        }
-                    });
-                })
-                .catch(err => {
-                    estadoDiv.innerText = "Error cargando CSV.";
-                    estadoDiv.style.color = "red";
-                });
-        }
-
-        function procesarBusqueda(terminoBusqueda) {
-            let termino = terminoBusqueda.trim().toUpperCase();
-            if (!termino) return;
-
-            let eanDetectado = null;
-            if (inventario.hasOwnProperty(termino)) { eanDetectado = termino; } 
-            else if (/^\d+$/.test(termino)) {
-                let termLimpio = termino.replace(/^0+/, '');
-                if (inventario.hasOwnProperty(termLimpio)) eanDetectado = termLimpio; 
-                else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) eanDetectado = termLimpio.padStart(12, '0'); 
-                else if (inventario.hasOwnProperty(termLimpio.padStart(13, '0'))) eanDetectado = termLimpio.padStart(13, '0'); 
-            }
-
-            if (eanDetectado) {
-                mostrarArticuloCompleto(eanDetectado);
-            } else {
-                let palabras = termino.split(" ").filter(t => t.length > 0);
-                let coincidencias = [];
-                for (const [ean, articulo] of Object.entries(inventario)) {
-                    if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) {
-                        coincidencias.push({ ean: ean, articulo: articulo });
-                    }
-                }
-
-                if (coincidencias.length === 0) {
-                    mostrarArticuloDesconocido(termino);
-                } else if (coincidencias.length === 1) {
-                    mostrarArticuloCompleto(coincidencias[0].ean);
-                } else {
-                    let htmlLista = `<h3 style="margin: 0 0 8px 0; font-size: 14px; color: #007bff;">${coincidencias.length} encontrados:</h3><ul class="lista-resultados">`;
-                    coincidencias.forEach(c => {
-                        htmlLista += `<li class="item-resultado" onclick="mostrarArticuloCompleto('${c.ean}')">
-                            <span class="item-desc">${c.articulo.descripcion}</span>
-                            <span class="item-ean">EAN: ${c.ean}</span></li>`;
-                    });
-                    htmlLista += `</ul>`;
-                    resultadoDiv.innerHTML = htmlLista;
-                    inputCodigo.value = ""; 
-                }
-            }
-            
-            setTimeout(() => inputCodigo.blur(), 100);
-        }
-
-        function mostrarArticuloCompleto(ean) {
-            let art = inventario[ean];
-            resultadoDiv.innerHTML = `
-                <div style="display: flex; flex-direction: column; gap: 2px;">
-                    <p class="titulo-encontrado">¡Artículo encontrado!</p>
-                    <p class="texto-ean">EAN: ${ean}</p>
-                    <div class="descripcion-producto">${art.descripcion}</div>
-                </div>
-                <div class="panel-secundario">
-                    <div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${art.rayon}</span></div>
-                    <div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${art.precio}</span></div>
-                    <div class="item-secundario"><span class="etiqueta-secundaria">Últ. Recep.</span><span class="valor-secundario">${art.fecha}</span></div>
-                    <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${art.ventas}</span></div>
-                </div>
-                <div class="caja-stock">
-                    <p class="etiqueta-stock">STOCK DISPONIBLE</p>
-                    <p class="numero-stock">${art.stock}</p>
-                </div>
-                
-                <div id="panel-botones-accion" class="panel-acciones">
-                    <button class="btn-accion-unica" onclick="mostrarInputCantidad('${ean}', false)">+ Añadir Cantidad</button>
-                </div>
-                <div id="panel-cantidad-accion" class="panel-cantidad">
-                    <input type="number" id="input-cant-accion" class="input-cantidad" inputmode="numeric" pattern="[0-9]*" placeholder="Uds...">
-                    <button class="btn-confirmar" onclick="guardarEnLista('${ean}', false)">OK</button>
-                </div>
-            `;
-            inputCodigo.value = ""; 
-        }
-
-        function mostrarArticuloDesconocido(termino) {
-            resultadoDiv.innerHTML = `
-                <h3 style="color: #dc3545; margin: 0 0 4px 0;">No encontrado</h3>
-                <p style="font-size: 15px;">Lectura: <strong>${termino}</strong></p>
-                
-                <div id="panel-botones-accion" class="panel-acciones">
-                    <button class="btn-accion-unica" style="background-color: #6c757d;" onclick="mostrarInputCantidad('${termino}', true)">Forzar Añadir</button>
-                </div>
-                <div id="panel-cantidad-accion" class="panel-cantidad">
-                    <input type="number" id="input-cant-accion" class="input-cantidad" inputmode="numeric" pattern="[0-9]*" placeholder="Uds...">
-                    <button class="btn-confirmar" onclick="guardarEnLista('${termino}', true)">OK</button>
-                </div>
-            `;
-            inputCodigo.value = ""; 
-        }
-
-        function mostrarInputCantidad(identificador, esDesconocido) {
-            document.getElementById('panel-botones-accion').style.display = 'none';
-            const panelCant = document.getElementById('panel-cantidad-accion');
-            panelCant.style.display = 'flex';
-            
-            const inputCant = document.getElementById('input-cant-accion');
-            inputCant.focus(); 
-            
-            inputCant.onkeypress = function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    guardarEnLista(identificador, esDesconocido);
-                }
-            };
-        }
-
-        function guardarEnLista(identificador, esDesconocido) {
-            const inputCant = document.getElementById('input-cant-accion');
-            const cantidad = parseInt(inputCant.value) || 0;
-            
-            if (cantidad > 0) {
-                let desc = esDesconocido ? "DESCONOCIDO/FUERA SURTIDO" : inventario[identificador].descripcion;
-                
-                listaTrabajo.push({
-                    ean: identificador,
-                    descripcion: desc,
-                    cantidad: cantidad,
-                    fecha: new Date().toISOString()
-                });
-                
-                localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-                
-                estadoDiv.innerHTML = `¡Añadidas ${cantidad} uds!`;
-                estadoDiv.style.color = "#ff9800";
-                setTimeout(() => {
-                    estadoDiv.innerHTML = "Esperando código..."; 
-                    estadoDiv.style.color = "#28a745";
-                }, 2000);
-            }
-            
-            resultadoDiv.innerHTML = "Esperando código...";
-            inputCodigo.value = "";
-            
-            if (ultimoModo === 'camara') {
-                iniciarEscanerSegunOS();
-            } else {
-                inputCodigo.focus(); // Si usamos pistola física, que vuelva el foco
-            }
-        }
-
-        function procesarResultadoZXing(result, err) {
-            if (result) {
-                ultimoModo = 'camara';
-                confirmarEscaneo();
-                procesarBusqueda(result.text.trim());
-                cerrarCamara();
-            }
-        }
-
-        function iniciarEscanerSegunOS() {
-            ultimoModo = 'camara';
-            if (esIOS && !camaraManualId) { fileInput.click(); } 
-            else { iniciarCamaraVideo(); }
-        }
-
-        async function iniciarCamaraVideo() {
-            const container = document.getElementById('video-container');
-            container.style.display = 'block';
-            tecladoVirtual.style.display = 'none'; // Ocultar teclado virtual al abrir cámara
-
-            if (!codeReader) {
-                const hints = new Map();
-                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-                codeReader = new ZXing.BrowserBarcodeReader(hints);
-            }
-
-            try {
-                const devices = await codeReader.listVideoInputDevices();
-                const selector = document.getElementById('selector-camara');
-                
-                if (selector.options.length <= 1 && devices.length > 0) {
-                    selector.innerHTML = '';
-                    devices.forEach((device, index) => {
-                        const opt = document.createElement('option');
-                        opt.value = device.deviceId;
-                        opt.text = device.label || `Cámara ${index + 1}`;
-                        selector.appendChild(opt);
-                    });
-                }
-
-                let selected = camaraManualId;
-                
-                if (!selected && devices.length > 0) {
-                    if (esIOS) {
-                        const camarasTraseras = devices.filter(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('trasera'));
-                        selected = camarasTraseras.length > 0 ? camarasTraseras[0].deviceId : devices[devices.length - 1].deviceId;
-                    } else {
-                        selected = devices[devices.length - 1].deviceId;
-                    }
-                }
-
-                if (selected) {
-                    selector.value = selected; 
-                }
-
-                codeReader.decodeFromVideoDevice(selected, 'video-preview', (result, err) => {
-                    if (result) procesarResultadoZXing(result);
-                });
-            } catch (err) {
-                alert("Error cámara: " + err.message);
-                container.style.display = 'none';
-            }
-        }
-
-        function cambiarCamaraManual() {
-            const selector = document.getElementById('selector-camara');
-            camaraManualId = selector.value;
-            localStorage.setItem('camaraPreferida', camaraManualId);
-            cerrarCamara();
-            setTimeout(iniciarEscanerSegunOS, 300);
-        }
-
-        function cerrarCamara() {
-            if (codeReader) codeReader.reset();
-            document.getElementById('video-container').style.display = 'none';
-        }
-
-        function procesarFotoDeCamara(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            ultimoModo = 'camara';
-            resultadoDiv.innerHTML = "<p>Analizando...</p>";
-            
-            if (!codeReader) {
-                const hints = new Map();
-                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-                codeReader = new ZXing.BrowserBarcodeReader(hints);
-            }
-            
-            const imgURL = URL.createObjectURL(file);
-            const imgEl = document.createElement('img');
-            imgEl.src = imgURL;
-            imgEl.onload = () => {
-                codeReader.decodeFromImageElement(imgEl).then(res => {
-                    confirmarEscaneo();
-                    procesarBusqueda(res.text.trim());
-                }).catch(err => {
-                    resultadoDiv.innerHTML = `<h3 style="color:#dc3545;">Sin lectura</h3><p>Vuelve a intentarlo.</p>`;
-                });
-            };
-        }
-
-        inputCodigo.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                ultimoModo = 'teclado';
-                procesarBusqueda(inputCodigo.value.trim());
-            }
-        });
-
-        function verListas() {
-            document.getElementById('modalListas').style.display = 'flex';
-            renderizarLista();
-        }
-
-        function cerrarModalListas() {
-            document.getElementById('modalListas').style.display = 'none';
-            if (ultimoModo === 'teclado') inputCodigo.focus();
-        }
-
-        function renderizarLista() {
-            const contenedor = document.getElementById('modal-body-listas');
-            
-            if (listaTrabajo.length === 0) {
-                contenedor.innerHTML = '<div style="display:flex; height:100%; justify-content:center; align-items:center; color:#666; font-weight:bold;">Lista vacía</div>';
-                return;
-            }
-
-            let html = '';
-            [...listaTrabajo].reverse().forEach((item, indexReverse) => {
-                const indexReal = listaTrabajo.length - 1 - indexReverse;
-                html += `
-                    <div class="item-lista-guardada">
-                        <div class="item-lista-info">
-                            <span class="item-desc-modal">${item.descripcion}</span>
-                            <span class="item-detalle-modal">EAN: ${item.ean}</span>
-                        </div>
-                        <div style="display:flex; align-items:center;">
-                            <span class="item-cant-modal">x${item.cantidad}</span>
-                            <button class="btn-borrar-item" onclick="eliminarItemLista(${indexReal})">✕</button>
-                        </div>
-                    </div>
-                `;
-            });
-            contenedor.innerHTML = html;
-        }
-
-        function eliminarItemLista(index) {
-            listaTrabajo.splice(index, 1);
-            localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-            renderizarLista();
-        }
-
-        function borrarListaActual() {
-            if(confirm('¿Seguro que quieres VACIAR toda la lista de trabajo?')) {
-                listaTrabajo = [];
-                localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-                renderizarLista();
-            }
-        }
-
-        function exportarListaCSV() {
-            if(listaTrabajo.length === 0) {
-                alert("No hay datos para exportar.");
-                return;
-            }
-            
-            let csv = "\ufeffEAN;Descripcion;Cantidad\n";
-            listaTrabajo.forEach(item => {
-                csv += `${item.ean};${item.descripcion};${item.cantidad}\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            
-            const d = new Date();
-            const fechaTxt = `${d.getDate()}_${d.getMonth()+1}_${d.getHours()}${d.getMinutes()}`;
-            
-            link.setAttribute("download", `Trabajo_${fechaTxt}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        window.onload = () => cargarInventario();
-    </script>
-</body>
-</html>
+        <div class="
