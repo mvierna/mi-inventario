@@ -105,7 +105,7 @@
         #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 16px; text-align: center; border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; }
         .btn-camara-cuadrado { flex: 0 0 90px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
 
-        /* TECLADO VIRTUAL */
+        /* TECLADO VIRTUAL DE 4 COLUMNAS CON ACCIONES A LA DERECHA */
         #teclado-virtual { display: none; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; background: #f8f9fa; padding: 8px; border-radius: 8px; border: 1px solid #dee2e6; }
         .tecla-v { height: 55px; font-size: 24px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
         .tecla-v:active { transform: translateY(2px); box-shadow: none; background: #e9ecef; }
@@ -116,7 +116,6 @@
 
         body.modo-teclado .cabecera-top, body.modo-teclado #estado { display: none !important; }
 
-        /* Modal Listas */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .modal-content { background: #f4f6f8; width: 92%; max-height: 85dvh; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
@@ -242,7 +241,7 @@
             localStorage.setItem('inventarioEmailDestino', emailGuardado);
         }
 
-        // --- LÓGICA DE ENVÍO POR EMAIL (SEPARADO POR TABULACIONES PARA EXCEL) ---
+        // --- LÓGICA DE ENVÍO POR EMAIL MEJORADA PARA EXCEL (EAN, Cantidad, Descripcion) ---
         function enviarPorEmail() {
             if (listaTrabajo.length === 0) {
                 alert("La lista está vacía.");
@@ -254,17 +253,21 @@
                 return;
             }
 
-            // Usamos tabulaciones (\t) para que al pegar en Excel se reconozcan como celdas
-            let bodyData = "EAN\tCANTIDAD\tDESCRIPCION\n";
+            // Utilizamos punto y coma (;) como separador para compatibilidad europea en Excel
+            let bodyData = "EAN;CANTIDAD;DESCRIPCION\n";
             listaTrabajo.forEach(item => {
-                bodyData += `${item.ean}\t${item.cantidad}\t${item.descripcion}\n`;
+                bodyData += `${item.ean};${item.cantidad};${item.descripcion}\n`;
             });
 
             const d = new Date();
             const fechaTxt = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} a las ${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
             
             const asunto = encodeURIComponent(`Inventario - Lista de trabajo (${fechaTxt})`);
-            const cuerpo = encodeURIComponent(`Adjunto los datos escaneados (puedes copiar y pegar el texto de abajo directamente en Excel):\n\n${bodyData}`);
+            
+            // Instrucciones claras para el receptor
+            const instrucciones = "Hola,\n\nAdjunto los datos del inventario.\n\nPara pasarlo a Excel:\n1. Copia todo el bloque de texto inferior.\n2. Pégalo en la celda A1 de un Excel vacío.\n3. Si no se separa en columnas automáticamente, ve a la pestaña 'Datos' > 'Texto en columnas' > 'Delimitado' y selecciona 'Punto y coma'.\n\n------------------------\n\n";
+            
+            const cuerpo = encodeURIComponent(instrucciones + bodyData);
             
             window.location.href = `mailto:${emailGuardado}?subject=${asunto}&body=${cuerpo}`;
         }
@@ -664,7 +667,6 @@
             }
         }
 
-        // --- EXPORTAR A CSV (MISMO ORDEN: EAN, Cantidad, Descripcion) ---
         function exportarListaCSV() {
             if(listaTrabajo.length === 0) {
                 alert("No hay datos para exportar.");
