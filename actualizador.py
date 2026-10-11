@@ -3,14 +3,14 @@ import subprocess
 import os
 
 def limpiar_datos():
-    print("Analizando el archivo TIENDA.csv...")
     archivo = 'TIENDA.csv'
     
     # 1. Comprobar si el archivo existe en la carpeta
     if not os.path.exists(archivo):
-        print(f"Error: No se encuentra el archivo '{archivo}'.")
+        print(f"-> AVISO: No se encuentra el archivo '{archivo}'. Se omite la limpieza de stock.")
         return False
 
+    print("Analizando el archivo TIENDA.csv...")
     datos_limpios = []
     
     try:
@@ -22,7 +22,7 @@ def limpiar_datos():
             lector = list(csv.reader(f, delimiter=delimitador_entrada))
 
         if not lector:
-            print("El archivo está vacío.")
+            print("-> AVISO: El archivo está vacío.")
             return False
 
         # Comprobación de si el archivo ya está limpio
@@ -119,21 +119,21 @@ def limpiar_datos():
         return False
 
 def subir_a_github():
-    print("\nIniciando sincronización con GitHub...")
     try:
         subprocess.run(['git', 'add', '.'], check=True)
-        subprocess.run(['git', 'commit', '-m', 'Actualización automática de interfaz y stock por RPA'], check=False)
+        subprocess.run(['git', 'commit', '-m', 'Actualización de PWA y/o Inventario'], check=False)
         print("Sincronizando con los datos remotos...")
         subprocess.run(['git', 'pull', '--rebase', 'origin', 'main'], check=False)
         subprocess.run(['git', 'push', 'origin', 'main'], check=True)
-        print("¡Sincronización completada! Todos los datos ya están en la nube.")
+        print("✅ ¡Sincronización completada! Todos los cambios están en la nube.")
     except Exception as e:
-        print(f"Error al sincronizar con GitHub: {e}")
+        print(f"❌ Error al sincronizar con GitHub: {e}")
 
 if __name__ == '__main__':
-    if limpiar_datos():
-        subir_a_github()
-    else:
-        print("\n[CANCELADO] No se realizarán cambios en GitHub.")
+    print("--- FASE 1: PROCESANDO DATOS ---")
+    limpiar_datos()
     
-   # input("\nPresiona ENTER para cerrar esta ventana...")
+    print("\n--- FASE 2: ACTUALIZANDO LA WEB (GITHUB) ---")
+    subir_a_github()
+    
+    input("\nPresiona ENTER para cerrar esta ventana...")
