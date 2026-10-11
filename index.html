@@ -197,7 +197,6 @@
             <button class="btn-camara-cuadrado" onclick="iniciarEscanerSegunOS()">📷 CÁMARA</button>
         </div>
         
-        <!-- TECLADO VIRTUAL DE 4 COLUMNAS CON LAYOUT CORREGIDO -->
         <div id="teclado-virtual">
             <button class="tecla-v" onclick="pulsarTecla('7')">7</button>
             <button class="tecla-v" onclick="pulsarTecla('8')">8</button>
@@ -226,7 +225,6 @@
                 <button class="btn-cerrar-modal" onclick="cerrarModalListas()">✕</button>
             </div>
             
-            <!-- CAMPOS DE CONFIGURACIÓN -->
             <input type="text" id="nombre-usuario-input" class="input-email-config" placeholder="👤 Tu nombre o Nº Terminal..." onchange="guardarConfiguracion()">
             <input type="text" id="nombre-competencia-input" class="input-email-config input-competencia" placeholder="🏪 Nombre Competencia (Ej: Mercadona)..." onchange="guardarConfiguracion()">
             
@@ -241,9 +239,6 @@
     </div>
 
     <script>
-        // ==========================================
-        // URL DE APPS SCRIPT INSERTADA DIRECTAMENTE
-        // ==========================================
         const URL_GOOGLE_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxnO4mABskfp8mEuT8NhZaEVYjOHrbk9dNwa4jpVSwpl0Fd4KajyahvtSGQxHTvZ7ab/exec";
 
         let inventario = {};
@@ -255,7 +250,6 @@
         
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
         
-        // Cargar variables guardadas
         let usuarioGuardado = localStorage.getItem('inventarioUsuario') || '';
         let competenciaGuardada = localStorage.getItem('inventarioCompetencia') || '';
         
@@ -268,7 +262,6 @@
         const tecladoVirtual = document.getElementById('teclado-virtual');
         const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
-        // Rellenar campos de la configuración
         document.getElementById('nombre-usuario-input').value = usuarioGuardado;
         document.getElementById('nombre-competencia-input').value = competenciaGuardada;
 
@@ -294,7 +287,6 @@
                     return;
                 }
                 
-                // Si intenta usar Chequeo, verificamos que haya puesto el nombre del súper rival
                 if (modo === 'chequeo' && !competenciaGuardada) {
                     alert("¡Atención! Para chequear precios debes ir a 📋 Lista y escribir el nombre de la Competencia (Ej: Mercadona).");
                     return;
@@ -314,7 +306,6 @@
             inputCodigo.focus();
         }
 
-        // --- LÓGICA MODO CHEQUEO (NUEVAS COLUMNAS) ---
         function procesarEscaneoChequeo(termino) {
             let desc = "COMPETENCIA (Sin datos)";
             let eanDetectado = termino;
@@ -338,6 +329,7 @@
                 </div>
             `;
             abrirTecladoPrecio();
+            setTimeout(() => inputCodigo.blur(), 50); // Fuerzo a cerrar el teclado nativo para que no estorbe
         }
 
         function abrirTecladoPrecio() {
@@ -345,6 +337,7 @@
             document.getElementById('btn-teclado-ok').innerText = 'GUARDAR';
             tecladoVirtual.style.display = 'grid'; 
             document.body.classList.add('modo-teclado');
+            inputCodigo.blur();
         }
 
         function guardarPrecioCompetencia(ean, desc) {
@@ -373,13 +366,14 @@
             
             tecladoVirtual.style.display = 'none';
             document.body.classList.remove('modo-teclado');
+            
+            inputActivoId = 'inputCodigo'; // <- CLAVE: Devuelvo el control al escáner de códigos principal
             inputCodigo.value = "";
             
             if (ultimoModo === 'camara') setTimeout(iniciarEscanerSegunOS, 800);
             else inputCodigo.focus();
         }
 
-        // --- LÓGICA MODO RÁPIDO ---
         function procesarEscaneoRapido(termino) {
             let desc = "ETIQUETA RÁPIDA (Sin datos)";
             let eanDetectado = termino;
@@ -413,7 +407,6 @@
 
         async function enviarADrive() {
             if (listaTrabajo.length === 0) { alert("La lista está vacía."); return; }
-            if (URL_GOOGLE_APPS_SCRIPT === "PEGA_TU_NUEVA_URL_AQUI_TERMINADA_EN_EXEC") { alert("Falta pegar tu URL de Apps Script."); return; }
             if (!usuarioGuardado) { alert("Pon tu nombre en la casilla de arriba primero."); return; }
 
             const btnDrive = document.getElementById('btn-drive');
@@ -451,234 +444,4 @@
         }
 
         function procesarBusqueda(terminoBusqueda) {
-            let termino = terminoBusqueda.trim().toUpperCase();
-            if (!termino) return;
-
-            if (modoActivo === 'rapido') { procesarEscaneoRapido(termino); return; }
-            if (modoActivo === 'chequeo') { procesarEscaneoChequeo(termino); return; }
-
-            let eanDetectado = null;
-            if (inventario.hasOwnProperty(termino)) { eanDetectado = termino; } 
-            else if (/^\d+$/.test(termino)) {
-                let termLimpio = termino.replace(/^0+/, '');
-                if (inventario.hasOwnProperty(termLimpio)) eanDetectado = termLimpio; 
-                else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) eanDetectado = termLimpio.padStart(12, '0'); 
-            }
-
-            if (eanDetectado) mostrarArticuloCompleto(eanDetectado);
-            else mostrarArticuloDesconocido(termino);
-            
-            setTimeout(() => inputCodigo.blur(), 100);
-        }
-
-        function mostrarArticuloCompleto(ean) {
-            let art = inventario[ean];
-            resultadoDiv.innerHTML = `
-                <div style="display: flex; flex-direction: column; gap: 2px;">
-                    <p class="titulo-encontrado">¡Artículo encontrado!</p>
-                    <p class="texto-ean">EAN: ${ean}</p>
-                    <div class="descripcion-producto">${art.descripcion}</div>
-                </div>
-                <div class="panel-secundario">
-                    <div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${art.rayon}</span></div>
-                    <div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${art.precio}</span></div>
-                    <div class="item-secundario"><span class="etiqueta-secundaria">Últ. Recep.</span><span class="valor-secundario">${art.fecha}</span></div>
-                    <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${art.ventas}</span></div>
-                </div>
-                <div class="caja-stock">
-                    <p class="etiqueta-stock">STOCK DISPONIBLE</p>
-                    <p class="numero-stock">${art.stock}</p>
-                </div>
-                <div id="panel-botones-accion" class="panel-acciones">
-                    <button class="btn-accion-unica" onclick="mostrarInputCantidad('${ean}', false)">+ Añadir Cantidad</button>
-                </div>
-                <div id="panel-cantidad-accion" class="panel-cantidad">
-                    <input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly onclick="abrirTecladoCantidad()">
-                    <button class="btn-confirmar" onclick="guardarEnLista('${ean}', false)">OK</button>
-                </div>
-            `;
-            inputCodigo.value = ""; 
-        }
-
-        function mostrarArticuloDesconocido(termino) {
-            resultadoDiv.innerHTML = `
-                <h3 style="color: #dc3545; margin: 0 0 4px 0;">No encontrado</h3>
-                <p style="font-size: 15px;">Lectura: <strong>${termino}</strong></p>
-                <div id="panel-botones-accion" class="panel-acciones">
-                    <button class="btn-accion-unica" style="background-color: #6c757d;" onclick="mostrarInputCantidad('${termino}', true)">Forzar Añadir</button>
-                </div>
-                <div id="panel-cantidad-accion" class="panel-cantidad">
-                    <input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly onclick="abrirTecladoCantidad()">
-                    <button class="btn-confirmar" onclick="guardarEnLista('${termino}', true)">OK</button>
-                </div>
-            `;
-            inputCodigo.value = ""; 
-        }
-
-        function mostrarInputCantidad(identificador, esDesconocido) {
-            itemActual = { ean: identificador, esDesconocido: esDesconocido };
-            document.getElementById('panel-botones-accion').style.display = 'none';
-            const panelCant = document.getElementById('panel-cantidad-accion');
-            panelCant.style.display = 'flex';
-            document.getElementById('input-cant-accion').value = ""; 
-            abrirTecladoCantidad();
-        }
-
-        function guardarEnLista(identificador, esDesconocido) {
-            const cantidad = parseFloat(document.getElementById('input-cant-accion').value) || 0;
-            if (cantidad > 0) {
-                let desc = esDesconocido ? "DESCONOCIDO/FUERA SURTIDO" : inventario[identificador].descripcion;
-                listaTrabajo.push({ ean: identificador, descripcion: desc, cantidad: cantidad, fecha: new Date().toLocaleString('es-ES').replace(', ', ' ') });
-                localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-                resultadoDiv.innerHTML = "Esperando código...";
-            }
-            tecladoVirtual.style.display = 'none';
-            document.body.classList.remove('modo-teclado');
-            inputCodigo.value = "";
-            if (ultimoModo === 'camara') iniciarEscanerSegunOS();
-            else inputCodigo.focus();
-        }
-
-        function toggleTecladoVirtual() {
-            if (tecladoVirtual.style.display === 'grid' && inputActivoId === 'inputCodigo') {
-                tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
-            } else {
-                cerrarCamara(); inputActivoId = 'inputCodigo'; document.getElementById('btn-teclado-ok').innerText = 'BUSCAR';
-                inputCodigo.blur(); tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado');
-            }
-        }
-
-        function abrirTecladoCantidad() {
-            inputActivoId = 'input-cant-accion'; document.getElementById('btn-teclado-ok').innerText = 'AÑADIR';
-            tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado');
-        }
-
-        function pulsarTecla(valor) {
-            const inputDestino = document.getElementById(inputActivoId);
-            if (valor === 'DEL') {
-                inputDestino.value = inputDestino.value.slice(0, -1);
-            } else if (valor === 'ENTER') {
-                if (inputActivoId === 'inputCodigo') { 
-                    ultimoModo = 'teclado'; procesarBusqueda(inputDestino.value.trim()); 
-                    tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); 
-                } 
-                else if (inputActivoId === 'input-cant-accion') guardarEnLista(itemActual.ean, itemActual.esDesconocido);
-                else if (inputActivoId === 'input-precio-accion') guardarPrecioCompetencia(itemActual.ean, itemActual.desc);
-            } else {
-                inputDestino.value += valor;
-            }
-        }
-
-        inputCodigo.addEventListener('focus', () => { document.body.classList.add('modo-teclado'); tecladoVirtual.style.display = 'none'; cerrarCamara(); });
-        inputCodigo.addEventListener('blur', () => { if (tecladoVirtual.style.display !== 'grid') document.body.classList.remove('modo-teclado'); });
-        inputCodigo.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); ultimoModo = 'teclado'; procesarBusqueda(inputCodigo.value.trim()); } });
-
-        function procesarResultadoZXing(result) { if (result) { ultimoModo = 'camara'; procesarBusqueda(result.text.trim()); cerrarCamara(); } }
-        function iniciarEscanerSegunOS() { ultimoModo = 'camara'; iniciarCamaraVideo(); }
-
-        async function iniciarCamaraVideo() {
-            const container = document.getElementById('video-container');
-            container.style.display = 'block'; tecladoVirtual.style.display = 'none';
-            if (!codeReader) codeReader = new ZXing.BrowserBarcodeReader(new Map().set(ZXing.DecodeHintType.TRY_HARDER, true));
-            try {
-                const devices = await codeReader.listVideoInputDevices();
-                let selected = camaraManualId || (devices.length > 0 ? devices[devices.length - 1].deviceId : null);
-                if (selected) codeReader.decodeFromVideoDevice(selected, 'video-preview', (result) => { if (result) procesarResultadoZXing(result); });
-            } catch (err) { alert("Error cámara: " + err.message); container.style.display = 'none'; }
-        }
-
-        function cambiarCamaraManual() { camaraManualId = document.getElementById('selector-camara').value; localStorage.setItem('camaraPreferida', camaraManualId); cerrarCamara(); setTimeout(iniciarEscanerSegunOS, 300); }
-        function cerrarCamara() { if (codeReader) codeReader.reset(); document.getElementById('video-container').style.display = 'none'; }
-
-        async function cargarInventario() {
-            estadoDiv.innerHTML = "Sincronizando...";
-            estadoDiv.style.color = "blue";
-            
-            let url = 'TIENDA.csv?' + new Date().getTime();
-            
-            try {
-                let response = await fetch(url);
-                if (!response.ok || (response.headers.get('content-type') && response.headers.get('content-type').includes('text/html'))) {
-                    url = 'tienda.csv?' + new Date().getTime();
-                    response = await fetch(url);
-                }
-                
-                const lastModifiedHeader = response.headers.get('Last-Modified');
-                const fechaReal = lastModifiedHeader ? new Date(lastModifiedHeader) : new Date();
-                const texto = await response.text();
-                
-                Papa.parse(texto, {
-                    header: false, delimiter: ";", skipEmptyLines: true,
-                    complete: function(results) {
-                        inventario = {};
-                        let contador = 0;
-                        results.data.forEach(fila => {
-                            if(fila.length >= 3) {
-                                let ean = fila[0] ? fila[0].trim() : "";
-                                let desc = fila[1] ? fila[1].trim() : "";
-                                let stock = fila[2] ? fila[2].trim() : "";
-                                let val3 = fila[3] ? fila[3].trim() : "-";
-                                let val4 = fila[4] ? fila[4].trim() : "-";
-                                let precio = "-", rayon = "-";
-
-                                if (/[a-zA-Z]/.test(val3) || val3.includes(" ")) { rayon = val3; precio = val4; } 
-                                else { precio = val3; rayon = val4; }
-                                
-                                let fecha = fila[5] ? fila[5].trim() : "-";
-                                let ventas = (fila.length > 6 && fila[6]) ? fila[6].trim() : "0";
-                                
-                                if(ean) {
-                                    inventario[ean] = { descripcion: desc, stock, precio, rayon, fecha, ventas };
-                                    contador++;
-                                }
-                            }
-                        });
-                        
-                        const d = fechaReal;
-                        const fechaFmt = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-                        
-                        if (contador < 100) {
-                            estadoDiv.innerHTML = `⚠️ Atención: Solo se cargaron ${contador} items. Comprueba tu archivo CSV.`;
-                            estadoDiv.style.color = "red";
-                        } else {
-                            estadoDiv.innerHTML = `Base actualizada: ${contador} items <span class="texto-fecha">Últ. Sinc: ${fechaFmt}</span>`;
-                            estadoDiv.style.color = "#28a745";
-                        }
-                    }
-                });
-            } catch (error) {
-                estadoDiv.innerText = "Error cargando CSV.";
-                estadoDiv.style.color = "red";
-            }
-        }
-
-        function verListas() { document.getElementById('modalListas').style.display = 'flex'; renderizarLista(); }
-        function cerrarModalListas() { document.getElementById('modalListas').style.display = 'none'; if (ultimoModo === 'teclado') inputCodigo.focus(); }
-
-        function renderizarLista() {
-            const contenedor = document.getElementById('modal-body-listas');
-            if (listaTrabajo.length === 0) { contenedor.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">Lista vacía</div>'; return; }
-            let html = '';
-            [...listaTrabajo].reverse().forEach((item, idx) => {
-                let detalleCompetencia = item.precio_competencia ? `<br><span style="color:#9c27b0; font-weight:bold;">${item.competencia}: ${item.precio_competencia}€</span>` : '';
-                html += `<div class="item-lista-guardada"><div class="item-lista-info"><span class="item-desc-modal">${item.descripcion}</span><span class="item-detalle-modal">EAN: ${item.ean}${detalleCompetencia}</span></div><div style="display:flex; align-items:center;"><span class="item-cant-modal">x${item.cantidad}</span><button class="btn-borrar-item" onclick="eliminarItemLista(${listaTrabajo.length - 1 - idx})">✕</button></div></div>`;
-            });
-            contenedor.innerHTML = html;
-        }
-
-        function eliminarItemLista(index) { listaTrabajo.splice(index, 1); localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo)); renderizarLista(); }
-        function borrarListaActual() { if(confirm('¿VACIAR toda la lista?')) { listaTrabajo = []; localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo)); renderizarLista(); } }
-        
-        function exportarListaCSV() {
-            if(listaTrabajo.length === 0) return;
-            let csv = "\ufeffEAN;Cantidad;Descripcion;Competencia;Precio_PVP\n";
-            listaTrabajo.forEach(i => csv += `${i.ean};${i.cantidad};${i.descripcion};${i.competencia || ''};${i.precio_competencia || ''}\n`);
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-            link.setAttribute("download", `Trabajo.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        }
-
-        window.onload = () => cargarInventario();
-    </script>
-</body>
-</html>
+            // BLOQUEO DE SEGURIDAD: Si estamos esperando precio o cantidad, se ignoran escaneos accidentales
