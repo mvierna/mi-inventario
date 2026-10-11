@@ -292,7 +292,7 @@
                 ean: eanDetectado,
                 descripcion: desc,
                 cantidad: 1,
-                fecha: new Date().toISOString()
+                fecha: new Date().toLocaleString('es-ES').replace(', ', ' ')
             });
             
             localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
@@ -600,7 +600,7 @@
                     ean: identificador,
                     descripcion: desc,
                     cantidad: cantidad,
-                    fecha: new Date().toISOString()
+                    fecha: new Date().toLocaleString('es-ES').replace(', ', ' ')
                 });
                 
                 localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
