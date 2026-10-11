@@ -114,12 +114,10 @@
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
         .btn-teclado { flex: 0 0 50px; height: 50px; background-color: #6c757d; color: white; border: none; border-radius: 6px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 16px; text-align: center; border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; }
-        /* Efecto visual cuando se bloquea el input */
         #inputCodigo:disabled { background-color: #e9ecef; border-color: #ced4da; opacity: 0.7; }
-        
         .btn-camara-cuadrado { flex: 0 0 90px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
 
-        /* TECLADO VIRTUAL DE 4 COLUMNAS CON LAYOUT CORREGIDO */
+        /* TECLADO VIRTUAL */
         #teclado-virtual { display: none; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; background: #f8f9fa; padding: 8px; border-radius: 8px; border: 1px solid #dee2e6; }
         .tecla-v { height: 55px; font-size: 24px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
         .tecla-v:active { transform: translateY(2px); box-shadow: none; background: #e9ecef; }
@@ -215,7 +213,7 @@
             <button class="tecla-v" onclick="pulsarTecla('3')">3</button>
 
             <button class="tecla-v" style="grid-column: 1 / span 2;" onclick="pulsarTecla('0')">0</button>
-            <button class="tecla-v" onclick="pulsarTecla('.')">.</button>
+            <button class="tecla-v" onclick="pulsarTecla(',')">,</button>
             
             <button id="btn-teclado-ok" class="tecla-v tecla-ok" onclick="pulsarTecla('ENTER')">BUSCAR</button>
         </div>
@@ -309,12 +307,11 @@
             inputCodigo.focus();
         }
 
-        // FUNCION DE BLOQUEO DEL TECLADO NATIVO
         function forzarCierreTecladoNativo() {
-            inputCodigo.disabled = true; // Lo desactiva para expulsar al escáner temporalmente
+            inputCodigo.disabled = true; 
             document.activeElement.blur();
             setTimeout(() => {
-                inputCodigo.disabled = false; // Lo vuelve a preparar pero sin foco
+                inputCodigo.disabled = false; 
             }, 300);
         }
 
@@ -354,7 +351,8 @@
 
         function guardarPrecioCompetencia(ean, desc) {
             const inputPrecio = document.getElementById('input-precio-accion');
-            const precio = inputPrecio ? inputPrecio.value.trim() : "";
+            // Reemplazamos punto por coma para garantizar el formato numérico en España
+            const precio = inputPrecio ? inputPrecio.value.trim().replace(/\./g, ',') : "";
             
             if (precio !== "") {
                 listaTrabajo.push({
@@ -386,7 +384,7 @@
                 setTimeout(iniciarEscanerSegunOS, 800);
             } else {
                 setTimeout(() => {
-                    inputCodigo.focus(); // Reactivamos el escáner automáticamente
+                    inputCodigo.focus();
                 }, 150); 
             }
         }
@@ -467,7 +465,6 @@
         }
 
         function procesarBusqueda(terminoBusqueda) {
-            // BLOQUEO DE SEGURIDAD: Evitar escaneos accidentales mientras se mete un precio o cantidad
             if (inputActivoId !== 'inputCodigo') {
                 inputCodigo.value = ""; 
                 return;
@@ -548,7 +545,10 @@
         }
 
         function guardarEnLista(identificador, esDesconocido) {
-            const cantidad = parseFloat(document.getElementById('input-cant-accion').value) || 0;
+            // Reemplazamos coma por punto para la lógica interna si es que hay decimales
+            let inputVal = document.getElementById('input-cant-accion').value;
+            const cantidad = parseFloat(inputVal.replace(',', '.')) || 0;
+            
             if (cantidad > 0) {
                 let desc = esDesconocido ? "DESCONOCIDO/FUERA SURTIDO" : inventario[identificador].descripcion;
                 listaTrabajo.push({ ean: identificador, descripcion: desc, cantidad: cantidad, fecha: new Date().toLocaleString('es-ES').replace(', ', ' ') });
@@ -602,7 +602,6 @@
             }
         }
 
-        // DEFENSA EXTRA CONTRA EL ESCÁNER: Si intenta forzar el foco mientras metemos precio, lo rechazamos.
         inputCodigo.addEventListener('focus', (e) => { 
             if (inputActivoId !== 'inputCodigo') {
                 e.preventDefault();
@@ -726,3 +725,4 @@
     </script>
 </body>
 </html>
+``` (Y obviaremos otra vez ese fantástico texto de cierre de la IA que te sale siempre). ¡Pruébalo ahora y verás cómo Google Sheets se pone a sumar esos números como es debido!
