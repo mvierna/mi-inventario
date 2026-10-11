@@ -38,17 +38,17 @@
         }
 
         .cabecera-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
-        h1 { margin: 0; font-size: 16px; font-weight: 800; }
-        .controles-cabecera { display: flex; gap: 6px; }
-        .btn-listas { padding: 6px 10px; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
-        .btn-actualizar { padding: 6px 10px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        h1 { margin: 0; font-size: 18px; font-weight: 900; color: #111; }
+        .btn-actualizar { padding: 8px 14px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
         
-        #estado { font-weight: bold; font-size: 11px; color: #28a745; margin-bottom: 2px; }
+        #estado { font-weight: bold; font-size: 11px; color: #28a745; margin-bottom: 8px; }
         .texto-fecha { font-size: 11px; color: #444444; font-weight: bold; display: block; margin-top: 1px; text-transform: uppercase; }
         
+        /* RESULTADO INVISIBLE POR DEFECTO */
         .resultado { 
-            margin-top: auto; margin-bottom: 4px; padding: 10px; border: 2px solid #222222; 
-            border-radius: 12px; background-color: #ffffff; display: flex; flex-direction: column; gap: 6px; 
+            display: none; /* Oculto hasta que haya datos */
+            margin-top: auto; margin-bottom: 8px; padding: 10px; border: 2px solid #222222; 
+            border-radius: 12px; background-color: #ffffff; flex-direction: column; gap: 6px; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: auto; 
         }
         .titulo-encontrado { color: #28a745; margin: 0; font-size: 15px; font-weight: bold; }
@@ -94,14 +94,15 @@
         #selector-camara { width: 100%; max-width: 200px; padding: 6px; border-radius: 4px; font-size: 12px; background: white; color: black; border: 1px solid #ccc; }
         video { width: 100%; height: auto; display: block; object-fit: cover; }
 
-        .caja-interfaz { padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+        /* AREA DE CONTROLES INFERIOR */
+        .caja-interfaz { padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); margin-top: auto; }
         
-        /* BOTONES DE MODOS */
+        /* BOTONES DE MODOS EN UNA SOLA FILA */
         .contenedor-modos { display: flex; gap: 6px; margin-bottom: 8px; }
         .btn-modo {
-            flex: 1; padding: 12px 6px; color: white; border: none; border-radius: 6px; 
+            flex: 1; padding: 12px 2px; color: white; border: none; border-radius: 6px; 
             font-weight: 900; font-size: 12px; text-transform: uppercase; cursor: pointer;
-            box-shadow: 0 3px 0 rgba(0,0,0,0.2); transition: all 0.2s;
+            box-shadow: 0 3px 0 rgba(0,0,0,0.2); transition: all 0.2s; display: flex; align-items: center; justify-content: center;
         }
         .btn-modo:active { transform: translateY(3px); box-shadow: none !important; }
         
@@ -110,6 +111,8 @@
         
         #btn-modo-chequeo { background-color: #6c757d; }
         #btn-modo-chequeo.activo { background-color: #9c27b0; color: #fff; box-shadow: 0 3px 0 #6a1b9a; }
+        
+        #btn-modo-lista { background-color: #007bff; }
 
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
         .btn-teclado { flex: 0 0 50px; height: 50px; background-color: #6c757d; color: white; border: none; border-radius: 6px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
@@ -164,10 +167,7 @@
 
     <div class="cabecera-top">
         <h1>Inventario</h1>
-        <div class="controles-cabecera">
-            <button class="btn-listas" onclick="verListas()">📋 Lista</button>
-            <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sinc</button>
-        </div>
+        <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar BBDD</button>
     </div>
 
     <div id="estado">Conectando...</div>
@@ -183,13 +183,14 @@
     </div>
 
     <div id="resultado" class="resultado">
-        Esperando código...
+        <!-- El contenido se inyecta por JS y la celda solo aparece cuando hace falta -->
     </div>
 
     <div class="caja-interfaz">
         <div class="contenedor-modos">
             <button id="btn-modo-rapido" class="btn-modo" onclick="activarModo('rapido')">⚡ MODO 1</button>
-            <button id="btn-modo-chequeo" class="btn-modo" onclick="activarModo('chequeo')">🕵️ CHEQUEO PVP</button>
+            <button id="btn-modo-chequeo" class="btn-modo" onclick="activarModo('chequeo')">🕵️ CHEQUEO</button>
+            <button id="btn-modo-lista" class="btn-modo" onclick="verListas()">📋 LISTA</button>
         </div>
         
         <div class="grupo-input-camara">
@@ -281,7 +282,8 @@
                 modoActivo = 'normal';
                 btnRapido.classList.remove('activo');
                 btnChequeo.classList.remove('activo');
-                resultadoDiv.innerHTML = "Esperando código...";
+                resultadoDiv.style.display = 'none'; // Limpiamos la pantalla
+                resultadoDiv.innerHTML = "";
             } else {
                 if (!usuarioGuardado) {
                     alert("¡Atención! Para usar modos especiales debes ir a 📋 Lista y guardar tu Nombre/Terminal.");
@@ -294,6 +296,8 @@
                 }
 
                 modoActivo = modo;
+                resultadoDiv.style.display = 'flex'; // Mostramos el mensaje informativo
+                
                 if (modo === 'rapido') {
                     btnRapido.classList.add('activo');
                     btnChequeo.classList.remove('activo');
@@ -329,6 +333,7 @@
 
             itemActual = { ean: eanDetectado, desc: desc };
             
+            resultadoDiv.style.display = 'flex';
             resultadoDiv.innerHTML = `
                 <h3 style='color:#9c27b0; margin:0;'>Introduce el Precio PVP</h3>
                 <p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br>${desc}</p>
@@ -351,7 +356,6 @@
 
         function guardarPrecioCompetencia(ean, desc) {
             const inputPrecio = document.getElementById('input-precio-accion');
-            // Reemplazamos punto por coma para garantizar el formato numérico en España
             const precio = inputPrecio ? inputPrecio.value.trim().replace(/\./g, ',') : "";
             
             if (precio !== "") {
@@ -365,13 +369,15 @@
                 });
                 localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
                 
+                resultadoDiv.style.display = 'flex';
                 resultadoDiv.innerHTML = `
                     <p style="margin:0; font-size:14px; color:#666;">Precio de ${competenciaGuardada} guardado:</p>
                     <h3 style="margin:2px 0; color:#9c27b0;">${precio} €</h3>
                     <p style="margin:0; font-weight:bold;">EAN: ${ean}</p>
                 `;
             } else {
-                resultadoDiv.innerHTML = "Esperando código...";
+                resultadoDiv.style.display = 'none';
+                resultadoDiv.innerHTML = "";
             }
             
             tecladoVirtual.style.display = 'none';
@@ -409,6 +415,7 @@
             });
             localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
 
+            resultadoDiv.style.display = 'flex';
             resultadoDiv.innerHTML = `
                 <p style="margin:0; font-size:14px; color:#666;">Añadido a tu lista:</p>
                 <h3 style="margin:2px 0; color:#28a745;">${eanDetectado}</h3>
@@ -485,14 +492,45 @@
                 else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) eanDetectado = termLimpio.padStart(12, '0'); 
             }
 
-            if (eanDetectado) mostrarArticuloCompleto(eanDetectado);
-            else mostrarArticuloDesconocido(termino);
+            if (eanDetectado) {
+                mostrarArticuloCompleto(eanDetectado);
+            } else {
+                // MOTOR DE BÚSQUEDA POR TEXTO (RESTAURADO)
+                let palabras = termino.split(" ").filter(t => t.length > 0);
+                let coincidencias = [];
+                for (const [ean, articulo] of Object.entries(inventario)) {
+                    if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) {
+                        coincidencias.push({ ean: ean, articulo: articulo });
+                    }
+                }
+
+                if (coincidencias.length === 0) {
+                    mostrarArticuloDesconocido(termino);
+                } else if (coincidencias.length === 1) {
+                    mostrarArticuloCompleto(coincidencias[0].ean);
+                } else {
+                    let htmlLista = `<h3 style="margin: 0 0 8px 0; font-size: 14px; color: #007bff;">${coincidencias.length} encontrados:</h3><ul class="lista-resultados">`;
+                    coincidencias.slice(0, 50).forEach(c => {
+                        htmlLista += `<li class="item-resultado" onclick="mostrarArticuloCompleto('${c.ean}')">
+                            <span class="item-desc">${c.articulo.descripcion}</span>
+                            <span class="item-ean">EAN: ${c.ean}</span></li>`;
+                    });
+                    if (coincidencias.length > 50) {
+                        htmlLista += `<li class="item-resultado" style="text-align:center; color:#666; font-size:12px;">...y ${coincidencias.length - 50} más. Añade más palabras para filtrar.</li>`;
+                    }
+                    htmlLista += `</ul>`;
+                    
+                    resultadoDiv.style.display = 'flex';
+                    resultadoDiv.innerHTML = htmlLista;
+                }
+            }
             
             setTimeout(() => inputCodigo.blur(), 100);
         }
 
         function mostrarArticuloCompleto(ean) {
             let art = inventario[ean];
+            resultadoDiv.style.display = 'flex';
             resultadoDiv.innerHTML = `
                 <div style="display: flex; flex-direction: column; gap: 2px;">
                     <p class="titulo-encontrado">¡Artículo encontrado!</p>
@@ -521,6 +559,7 @@
         }
 
         function mostrarArticuloDesconocido(termino) {
+            resultadoDiv.style.display = 'flex';
             resultadoDiv.innerHTML = `
                 <h3 style="color: #dc3545; margin: 0 0 4px 0;">No encontrado</h3>
                 <p style="font-size: 15px;">Lectura: <strong>${termino}</strong></p>
@@ -545,7 +584,6 @@
         }
 
         function guardarEnLista(identificador, esDesconocido) {
-            // Reemplazamos coma por punto para la lógica interna si es que hay decimales
             let inputVal = document.getElementById('input-cant-accion').value;
             const cantidad = parseFloat(inputVal.replace(',', '.')) || 0;
             
@@ -553,8 +591,14 @@
                 let desc = esDesconocido ? "DESCONOCIDO/FUERA SURTIDO" : inventario[identificador].descripcion;
                 listaTrabajo.push({ ean: identificador, descripcion: desc, cantidad: cantidad, fecha: new Date().toLocaleString('es-ES').replace(', ', ' ') });
                 localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-                resultadoDiv.innerHTML = "Esperando código...";
+                
+                resultadoDiv.style.display = 'flex';
+                resultadoDiv.innerHTML = `<h3 style="color:#28a745; margin:0;">¡Añadidas ${cantidad} uds!</h3>`;
+            } else {
+                resultadoDiv.style.display = 'none';
+                resultadoDiv.innerHTML = "";
             }
+
             tecladoVirtual.style.display = 'none';
             document.body.classList.remove('modo-teclado');
             
@@ -582,7 +626,6 @@
         function abrirTecladoCantidad() {
             inputActivoId = 'input-cant-accion'; document.getElementById('btn-teclado-ok').innerText = 'AÑADIR';
             tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado');
-            
             forzarCierreTecladoNativo();
         }
 
