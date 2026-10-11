@@ -118,13 +118,15 @@
         #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 16px; text-align: center; border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; }
         .btn-camara-cuadrado { flex: 0 0 90px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
 
-        /* TECLADO VIRTUAL CON NUEVO LAYOUT 75/25 PARA EL BOTÓN BUSCAR */
+        /* TECLADO VIRTUAL: NUEVO LAYOUT CORREGIDO */
         #teclado-virtual { display: none; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; background: #f8f9fa; padding: 8px; border-radius: 8px; border: 1px solid #dee2e6; }
         .tecla-v { height: 55px; font-size: 24px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
         .tecla-v:active { transform: translateY(2px); box-shadow: none; background: #e9ecef; }
-        .tecla-accion { background: #dc3545; color: white; border-color: #b02a37; box-shadow: 0 2px 0 #b02a37; font-size: 18px; grid-column: 4; grid-row: 1 / span 2; height: 100%; }
+        
+        .tecla-accion { background: #dc3545; color: white; border-color: #b02a37; box-shadow: 0 2px 0 #b02a37; font-size: 18px; grid-column: 4; grid-row: 1; height: 100%; }
         .tecla-accion:active { background: #c82333; }
-        .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; font-size: 20px; font-weight: 900; grid-column: 2 / span 3; grid-row: 4; height: 100%; letter-spacing: 1px; }
+        
+        .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; font-size: 16px; font-weight: 900; grid-column: 4; grid-row: 2 / span 3; height: 100%; letter-spacing: 1px; }
         .tecla-ok:active { background: #218838; }
 
         body.modo-teclado .cabecera-top, body.modo-teclado #estado { display: none !important; }
@@ -214,7 +216,7 @@
             <button class="btn-camara-cuadrado" onclick="iniciarEscanerSegunOS()">📷 CÁMARA</button>
         </div>
         
-        <!-- TECLADO VIRTUAL DE 4 COLUMNAS CON LAYOUT 75/25 -->
+        <!-- TECLADO VIRTUAL DE 4 COLUMNAS CON LAYOUT CORREGIDO -->
         <div id="teclado-virtual">
             <button class="tecla-v" onclick="pulsarTecla('7')">7</button>
             <button class="tecla-v" onclick="pulsarTecla('8')">8</button>
@@ -228,9 +230,10 @@
             <button class="tecla-v" onclick="pulsarTecla('1')">1</button>
             <button class="tecla-v" onclick="pulsarTecla('2')">2</button>
             <button class="tecla-v" onclick="pulsarTecla('3')">3</button>
-            <button class="tecla-v" style="grid-column: 4; grid-row: 3;" onclick="pulsarTecla('.')">.</button>
 
-            <button class="tecla-v" style="grid-column: 1; grid-row: 4;" onclick="pulsarTecla('0')">0</button>
+            <button class="tecla-v" style="grid-column: 1 / span 2;" onclick="pulsarTecla('0')">0</button>
+            <button class="tecla-v" onclick="pulsarTecla('.')">.</button>
+            
             <button id="btn-teclado-ok" class="tecla-v tecla-ok" onclick="pulsarTecla('ENTER')">BUSCAR</button>
         </div>
     </div>
@@ -265,7 +268,7 @@
         let camaraManualId = localStorage.getItem('camaraPreferida') || null; 
         
         let ultimoModo = 'teclado'; 
-        let modoActivo = 'normal'; // 'normal', 'rapido', 'chequeo'
+        let modoActivo = 'normal';
         let eanChequeoPendiente = null;
 
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
@@ -286,19 +289,16 @@
             localStorage.setItem('inventarioUsuario', usuarioGuardado);
         }
 
-        // --- SISTEMA DE MODOS ---
         function activarModo(modo) {
             const btnRapido = document.getElementById('btn-modo-rapido');
             const btnChequeo = document.getElementById('btn-modo-chequeo');
             
             if (modoActivo === modo) {
-                // Desactivar el modo actual
                 modoActivo = 'normal';
                 btnRapido.classList.remove('activo');
                 btnChequeo.classList.remove('activo');
                 resultadoDiv.innerHTML = "Esperando código...";
             } else {
-                // Activar nuevo modo
                 if (!usuarioGuardado) {
                     alert("¡Atención! Para usar modos especiales debes ir a 📋 Lista y guardar tu Nombre/Terminal.");
                     return;
@@ -317,7 +317,6 @@
             inputCodigo.focus();
         }
 
-        // --- LÓGICA MODO CHEQUEO PRECIOS (OCR) ---
         function procesarEscaneoChequeo(termino) {
             eanChequeoPendiente = termino;
             resultadoDiv.innerHTML = `
@@ -325,7 +324,6 @@
                 <p style='font-size:14px;'>EAN Capturado: <b>${termino}</b></p>
                 <p style='font-size:12px; color:#555;'>Se abrirá la cámara. Haz una foto de cerca al precio de la etiqueta.</p>
             `;
-            // Disparamos la cámara automáticamente
             document.getElementById('captura-precio-ocr').click();
         }
 
@@ -336,35 +334,25 @@
             document.getElementById('ocr-loading').style.display = 'flex';
 
             try {
-                // Reconocimiento de texto con IA
-                const result = await Tesseract.recognize(file, 'spa', {
-                    logger: m => console.log(m)
-                });
-                
+                const result = await Tesseract.recognize(file, 'spa', { logger: m => console.log(m) });
                 document.getElementById('ocr-loading').style.display = 'none';
                 
-                // Buscamos números con decimales en el texto extraído
                 const textoPlano = result.data.text;
                 let precioSugerido = "";
                 const numerosEncontrados = textoPlano.match(/\d+[.,]?\d*/g);
-                
                 if (numerosEncontrados && numerosEncontrados.length > 0) {
-                    // Coge el primer número que parezca un precio (o el más grande)
                     precioSugerido = numerosEncontrados.find(n => n.includes(',') || n.includes('.')) || numerosEncontrados[0];
                 }
 
-                // Pedimos confirmación manual porque el OCR no es 100% perfecto
                 const precioFinal = prompt(`🤖 La IA ha leído la etiqueta.\n\nTexto detectado: ${textoPlano.substring(0, 50)}...\n\nConfirma o corrige el PVP (€):`, precioSugerido);
 
                 if (precioFinal !== null && precioFinal.trim() !== "") {
-                    // Lo guardamos en la lista de trabajo
                     listaTrabajo.push({
                         ean: eanChequeoPendiente,
                         descripcion: `COMPETENCIA - PVP: ${precioFinal}€`,
-                        cantidad: 1, // Se envía 1 por defecto, el precio va en la descripción
+                        cantidad: 1,
                         fecha: new Date().toLocaleString('es-ES').replace(', ', ' ')
                     });
-                    
                     localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
                     
                     resultadoDiv.innerHTML = `
@@ -383,14 +371,12 @@
             }
 
             eanChequeoPendiente = null;
-            event.target.value = ""; // Resetear input
+            event.target.value = "";
             inputCodigo.value = "";
-            
             if (ultimoModo === 'camara') setTimeout(iniciarEscanerSegunOS, 800);
             else inputCodigo.focus();
         }
 
-        // --- LÓGICA MODO RÁPIDO ---
         function procesarEscaneoRapido(termino) {
             let desc = "ETIQUETA RÁPIDA (Sin datos)";
             let eanDetectado = termino;
@@ -422,7 +408,6 @@
             else inputCodigo.focus();
         }
 
-        // --- DRIVE Y BÚSQUEDA ---
         async function enviarADrive() {
             if (listaTrabajo.length === 0) { alert("La lista está vacía."); return; }
             if (URL_GOOGLE_APPS_SCRIPT === "PEGA_TU_URL_AQUÍ") { alert("Falta URL."); return; }
@@ -438,9 +423,7 @@
 
             try {
                 const response = await fetch(URL_GOOGLE_APPS_SCRIPT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(datosAEnviar)
+                    method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(datosAEnviar)
                 });
                 const result = await response.json();
                 
@@ -460,11 +443,9 @@
             let termino = terminoBusqueda.trim().toUpperCase();
             if (!termino) return;
 
-            // Derivador de modos
             if (modoActivo === 'rapido') { procesarEscaneoRapido(termino); return; }
             if (modoActivo === 'chequeo') { procesarEscaneoChequeo(termino); return; }
 
-            // Modo Normal
             let eanDetectado = null;
             if (inventario.hasOwnProperty(termino)) { eanDetectado = termino; } 
             else if (/^\d+$/.test(termino)) {
@@ -486,6 +467,12 @@
                     <p class="titulo-encontrado">¡Artículo encontrado!</p>
                     <p class="texto-ean">EAN: ${ean}</p>
                     <div class="descripcion-producto">${art.descripcion}</div>
+                </div>
+                <div class="panel-secundario">
+                    <div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${art.rayon}</span></div>
+                    <div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${art.precio}</span></div>
+                    <div class="item-secundario"><span class="etiqueta-secundaria">Últ. Recep.</span><span class="valor-secundario">${art.fecha}</span></div>
+                    <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${art.ventas}</span></div>
                 </div>
                 <div class="caja-stock">
                     <p class="etiqueta-stock">STOCK DISPONIBLE</p>
@@ -541,7 +528,6 @@
             else inputCodigo.focus();
         }
 
-        // --- SISTEMA CÁMARAS Y TECLADO ---
         function toggleTecladoVirtual() {
             if (tecladoVirtual.style.display === 'grid' && inputActivoId === 'inputCodigo') {
                 tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
@@ -586,21 +572,68 @@
         function cambiarCamaraManual() { camaraManualId = document.getElementById('selector-camara').value; localStorage.setItem('camaraPreferida', camaraManualId); cerrarCamara(); setTimeout(iniciarEscanerSegunOS, 300); }
         function cerrarCamara() { if (codeReader) codeReader.reset(); document.getElementById('video-container').style.display = 'none'; }
 
-        // --- CARGA DATOS Y LISTAS ---
-        function cargarInventario() {
-            estadoDiv.innerHTML = "Sincronizando..."; estadoDiv.style.color = "blue";
-            fetch('TIENDA.csv?' + new Date().getTime()).then(r => r.text()).then(texto => {
-                Papa.parse(texto, { header: false, delimiter: ";", skipEmptyLines: true, complete: function(results) {
-                    inventario = {}; let contador = 0;
-                    results.data.forEach(fila => {
-                        if(fila.length >= 3) {
-                            let ean = fila[0]?fila[0].trim():"";
-                            if(ean) { inventario[ean] = { descripcion: fila[1]?fila[1].trim():"", stock: fila[2]?fila[2].trim():"" }; contador++; }
+        // --- SISTEMA DE CARGA DE INVENTARIO CON RESPALDO ---
+        async function cargarInventario() {
+            estadoDiv.innerHTML = "Sincronizando...";
+            estadoDiv.style.color = "blue";
+            
+            let url = 'TIENDA.csv?' + new Date().getTime();
+            
+            try {
+                let response = await fetch(url);
+                // Si la respuesta no es OK o si GitHub devuelve una página HTML de error (404), intentamos con minúsculas
+                if (!response.ok || (response.headers.get('content-type') && response.headers.get('content-type').includes('text/html'))) {
+                    url = 'tienda.csv?' + new Date().getTime();
+                    response = await fetch(url);
+                }
+                
+                const lastModifiedHeader = response.headers.get('Last-Modified');
+                const fechaReal = lastModifiedHeader ? new Date(lastModifiedHeader) : new Date();
+                const texto = await response.text();
+                
+                Papa.parse(texto, {
+                    header: false, delimiter: ";", skipEmptyLines: true,
+                    complete: function(results) {
+                        inventario = {};
+                        let contador = 0;
+                        results.data.forEach(fila => {
+                            if(fila.length >= 3) {
+                                let ean = fila[0] ? fila[0].trim() : "";
+                                let desc = fila[1] ? fila[1].trim() : "";
+                                let stock = fila[2] ? fila[2].trim() : "";
+                                let val3 = fila[3] ? fila[3].trim() : "-";
+                                let val4 = fila[4] ? fila[4].trim() : "-";
+                                let precio = "-", rayon = "-";
+
+                                if (/[a-zA-Z]/.test(val3) || val3.includes(" ")) { rayon = val3; precio = val4; } 
+                                else { precio = val3; rayon = val4; }
+                                
+                                let fecha = fila[5] ? fila[5].trim() : "-";
+                                let ventas = (fila.length > 6 && fila[6]) ? fila[6].trim() : "0";
+                                
+                                if(ean) {
+                                    inventario[ean] = { descripcion: desc, stock, precio, rayon, fecha, ventas };
+                                    contador++;
+                                }
+                            }
+                        });
+                        
+                        const d = fechaReal;
+                        const fechaFmt = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+                        
+                        if (contador < 100) {
+                            estadoDiv.innerHTML = `⚠️ Atención: Solo se cargaron ${contador} items. Comprueba tu archivo CSV.`;
+                            estadoDiv.style.color = "red";
+                        } else {
+                            estadoDiv.innerHTML = `Base actualizada: ${contador} items <span class="texto-fecha">Últ. Sinc: ${fechaFmt}</span>`;
+                            estadoDiv.style.color = "#28a745";
                         }
-                    });
-                    estadoDiv.innerHTML = `Base actualizada: ${contador} items`; estadoDiv.style.color = "#28a745";
-                }});
-            }).catch(err => { estadoDiv.innerText = "Error cargando CSV."; estadoDiv.style.color = "red"; });
+                    }
+                });
+            } catch (error) {
+                estadoDiv.innerText = "Error cargando CSV.";
+                estadoDiv.style.color = "red";
+            }
         }
 
         function verListas() { document.getElementById('modalListas').style.display = 'flex'; renderizarLista(); }
