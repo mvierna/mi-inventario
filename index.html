@@ -115,7 +115,7 @@
             width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); 
         }
         
-        .contenedor-modos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+        .contenedor-modos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; transition: max-height 0.2s; overflow: hidden; }
         .btn-modo {
             padding: 12px 4px; color: white; border: none; border-radius: 6px; 
             font-weight: 900; font-size: 13px; text-transform: uppercase; cursor: pointer;
@@ -150,7 +150,32 @@
         .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; font-size: 15px; font-weight: 900; grid-column: 4; grid-row: 2 / span 3; height: 100%; letter-spacing: 1px; }
         .tecla-ok:active { background: #218838; }
 
-        body.modo-teclado .cabecera-top, body.modo-teclado #estado { display: none !important; }
+        /* OCULTAR ELEMENTOS PARA AHORRAR ESPACIO AL ABRIR EL TECLADO */
+        body.modo-teclado .cabecera-top, 
+        body.modo-teclado #estado,
+        body.modo-teclado .contenedor-modos { 
+            display: none !important; 
+        }
+
+        /* ESCALADO INTELIGENTE SI EL MÓVIL ES MÁS PEQUEÑO */
+        @media (max-height: 780px) {
+            .tecla-v { height: 48px; font-size: 22px; }
+            .tecla-accion { font-size: 16px; }
+            .tecla-ok { font-size: 15px; }
+            .btn-modo { padding: 10px 4px; font-size: 13px; }
+            .grupo-input-camara .btn-teclado, .grupo-input-camara #inputCodigo, .grupo-input-camara .btn-camara-cuadrado { height: 46px; }
+            .resultado { padding: 8px; margin-bottom: 2px; gap: 4px; margin-top: auto; }
+            .descripcion-producto { font-size: 17px; }
+            .numero-stock { font-size: 42px; }
+            .input-cantidad { padding: 10px; font-size: 20px; }
+            .panel-secundario { padding: 4px; margin: 2px 0; }
+            .btn-accion-unica { padding: 12px; font-size: 15px; }
+        }
+        @media (max-height: 680px) {
+            .tecla-v { height: 42px; font-size: 18px; }
+            .btn-modo { padding: 8px 4px; font-size: 12px; }
+            .numero-stock { font-size: 34px; }
+        }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .modal-content { background: #f4f6f8; width: 92%; max-height: 85dvh; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
