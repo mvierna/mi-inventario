@@ -23,7 +23,6 @@
             padding: 6px; text-align: center; 
             background-color: #f4f6f8; display: flex; flex-direction: column; 
             min-height: 100dvh; overflow-y: auto; 
-            transition: padding-top 0.2s ease;
         }
         
         #aviso-rotacion {
@@ -38,25 +37,6 @@
             #aviso-rotacion { display: flex; }
         }
 
-        /* --- VISOR DE CÁMARA ZXING REDISEÑADO --- */
-        #video-container {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 28vh; 
-            background-color: black; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
-        #video-preview { width: 100%; height: 100%; object-fit: cover; }
-        
-        #controles-video { 
-            position: absolute; top: 10px; right: 10px; z-index: 1002; display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.6); padding: 6px; border-radius: 8px;
-        }
-        #selector-camara { padding: 4px; border-radius: 4px; font-size: 11px; max-width: 120px; }
-        
-        .linea-guia-escaner {
-            position: absolute; top: 50%; left: 10%; width: 80%; height: 2px;
-            background-color: rgba(255, 0, 0, 0.9); box-shadow: 0 0 8px red; z-index: 1001;
-        }
-
-        body.con-visor { padding-top: calc(28vh + 6px) !important; }
-
         .cabecera-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
         h1 { margin: 0; font-size: 18px; font-weight: 900; color: #111; }
         .btn-actualizar { padding: 8px 14px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
@@ -64,8 +44,9 @@
         #estado { font-weight: bold; font-size: 11px; color: #28a745; margin-bottom: 8px; }
         .texto-fecha { font-size: 11px; color: #444444; font-weight: bold; display: block; margin-top: 1px; text-transform: uppercase; }
         
+        /* RESULTADO INVISIBLE POR DEFECTO */
         .resultado { 
-            display: none; 
+            display: none; /* Oculto hasta que haya datos */
             margin-top: auto; margin-bottom: 8px; padding: 10px; border: 2px solid #222222; 
             border-radius: 12px; background-color: #ffffff; flex-direction: column; gap: 6px; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: auto; 
@@ -108,8 +89,15 @@
         .item-desc { font-weight: bold; font-size: 14px; display: block; color: #111; margin-bottom: 2px; }
         .item-ean { font-size: 12px; color: #6c757d; font-weight: bold; }
 
+        #video-container { width: 100%; max-width: 320px; max-height: 250px; background: #000; margin: 4px auto; border-radius: 6px; overflow: hidden; position: relative; display: none; }
+        #controles-video { padding: 6px; background: rgba(0,0,0,0.7); display: flex; justify-content: space-between; align-items: center; }
+        #selector-camara { width: 100%; max-width: 200px; padding: 6px; border-radius: 4px; font-size: 12px; background: white; color: black; border: 1px solid #ccc; }
+        video { width: 100%; height: auto; display: block; object-fit: cover; }
+
+        /* AREA DE CONTROLES INFERIOR */
         .caja-interfaz { padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); margin-top: auto; }
         
+        /* BOTONES DE MODOS EN UNA SOLA FILA */
         .contenedor-modos { display: flex; gap: 6px; margin-bottom: 8px; }
         .btn-modo {
             flex: 1; padding: 12px 2px; color: white; border: none; border-radius: 6px; 
@@ -132,6 +120,7 @@
         #inputCodigo:disabled { background-color: #e9ecef; border-color: #ced4da; opacity: 0.7; }
         .btn-camara-cuadrado { flex: 0 0 90px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
 
+        /* TECLADO VIRTUAL */
         #teclado-virtual { display: none; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; background: #f8f9fa; padding: 8px; border-radius: 8px; border: 1px solid #dee2e6; }
         .tecla-v { height: 55px; font-size: 24px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
         .tecla-v:active { transform: translateY(2px); box-shadow: none; background: #e9ecef; }
@@ -183,19 +172,19 @@
 
     <div id="estado">Conectando...</div>
 
-    <!-- VISOR DE CÁMARA ZXING EN LA PARTE SUPERIOR -->
     <div id="video-container">
-        <div class="linea-guia-escaner"></div>
         <div id="controles-video">
             <select id="selector-camara" onchange="cambiarCamaraManual()">
                 <option value="">Detectando cámaras...</option>
             </select>
-            <button onclick="cerrarCamara()" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">✕ CERRAR</button>
+            <button onclick="cerrarCamara()" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">✕ Cerrar</button>
         </div>
         <video id="video-preview" playsinline autoplay muted></video>
     </div>
 
-    <div id="resultado" class="resultado"></div>
+    <div id="resultado" class="resultado">
+        <!-- El contenido se inyecta por JS y la celda solo aparece cuando hace falta -->
+    </div>
 
     <div class="caja-interfaz">
         <div class="contenedor-modos">
@@ -273,6 +262,7 @@
         const resultadoDiv = document.getElementById('resultado');
         const estadoDiv = document.getElementById('estado');
         const tecladoVirtual = document.getElementById('teclado-virtual');
+        const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
         document.getElementById('nombre-usuario-input').value = usuarioGuardado;
         document.getElementById('nombre-competencia-input').value = competenciaGuardada;
@@ -292,14 +282,21 @@
                 modoActivo = 'normal';
                 btnRapido.classList.remove('activo');
                 btnChequeo.classList.remove('activo');
-                resultadoDiv.style.display = 'none'; 
+                resultadoDiv.style.display = 'none'; // Limpiamos la pantalla
                 resultadoDiv.innerHTML = "";
             } else {
-                if (!usuarioGuardado) { alert("¡Atención! Para usar modos especiales debes ir a 📋 Lista y guardar tu Nombre/Terminal."); return; }
-                if (modo === 'chequeo' && !competenciaGuardada) { alert("¡Atención! Para chequear precios debes ir a 📋 Lista y escribir el nombre de la Competencia."); return; }
+                if (!usuarioGuardado) {
+                    alert("¡Atención! Para usar modos especiales debes ir a 📋 Lista y guardar tu Nombre/Terminal.");
+                    return;
+                }
+                
+                if (modo === 'chequeo' && !competenciaGuardada) {
+                    alert("¡Atención! Para chequear precios debes ir a 📋 Lista y escribir el nombre de la Competencia (Ej: Mercadona).");
+                    return;
+                }
 
                 modoActivo = modo;
-                resultadoDiv.style.display = 'flex'; 
+                resultadoDiv.style.display = 'flex'; // Mostramos el mensaje informativo
                 
                 if (modo === 'rapido') {
                     btnRapido.classList.add('activo');
@@ -317,21 +314,25 @@
         function forzarCierreTecladoNativo() {
             inputCodigo.disabled = true; 
             document.activeElement.blur();
-            setTimeout(() => { inputCodigo.disabled = false; }, 300);
+            setTimeout(() => {
+                inputCodigo.disabled = false; 
+            }, 300);
         }
 
         function procesarEscaneoChequeo(termino) {
             let desc = "COMPETENCIA (Sin datos)";
             let eanDetectado = termino;
 
-            if (inventario.hasOwnProperty(termino)) { eanDetectado = termino; desc = inventario[termino].descripcion; } 
-            else if (/^\d+$/.test(termino)) {
+            if (inventario.hasOwnProperty(termino)) { 
+                eanDetectado = termino; desc = inventario[termino].descripcion;
+            } else if (/^\d+$/.test(termino)) {
                 let termLimpio = termino.replace(/^0+/, '');
                 if (inventario.hasOwnProperty(termLimpio)) { eanDetectado = termLimpio; desc = inventario[termLimpio].descripcion; }
                 else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) { eanDetectado = termLimpio.padStart(12, '0'); desc = inventario[termLimpio.padStart(12, '0')].descripcion; }
             }
 
             itemActual = { ean: eanDetectado, desc: desc };
+            
             resultadoDiv.style.display = 'flex';
             resultadoDiv.innerHTML = `
                 <h3 style='color:#9c27b0; margin:0;'>Introduce el Precio PVP</h3>
@@ -349,6 +350,7 @@
             document.getElementById('btn-teclado-ok').innerText = 'GUARDAR';
             tecladoVirtual.style.display = 'grid'; 
             document.body.classList.add('modo-teclado');
+            
             forzarCierreTecladoNativo();
         }
 
@@ -357,38 +359,78 @@
             const precio = inputPrecio ? inputPrecio.value.trim().replace(/\./g, ',') : "";
             
             if (precio !== "") {
-                listaTrabajo.push({ ean: ean, descripcion: desc, cantidad: 1, fecha: new Date().toLocaleString('es-ES').replace(', ', ' '), competencia: competenciaGuardada, precio_competencia: precio });
+                listaTrabajo.push({
+                    ean: ean,
+                    descripcion: desc,
+                    cantidad: 1, 
+                    fecha: new Date().toLocaleString('es-ES').replace(', ', ' '),
+                    competencia: competenciaGuardada,
+                    precio_competencia: precio
+                });
                 localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
                 
                 resultadoDiv.style.display = 'flex';
-                resultadoDiv.innerHTML = `<p style="margin:0; font-size:14px; color:#666;">Precio de ${competenciaGuardada} guardado:</p><h3 style="margin:2px 0; color:#9c27b0;">${precio} €</h3><p style="margin:0; font-weight:bold;">EAN: ${ean}</p>`;
+                resultadoDiv.innerHTML = `
+                    <p style="margin:0; font-size:14px; color:#666;">Precio de ${competenciaGuardada} guardado:</p>
+                    <h3 style="margin:2px 0; color:#9c27b0;">${precio} €</h3>
+                    <p style="margin:0; font-weight:bold;">EAN: ${ean}</p>
+                `;
             } else {
-                resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = "";
+                resultadoDiv.style.display = 'none';
+                resultadoDiv.innerHTML = "";
             }
             
-            tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); inputActivoId = 'inputCodigo'; inputCodigo.value = "";
-            if (ultimoModo === 'camara') setTimeout(iniciarEscanerSegunOS, 800); else setTimeout(() => { inputCodigo.focus(); }, 150); 
+            tecladoVirtual.style.display = 'none';
+            document.body.classList.remove('modo-teclado');
+            
+            inputActivoId = 'inputCodigo'; 
+            inputCodigo.value = "";
+            
+            if (ultimoModo === 'camara') {
+                setTimeout(iniciarEscanerSegunOS, 800);
+            } else {
+                setTimeout(() => {
+                    inputCodigo.focus();
+                }, 150); 
+            }
         }
 
         function procesarEscaneoRapido(termino) {
             let desc = "ETIQUETA RÁPIDA (Sin datos)";
             let eanDetectado = termino;
 
-            if (inventario.hasOwnProperty(termino)) { eanDetectado = termino; desc = inventario[termino].descripcion; } 
-            else if (/^\d+$/.test(termino)) {
+            if (inventario.hasOwnProperty(termino)) { 
+                eanDetectado = termino; desc = inventario[termino].descripcion;
+            } else if (/^\d+$/.test(termino)) {
                 let termLimpio = termino.replace(/^0+/, '');
                 if (inventario.hasOwnProperty(termLimpio)) { eanDetectado = termLimpio; desc = inventario[termLimpio].descripcion; }
                 else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) { eanDetectado = termLimpio.padStart(12, '0'); desc = inventario[termLimpio.padStart(12, '0')].descripcion; }
             }
 
-            listaTrabajo.push({ ean: eanDetectado, descripcion: desc, cantidad: 1, fecha: new Date().toLocaleString('es-ES').replace(', ', ' ') });
+            listaTrabajo.push({
+                ean: eanDetectado,
+                descripcion: desc,
+                cantidad: 1,
+                fecha: new Date().toLocaleString('es-ES').replace(', ', ' ')
+            });
             localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
 
             resultadoDiv.style.display = 'flex';
-            resultadoDiv.innerHTML = `<p style="margin:0; font-size:14px; color:#666;">Añadido a tu lista:</p><h3 style="margin:2px 0; color:#28a745;">${eanDetectado}</h3><p style="margin:0; font-weight:bold;">${desc}</p><div style="margin-top:8px; font-size:20px;">📦 x1</div>`;
+            resultadoDiv.innerHTML = `
+                <p style="margin:0; font-size:14px; color:#666;">Añadido a tu lista:</p>
+                <h3 style="margin:2px 0; color:#28a745;">${eanDetectado}</h3>
+                <p style="margin:0; font-weight:bold;">${desc}</p>
+                <div style="margin-top:8px; font-size:20px;">📦 x1</div>
+            `;
             inputCodigo.value = "";
             
-            if (ultimoModo === 'camara') setTimeout(iniciarEscanerSegunOS, 800); else setTimeout(() => { inputCodigo.focus(); }, 150);
+            if (ultimoModo === 'camara') {
+                setTimeout(iniciarEscanerSegunOS, 800);
+            } else {
+                setTimeout(() => {
+                    inputCodigo.focus();
+                }, 150);
+            }
         }
 
         async function enviarADrive() {
@@ -396,24 +438,44 @@
             if (!usuarioGuardado) { alert("Pon tu nombre en la casilla de arriba primero."); return; }
 
             const btnDrive = document.getElementById('btn-drive');
-            btnDrive.classList.add('loading'); btnDrive.innerText = "⏳ Enviando...";
+            btnDrive.classList.add('loading');
+            btnDrive.innerText = "⏳ Enviando...";
 
-            const datosAEnviar = listaTrabajo.map(item => { return { ean: item.ean, cantidad: item.cantidad, descripcion: item.descripcion, fecha: item.fecha, usuario: usuarioGuardado, competencia: item.competencia || "", precio_competencia: item.precio_competencia || "" }; });
+            const datosAEnviar = listaTrabajo.map(item => {
+                return { 
+                    ean: item.ean, 
+                    cantidad: item.cantidad, 
+                    descripcion: item.descripcion, 
+                    fecha: item.fecha, 
+                    usuario: usuarioGuardado,
+                    competencia: item.competencia || "",
+                    precio_competencia: item.precio_competencia || ""
+                };
+            });
 
             try {
-                const response = await fetch(URL_GOOGLE_APPS_SCRIPT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(datosAEnviar) });
+                const response = await fetch(URL_GOOGLE_APPS_SCRIPT, {
+                    method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(datosAEnviar)
+                });
                 const result = await response.json();
                 
                 if (result.status === "success") {
                     alert("¡Sincronizado correctamente!");
-                    if(confirm("¿Quieres vaciar la lista de trabajo?")) { listaTrabajo = []; localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo)); renderizarLista(); }
+                    if(confirm("¿Quieres vaciar la lista de trabajo?")) {
+                        listaTrabajo = [];
+                        localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
+                        renderizarLista();
+                    }
                 } else alert("Error Drive: " + result.message);
             } catch (error) { alert("Error conexión: " + error); } 
             finally { btnDrive.classList.remove('loading'); btnDrive.innerText = "☁️ A Drive"; }
         }
 
         function procesarBusqueda(terminoBusqueda) {
-            if (inputActivoId !== 'inputCodigo') { inputCodigo.value = ""; return; }
+            if (inputActivoId !== 'inputCodigo') {
+                inputCodigo.value = ""; 
+                return;
+            }
 
             let termino = terminoBusqueda.trim().toUpperCase();
             inputCodigo.value = ""; 
@@ -433,10 +495,13 @@
             if (eanDetectado) {
                 mostrarArticuloCompleto(eanDetectado);
             } else {
+                // MOTOR DE BÚSQUEDA POR TEXTO (RESTAURADO)
                 let palabras = termino.split(" ").filter(t => t.length > 0);
                 let coincidencias = [];
                 for (const [ean, articulo] of Object.entries(inventario)) {
-                    if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) { coincidencias.push({ ean: ean, articulo: articulo }); }
+                    if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) {
+                        coincidencias.push({ ean: ean, articulo: articulo });
+                    }
                 }
 
                 if (coincidencias.length === 0) {
@@ -445,12 +510,21 @@
                     mostrarArticuloCompleto(coincidencias[0].ean);
                 } else {
                     let htmlLista = `<h3 style="margin: 0 0 8px 0; font-size: 14px; color: #007bff;">${coincidencias.length} encontrados:</h3><ul class="lista-resultados">`;
-                    coincidencias.slice(0, 50).forEach(c => { htmlLista += `<li class="item-resultado" onclick="mostrarArticuloCompleto('${c.ean}')"><span class="item-desc">${c.articulo.descripcion}</span><span class="item-ean">EAN: ${c.ean}</span></li>`; });
-                    if (coincidencias.length > 50) htmlLista += `<li class="item-resultado" style="text-align:center; color:#666; font-size:12px;">...y ${coincidencias.length - 50} más. Añade más palabras para filtrar.</li>`;
+                    coincidencias.slice(0, 50).forEach(c => {
+                        htmlLista += `<li class="item-resultado" onclick="mostrarArticuloCompleto('${c.ean}')">
+                            <span class="item-desc">${c.articulo.descripcion}</span>
+                            <span class="item-ean">EAN: ${c.ean}</span></li>`;
+                    });
+                    if (coincidencias.length > 50) {
+                        htmlLista += `<li class="item-resultado" style="text-align:center; color:#666; font-size:12px;">...y ${coincidencias.length - 50} más. Añade más palabras para filtrar.</li>`;
+                    }
                     htmlLista += `</ul>`;
-                    resultadoDiv.style.display = 'flex'; resultadoDiv.innerHTML = htmlLista;
+                    
+                    resultadoDiv.style.display = 'flex';
+                    resultadoDiv.innerHTML = htmlLista;
                 }
             }
+            
             setTimeout(() => inputCodigo.blur(), 100);
         }
 
@@ -469,10 +543,19 @@
                     <div class="item-secundario"><span class="etiqueta-secundaria">Últ. Recep.</span><span class="valor-secundario">${art.fecha}</span></div>
                     <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${art.ventas}</span></div>
                 </div>
-                <div class="caja-stock"><p class="etiqueta-stock">STOCK DISPONIBLE</p><p class="numero-stock">${art.stock}</p></div>
-                <div id="panel-botones-accion" class="panel-acciones"><button class="btn-accion-unica" onclick="mostrarInputCantidad('${ean}', false)">+ Añadir Cantidad</button></div>
-                <div id="panel-cantidad-accion" class="panel-cantidad"><input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly onclick="abrirTecladoCantidad()"><button class="btn-confirmar" onclick="guardarEnLista('${ean}', false)">OK</button></div>
+                <div class="caja-stock">
+                    <p class="etiqueta-stock">STOCK DISPONIBLE</p>
+                    <p class="numero-stock">${art.stock}</p>
+                </div>
+                <div id="panel-botones-accion" class="panel-acciones">
+                    <button class="btn-accion-unica" onclick="mostrarInputCantidad('${ean}', false)">+ Añadir Cantidad</button>
+                </div>
+                <div id="panel-cantidad-accion" class="panel-cantidad">
+                    <input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly onclick="abrirTecladoCantidad()">
+                    <button class="btn-confirmar" onclick="guardarEnLista('${ean}', false)">OK</button>
+                </div>
             `;
+            inputCodigo.value = ""; 
         }
 
         function mostrarArticuloDesconocido(termino) {
@@ -480,15 +563,22 @@
             resultadoDiv.innerHTML = `
                 <h3 style="color: #dc3545; margin: 0 0 4px 0;">No encontrado</h3>
                 <p style="font-size: 15px;">Lectura: <strong>${termino}</strong></p>
-                <div id="panel-botones-accion" class="panel-acciones"><button class="btn-accion-unica" style="background-color: #6c757d;" onclick="mostrarInputCantidad('${termino}', true)">Forzar Añadir</button></div>
-                <div id="panel-cantidad-accion" class="panel-cantidad"><input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly onclick="abrirTecladoCantidad()"><button class="btn-confirmar" onclick="guardarEnLista('${termino}', true)">OK</button></div>
+                <div id="panel-botones-accion" class="panel-acciones">
+                    <button class="btn-accion-unica" style="background-color: #6c757d;" onclick="mostrarInputCantidad('${termino}', true)">Forzar Añadir</button>
+                </div>
+                <div id="panel-cantidad-accion" class="panel-cantidad">
+                    <input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly onclick="abrirTecladoCantidad()">
+                    <button class="btn-confirmar" onclick="guardarEnLista('${termino}', true)">OK</button>
+                </div>
             `;
+            inputCodigo.value = ""; 
         }
 
         function mostrarInputCantidad(identificador, esDesconocido) {
             itemActual = { ean: identificador, esDesconocido: esDesconocido };
             document.getElementById('panel-botones-accion').style.display = 'none';
-            document.getElementById('panel-cantidad-accion').style.display = 'flex';
+            const panelCant = document.getElementById('panel-cantidad-accion');
+            panelCant.style.display = 'flex';
             document.getElementById('input-cant-accion').value = ""; 
             abrirTecladoCantidad();
         }
@@ -501,90 +591,104 @@
                 let desc = esDesconocido ? "DESCONOCIDO/FUERA SURTIDO" : inventario[identificador].descripcion;
                 listaTrabajo.push({ ean: identificador, descripcion: desc, cantidad: cantidad, fecha: new Date().toLocaleString('es-ES').replace(', ', ' ') });
                 localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-                resultadoDiv.style.display = 'flex'; resultadoDiv.innerHTML = `<h3 style="color:#28a745; margin:0;">¡Añadidas ${cantidad} uds!</h3>`;
-            } else { resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = ""; }
+                
+                resultadoDiv.style.display = 'flex';
+                resultadoDiv.innerHTML = `<h3 style="color:#28a745; margin:0;">¡Añadidas ${cantidad} uds!</h3>`;
+            } else {
+                resultadoDiv.style.display = 'none';
+                resultadoDiv.innerHTML = "";
+            }
 
-            tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); inputActivoId = 'inputCodigo'; inputCodigo.value = "";
+            tecladoVirtual.style.display = 'none';
+            document.body.classList.remove('modo-teclado');
             
-            if (ultimoModo === 'camara') iniciarEscanerSegunOS(); else setTimeout(() => { inputCodigo.focus(); }, 150);
+            inputActivoId = 'inputCodigo'; 
+            inputCodigo.value = "";
+            
+            if (ultimoModo === 'camara') {
+                iniciarEscanerSegunOS();
+            } else {
+                setTimeout(() => {
+                    inputCodigo.focus();
+                }, 150);
+            }
         }
 
         function toggleTecladoVirtual() {
-            if (tecladoVirtual.style.display === 'grid' && inputActivoId === 'inputCodigo') { tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); } 
-            else { cerrarCamara(); inputActivoId = 'inputCodigo'; document.getElementById('btn-teclado-ok').innerText = 'BUSCAR'; inputCodigo.blur(); tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado'); }
+            if (tecladoVirtual.style.display === 'grid' && inputActivoId === 'inputCodigo') {
+                tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
+            } else {
+                cerrarCamara(); inputActivoId = 'inputCodigo'; document.getElementById('btn-teclado-ok').innerText = 'BUSCAR';
+                inputCodigo.blur(); tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado');
+            }
         }
 
-        function abrirTecladoCantidad() { inputActivoId = 'input-cant-accion'; document.getElementById('btn-teclado-ok').innerText = 'AÑADIR'; tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado'); forzarCierreTecladoNativo(); }
+        function abrirTecladoCantidad() {
+            inputActivoId = 'input-cant-accion'; document.getElementById('btn-teclado-ok').innerText = 'AÑADIR';
+            tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado');
+            forzarCierreTecladoNativo();
+        }
 
         function pulsarTecla(valor) {
             const inputDestino = document.getElementById(inputActivoId);
-            if (valor === 'DEL') { inputDestino.value = inputDestino.value.slice(0, -1); } 
-            else if (valor === 'ENTER') {
-                if (inputActivoId === 'inputCodigo') { ultimoModo = 'teclado'; procesarBusqueda(inputDestino.value.trim()); tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); } 
+            if (valor === 'DEL') {
+                inputDestino.value = inputDestino.value.slice(0, -1);
+            } else if (valor === 'ENTER') {
+                if (inputActivoId === 'inputCodigo') { 
+                    ultimoModo = 'teclado'; procesarBusqueda(inputDestino.value.trim()); 
+                    tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); 
+                } 
                 else if (inputActivoId === 'input-cant-accion') guardarEnLista(itemActual.ean, itemActual.esDesconocido);
                 else if (inputActivoId === 'input-precio-accion') guardarPrecioCompetencia(itemActual.ean, itemActual.desc);
-            } else { inputDestino.value += valor; }
+            } else {
+                inputDestino.value += valor;
+            }
         }
 
-        // --- SOLUCIÓN DE BLOQUEO: Eliminamos la cámara al hacer 'focus' en el input ---
         inputCodigo.addEventListener('focus', (e) => { 
-            if (inputActivoId !== 'inputCodigo') { e.preventDefault(); inputCodigo.blur(); return; }
+            if (inputActivoId !== 'inputCodigo') {
+                e.preventDefault();
+                inputCodigo.blur();
+                return;
+            }
             document.body.classList.add('modo-teclado'); 
             tecladoVirtual.style.display = 'none'; 
             cerrarCamara(); 
-            // Ya no llamamos a abrirCamaraArriba() para que el teclado funcione nativamente
         });
         
-        inputCodigo.addEventListener('blur', () => { 
-            if (tecladoVirtual.style.display !== 'grid') document.body.classList.remove('modo-teclado'); 
-        });
-
+        inputCodigo.addEventListener('blur', () => { if (tecladoVirtual.style.display !== 'grid') document.body.classList.remove('modo-teclado'); });
         inputCodigo.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); ultimoModo = 'teclado'; procesarBusqueda(inputCodigo.value.trim()); } });
 
-        // --- LÓGICA DE LA CÁMARA NATIVA Z-XING ---
         function procesarResultadoZXing(result) { if (result) { ultimoModo = 'camara'; procesarBusqueda(result.text.trim()); cerrarCamara(); } }
-        
-        function iniciarEscanerSegunOS() { 
-            ultimoModo = 'camara'; 
-            iniciarCamaraVideo(); 
-        }
+        function iniciarEscanerSegunOS() { ultimoModo = 'camara'; iniciarCamaraVideo(); }
 
         async function iniciarCamaraVideo() {
             const container = document.getElementById('video-container');
-            container.style.display = 'block'; 
-            document.body.classList.add('con-visor'); // Desplaza la UI hacia abajo
-            tecladoVirtual.style.display = 'none';
-            
+            container.style.display = 'block'; tecladoVirtual.style.display = 'none';
             if (!codeReader) codeReader = new ZXing.BrowserBarcodeReader(new Map().set(ZXing.DecodeHintType.TRY_HARDER, true));
             try {
                 const devices = await codeReader.listVideoInputDevices();
                 let selected = camaraManualId || (devices.length > 0 ? devices[devices.length - 1].deviceId : null);
-                if (selected) {
-                    codeReader.decodeFromVideoDevice(selected, 'video-preview', (result) => { 
-                        if (result) procesarResultadoZXing(result); 
-                    });
-                }
-            } catch (err) { 
-                alert("Error cámara: " + err.message); 
-                cerrarCamara(); 
-            }
+                if (selected) codeReader.decodeFromVideoDevice(selected, 'video-preview', (result) => { if (result) procesarResultadoZXing(result); });
+            } catch (err) { alert("Error cámara: " + err.message); container.style.display = 'none'; }
         }
 
         function cambiarCamaraManual() { camaraManualId = document.getElementById('selector-camara').value; localStorage.setItem('camaraPreferida', camaraManualId); cerrarCamara(); setTimeout(iniciarEscanerSegunOS, 300); }
-        
-        function cerrarCamara() { 
-            if (codeReader) codeReader.reset(); 
-            document.getElementById('video-container').style.display = 'none'; 
-            document.body.classList.remove('con-visor');
-        }
+        function cerrarCamara() { if (codeReader) codeReader.reset(); document.getElementById('video-container').style.display = 'none'; }
 
         async function cargarInventario() {
             estadoDiv.innerHTML = "Sincronizando...";
             estadoDiv.style.color = "blue";
+            
             let url = 'TIENDA.csv?' + new Date().getTime();
+            
             try {
                 let response = await fetch(url);
-                if (!response.ok || (response.headers.get('content-type') && response.headers.get('content-type').includes('text/html'))) { url = 'tienda.csv?' + new Date().getTime(); response = await fetch(url); }
+                if (!response.ok || (response.headers.get('content-type') && response.headers.get('content-type').includes('text/html'))) {
+                    url = 'tienda.csv?' + new Date().getTime();
+                    response = await fetch(url);
+                }
+                
                 const lastModifiedHeader = response.headers.get('Last-Modified');
                 const fechaReal = lastModifiedHeader ? new Date(lastModifiedHeader) : new Date();
                 const texto = await response.text();
@@ -603,24 +707,40 @@
                                 let val4 = fila[4] ? fila[4].trim() : "-";
                                 let precio = "-", rayon = "-";
 
-                                if (/[a-zA-Z]/.test(val3) || val3.includes(" ")) { rayon = val3; precio = val4; } else { precio = val3; rayon = val4; }
+                                if (/[a-zA-Z]/.test(val3) || val3.includes(" ")) { rayon = val3; precio = val4; } 
+                                else { precio = val3; rayon = val4; }
+                                
                                 let fecha = fila[5] ? fila[5].trim() : "-";
                                 let ventas = (fila.length > 6 && fila[6]) ? fila[6].trim() : "0";
                                 
-                                if(ean) { inventario[ean] = { descripcion: desc, stock, precio, rayon, fecha, ventas }; contador++; }
+                                if(ean) {
+                                    inventario[ean] = { descripcion: desc, stock, precio, rayon, fecha, ventas };
+                                    contador++;
+                                }
                             }
                         });
+                        
                         const d = fechaReal;
                         const fechaFmt = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-                        if (contador < 100) { estadoDiv.innerHTML = `⚠️ Atención: Solo se cargaron ${contador} items. Comprueba tu archivo CSV.`; estadoDiv.style.color = "red"; } 
-                        else { estadoDiv.innerHTML = `Base actualizada: ${contador} items <span class="texto-fecha">Últ. Sinc: ${fechaFmt}</span>`; estadoDiv.style.color = "#28a745"; }
+                        
+                        if (contador < 100) {
+                            estadoDiv.innerHTML = `⚠️ Atención: Solo se cargaron ${contador} items. Comprueba tu archivo CSV.`;
+                            estadoDiv.style.color = "red";
+                        } else {
+                            estadoDiv.innerHTML = `Base actualizada: ${contador} items <span class="texto-fecha">Últ. Sinc: ${fechaFmt}</span>`;
+                            estadoDiv.style.color = "#28a745";
+                        }
                     }
                 });
-            } catch (error) { estadoDiv.innerText = "Error cargando CSV."; estadoDiv.style.color = "red"; }
+            } catch (error) {
+                estadoDiv.innerText = "Error cargando CSV.";
+                estadoDiv.style.color = "red";
+            }
         }
 
         function verListas() { document.getElementById('modalListas').style.display = 'flex'; renderizarLista(); }
         function cerrarModalListas() { document.getElementById('modalListas').style.display = 'none'; if (ultimoModo === 'teclado') inputCodigo.focus(); }
+
         function renderizarLista() {
             const contenedor = document.getElementById('modal-body-listas');
             if (listaTrabajo.length === 0) { contenedor.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">Lista vacía</div>'; return; }
@@ -631,8 +751,10 @@
             });
             contenedor.innerHTML = html;
         }
+
         function eliminarItemLista(index) { listaTrabajo.splice(index, 1); localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo)); renderizarLista(); }
         function borrarListaActual() { if(confirm('¿VACIAR toda la lista?')) { listaTrabajo = []; localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo)); renderizarLista(); } }
+        
         function exportarListaCSV() {
             if(listaTrabajo.length === 0) return;
             let csv = "\ufeffEAN;Cantidad;Descripcion;Competencia;Precio_PVP\n";
