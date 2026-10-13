@@ -1,139 +1,101 @@
-import csv
+import pandas as pd
 import subprocess
 import os
 
-def limpiar_datos():
-    archivo = 'TIENDA.csv'
-    
-    # 1. Comprobar si el archivo existe en la carpeta
-    if not os.path.exists(archivo):
-        print(f"-> AVISO: No se encuentra el archivo '{archivo}'. Se omite la limpieza de stock.")
-        return False
-
-    print("Analizando el archivo TIENDA.csv...")
-    datos_limpios = []
-    
+def procesar_tienda():
+    print("-> Procesando TIENDA.csv (Stock Diario)...")
     try:
-        # 2. Leer el archivo e inspeccionar su estructura
-        with open(archivo, 'r', encoding='latin-1') as f:
-            primera_linea = f.readline()
-            delimitador_entrada = ';' if ';' in primera_linea else '\t'
-            f.seek(0)
-            lector = list(csv.reader(f, delimiter=delimitador_entrada))
-
-        if not lector:
-            print("-> AVISO: El archivo está vacío.")
-            return False
-
-        # Comprobación de si el archivo ya está limpio
-        fila_muestra = None
-        for fila in lector:
-            if len(fila) > 1 and fila[0].strip().upper() not in ['EAN', 'CODIGO', 'CÓDIGO', 'FALSE'] and fila[1].strip().upper() != 'EAN':
-                fila_muestra = fila
-                break
-
-        if fila_muestra:
-            col0 = fila_muestra[0].strip()
-            col1 = fila_muestra[1].strip() if len(fila_muestra) > 1 else ""
-            tiene_letras_col1 = any(c.isalpha() for c in col1)
-            es_ean_col0 = len(col0) >= 6 and (col0.isdigit() or 'E+' in col0.upper())
-
-            if es_ean_col0 and tiene_letras_col1 and len(fila_muestra) == 7:
-                print("--> El archivo TIENDA.csv YA está limpio y preparado para la PWA.")
-                print("--> Se conservará el archivo intacto.")
-                return True
-
-        print("--> Se ha detectado una exportación nueva de Ábaco. Iniciando limpieza profunda...")
-
-        # 3. Procesar la exportación con auto-alineación
-        for fila in lector:
-            if len(fila) < 3:
-                continue
-                
-            # AUTO-ALINEACIÓN: Detectar si existe una columna basura inicial
-            shift = 0
-            if fila[0].strip().upper() == 'FALSE':
-                shift = 1
-            elif not (fila[0].strip().isdigit() and len(fila[0].strip()) >= 6):
-                # Si la col 0 no es EAN pero la col 1 sí lo es, ajustamos el desplazamiento
-                if len(fila) > 1 and fila[1].strip().isdigit() and len(fila[1].strip()) >= 6:
-                    shift = 1
-
-            ean = fila[0 + shift].strip() if len(fila) > 0 + shift else ""
-            
-            if ean.upper() in ['EAN', 'CODIGO', 'CÓDIGO', 'DESIGNACIÓN', 'DESIGNACION'] or not ean:
-                continue
-
-            # Extracción protegida de datos principales
-            desc = fila[1 + shift].strip() if len(fila) > 1 + shift else ""
-            stock = fila[2 + shift].strip() if len(fila) > 2 + shift else "0"
-            rayon = fila[3 + shift].strip() if len(fila) > 3 + shift else "-"
-            pvc = fila[4 + shift].strip() if len(fila) > 4 + shift else "-"
-            
-            # BÚSQUEDA INTELIGENTE DE FECHA Y VENTAS
-            fecha = "-"
-            ventas = "0"
-            fechas_encontradas = []
-            
-            # Comenzamos a buscar fechas a partir de la columna siguiente al PVC
-            for i in range(5 + shift, len(fila)):
-                val = str(fila[i]).strip()
-                # Una fecha válida tendrá al menos una barra (/) y números
-                if '/' in val and any(c.isdigit() for c in val):
-                    fechas_encontradas.append((i, val))
-                    
-            if fechas_encontradas:
-                # Tomar SIEMPRE la última fecha de la fila ignorando fechas temporales de exportación
-                idx_fecha, val_fecha = fechas_encontradas[-1]
-                fecha = val_fecha
-                
-                # Limpiamos la hora si está presente
-                if ' ' in fecha and ':' in fecha:
-                    fecha = fecha.split(' ')[0]
-                    
-                # Las ventas siempre estarán en la celda inmediatamente posterior a la última fecha
-                if len(fila) > idx_fecha + 1 and str(fila[idx_fecha + 1]).strip() != "":
-                    ventas = str(fila[idx_fecha + 1]).strip()
-                    
-            datos_limpios.append([ean, desc, stock, rayon, pvc, fecha, ventas])
-
-    except Exception as e:
-        print(f"Error al procesar el archivo: {e}")
-        return False
-
-    if not datos_limpios:
-        print("Atención: No se generaron datos. Operación abortada.")
-        return False
-
-    try:
-        # 4. Guardar archivo final preparado para la web
-        with open(archivo, 'w', encoding='utf-8', newline='') as f:
-            escritor = csv.writer(f, delimiter=';')
-            escritor.writerows(datos_limpios)
-            
-        print(f"¡Limpieza completada! {len(datos_limpios)} artículos formateados correctamente.")
-        return True
+        # Leer forzando string para proteger EAN de la notación científica
+        df_tienda = pd.read_csv('TIENDA.csv', sep=';', dtype=str, header=None)
+        df_tienda = df_tienda.fillna("")
         
+        # Limpieza básica del EAN (columna 0)
+        df_tienda[0] = df_tienda[0].str.strip().str.replace(r'\.0$', '', regex=True)
+        
+        # Guardar archivo limpio
+        df_tienda.to_csv('TIENDA.csv', sep=';', index=False, header=False, encoding='utf-8-sig')
+        print(f"   TIENDA.csv procesado con {len(df_tienda)} líneas.")
+        
+        # Retornar los EANs únicos para usarlos como filtro en el archivo maestro
+        return df_tienda[0].unique()
+    
     except Exception as e:
-        print(f"Error al guardar el archivo: {e}")
-        return False
+        print(f"❌ Error procesando TIENDA.csv: {e}")
+        return []
 
-def subir_a_github():
+def procesar_maestro(eans_en_tienda):
+    print("-> Procesando stock cero.csv (Base Maestra)...")
+    archivo_maestro = 'stock cero.csv'
+    
+    if not os.path.exists(archivo_maestro):
+        print(f"   ⚠️ Archivo '{archivo_maestro}' no encontrado. Se saltará este paso.")
+        return
+
     try:
-        subprocess.run(['git', 'add', '.'], check=True)
-        subprocess.run(['git', 'commit', '-m', 'Actualización de PWA y/o Inventario'], check=False)
-        print("Sincronizando con los datos remotos...")
-        subprocess.run(['git', 'pull', '--rebase', 'origin', 'main'], check=False)
-        subprocess.run(['git', 'push', 'origin', 'main'], check=True)
-        print("✅ ¡Sincronización completada! Todos los cambios están en la nube.")
-    except Exception as e:
-        print(f"❌ Error al sincronizar con GitHub: {e}")
+        # Leer maestro forzando texto puro
+        df_maestro = pd.read_csv(archivo_maestro, sep=';', dtype=str, encoding='utf-8')
+        
+        # Limpiar EANs y eliminar duplicados manteniendo el primero
+        df_maestro['Code EAN'] = df_maestro['Code EAN'].str.strip().str.replace(r'\.0$', '', regex=True)
+        df_maestro = df_maestro.drop_duplicates(subset=['Code EAN'], keep='first')
+        
+        # Filtrar: Quedarse con los que NO están en TIENDA.csv
+        df_faltantes = df_maestro[~df_maestro['Code EAN'].isin(eans_en_tienda)]
+        
+        # Extraer solo las 4 columnas críticas para aligerar la PWA
+        columnas_clave = ['Code EAN', 'Designación', 'PV', 'Date dernier mouvement']
+        
+        # Verificar que las columnas existan en el CSV de Abaco antes de extraerlas
+        columnas_presentes = [col for col in columnas_clave if col in df_maestro.columns]
+        df_final = df_faltantes[columnas_presentes].copy()
+        
+        # Renombrar para que el index.html lo lea fácilmente
+        df_final.columns = ['EAN', 'DESCRIPCION', 'PVP_MAESTRO', 'ULTIMA_VENTA'][:len(columnas_presentes)]
+        df_final = df_final.fillna("")
+        
+        # Exportar maestro filtrado
+        df_final.to_csv('MAESTRO_FILTRADO.csv', sep=';', index=False, encoding='utf-8-sig')
+        print(f"   MAESTRO_FILTRADO.csv generado con éxito ({len(df_final)} referencias).")
 
-if __name__ == '__main__':
-    print("--- FASE 1: PROCESANDO DATOS ---")
-    limpiar_datos()
+    except Exception as e:
+        print(f"❌ Error procesando el archivo maestro: {e}")
+
+def sincronizar_github():
+    print("-> Sincronizando TODOS los datos y código con GitHub...")
+    comandos = [
+        # El punto indica que suba absolutamente todo lo que haya cambiado en la carpeta
+        ["git", "add", "."], 
+        ["git", "commit", "-m", "Actualización automática de inventario, maestro y código"],
+        ["git", "pull", "--rebase"],
+        ["git", "push"]
+    ]
     
-    print("\n--- FASE 2: ACTUALIZANDO LA WEB (GITHUB) ---")
-    subir_a_github()
+    for cmd in comandos:
+        try:
+            print(f"   Ejecutando: {' '.join(cmd)}")
+            resultado = subprocess.run(cmd, check=True, capture_output=True, text=True)
+            if resultado.stdout:
+                print(f"   {resultado.stdout.strip()}")
+        except subprocess.CalledProcessError as e:
+            # Ignorar error si no hay cambios para hacer commit
+            if "nothing to commit" in e.stdout or "no changes added" in e.stdout:
+                print("   No hay cambios nuevos para subir. El repositorio está actualizado.")
+                break
+            else:
+                print(f"   ⚠️ Error ejecutando '{' '.join(cmd)}':\n{e.stderr.strip()}")
+
+if __name__ == "__main__":
+    print("="*50)
+    print(" INICIANDO SECUENCIA DE ACTUALIZACIÓN COMPLETA")
+    print("="*50)
     
-    input("\nPresiona ENTER para cerrar esta ventana...")
+    eans_actuales = procesar_tienda()
+    
+    if len(eans_actuales) > 0:
+        procesar_maestro(eans_actuales)
+    
+    sincronizar_github()
+    
+    print("="*50)
+    print(" ACTUALIZACIÓN FINALIZADA")
+    print("="*50)

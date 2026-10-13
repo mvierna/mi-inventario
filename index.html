@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-title" content="Inventario">
     <link rel="apple-touch-icon" href="icono.png">
 
-    <!-- LIBRERÍAS DE LECTURA (CSV, Escáner y NUEVO EXCEL) -->
+    <!-- LIBRERÍAS (CSV, Escáner y EXCEL) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -57,9 +57,9 @@
         .descripcion-producto { font-size: 18px; font-weight: 800; line-height: 1.25; color: #000000; margin: 2px 0; text-transform: uppercase; }
         
         .panel-secundario { display: flex; justify-content: space-around; gap: 4px; margin: 2px 0; background-color: #f8f9fa; padding: 6px; border-radius: 6px; border: 1px solid #e2e8f0; }
-        .item-secundario { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .item-secundario { display: flex; flex-direction: column; align-items: center; flex: 1; text-align: center; }
         .etiqueta-secundaria { font-size: 10px; text-transform: uppercase; color: #555; font-weight: bold; }
-        .valor-secundario { font-size: 16px; font-weight: 800; color: #111111; }
+        .valor-secundario { font-size: 15px; font-weight: 800; color: #111111; }
 
         .caja-stock { margin-top: 2px; padding: 6px; background-color: #28a745; color: #ffffff; border-radius: 8px; border: none; }
         .etiqueta-stock { font-size: 12px; text-transform: uppercase; margin: 0; font-weight: bold; letter-spacing: 0.5px; opacity: 0.95; }
@@ -174,7 +174,7 @@
         <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar BBDD</button>
     </div>
 
-    <div id="estado">Conectando...</div>
+    <div id="estado">Iniciando BBDD Local...</div>
 
     <div id="video-container">
         <div id="controles-video">
@@ -246,7 +246,47 @@
     <script>
         const URL_GOOGLE_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyDUMAiEws8GCAHOXiPGn73p7PwmAx5ZpzB--SWloa3MalE2ozGCxNjwDg6MPD9_MT2/exec";
 
+        // ==========================================
+        // SISTEMA DE BASE DE DATOS LOCAL (IndexedDB)
+        // ==========================================
+        let dbLocal;
+        function initDB() {
+            return new Promise((resolve) => {
+                let req = indexedDB.open("HiperDB_Files", 1);
+                req.onupgradeneeded = e => {
+                    let db = e.target.result;
+                    if (!db.objectStoreNames.contains("archivos")) db.createObjectStore("archivos", { keyPath: "id" });
+                };
+                req.onsuccess = e => { dbLocal = e.target.result; resolve(); };
+                req.onerror = () => resolve();
+            });
+        }
+        
+        async function guardarArchivoLocal(id, data) {
+            if (!dbLocal) return;
+            return new Promise(resolve => {
+                let tx = dbLocal.transaction("archivos", "readwrite");
+                tx.objectStore("archivos").put({ id: id, data: data });
+                tx.oncomplete = resolve;
+            });
+        }
+        
+        async function leerArchivoLocal(id) {
+            if (!dbLocal) return null;
+            return new Promise(resolve => {
+                let tx = dbLocal.transaction("archivos", "readonly");
+                let req = tx.objectStore("archivos").get(id);
+                req.onsuccess = () => resolve(req.result ? req.result.data : null);
+                req.onerror = () => resolve(null);
+            });
+        }
+
+        // ==========================================
+        // VARIABLES GLOBALES
+        // ==========================================
         let inventario = {};
+        let inventarioMaestro = {}; // Base de datos extra para 250k referencias
+        
         let codeReader = null;
         let camaraManualId = localStorage.getItem('camaraPreferida') || null; 
         
@@ -325,26 +365,45 @@
             setTimeout(() => { inputCodigo.disabled = false; }, 300);
         }
 
+        // ==========================================
+        // MOTOR DE BÚSQUEDA CENTRALIZADO (CASCADA)
+        // ==========================================
+        function buscarArticuloGlobal(termino) {
+            let termLimpio = termino.replace(/^0+/, '');
+            let ean12 = termLimpio.padStart(12, '0');
+            
+            // 1. Prioridad: Archivo Diario de TIENDA (Stock real)
+            if (inventario.hasOwnProperty(termino)) return { ean: termino, art: inventario[termino], esMaestro: false };
+            if (inventario.hasOwnProperty(termLimpio)) return { ean: termLimpio, art: inventario[termLimpio], esMaestro: false };
+            if (inventario.hasOwnProperty(ean12)) return { ean: ean12, art: inventario[ean12], esMaestro: false };
+            
+            // 2. Respaldo: Archivo Gigante MAESTRO (Stock 0 pero datos reales)
+            if (inventarioMaestro.hasOwnProperty(termino)) return { ean: termino, art: inventarioMaestro[termino], esMaestro: true };
+            if (inventarioMaestro.hasOwnProperty(termLimpio)) return { ean: termLimpio, art: inventarioMaestro[termLimpio], esMaestro: true };
+            if (inventarioMaestro.hasOwnProperty(ean12)) return { ean: ean12, art: inventarioMaestro[ean12], esMaestro: true };
+            
+            return null; // No encontrado en ningún sitio
+        }
+
         function procesarEscaneoChequeo(termino) {
+            let result = buscarArticuloGlobal(termino);
             let desc = "COMPETENCIA (Sin datos)";
             let eanDetectado = termino;
-
-            if (inventario.hasOwnProperty(termino)) { 
-                eanDetectado = termino; desc = inventario[termino].descripcion;
-            } else if (/^\d+$/.test(termino)) {
-                let termLimpio = termino.replace(/^0+/, '');
-                if (inventario.hasOwnProperty(termLimpio)) { eanDetectado = termLimpio; desc = inventario[termLimpio].descripcion; }
-                else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) { eanDetectado = termLimpio.padStart(12, '0'); desc = inventario[termLimpio.padStart(12, '0')].descripcion; }
+            let pvp_nuestro = "-";
+            let rayon = "-";
+            
+            if (result) {
+                eanDetectado = result.ean;
+                desc = result.art.descripcion;
+                pvp_nuestro = result.art.precio;
+                rayon = result.art.rayon;
             }
 
-            let pvp_nuestro = inventario[eanDetectado] ? inventario[eanDetectado].precio : "-";
-            let rayon = inventario[eanDetectado] ? inventario[eanDetectado].rayon : "-";
-            
             itemActual = { ean: eanDetectado, desc: desc, pvp_nuestro: pvp_nuestro, rayon: rayon };
-            
             let textoPvp = pvp_nuestro === "-" ? "<span style='color:red;'>No tenemos PVP</span>" : `Nuestro PVP: <b>${pvp_nuestro}€</b>`;
 
             resultadoDiv.style.display = 'flex';
+            resultadoDiv.style.borderColor = "#9c27b0";
             resultadoDiv.innerHTML = `
                 <h3 style='color:#9c27b0; margin:0;'>Introduce el Precio PVP</h3>
                 <p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br>${desc}</p>
@@ -425,23 +484,23 @@
         }
 
         function procesarEscaneoPedido(termino) {
+            let result = buscarArticuloGlobal(termino);
             let desc = "DESCONOCIDO (Sin datos)";
             let eanDetectado = termino;
-
-            if (inventario.hasOwnProperty(termino)) { 
-                eanDetectado = termino; desc = inventario[termino].descripcion;
-            } else if (/^\d+$/.test(termino)) {
-                let termLimpio = termino.replace(/^0+/, '');
-                if (inventario.hasOwnProperty(termLimpio)) { eanDetectado = termLimpio; desc = inventario[termLimpio].descripcion; }
-                else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) { eanDetectado = termLimpio.padStart(12, '0'); desc = inventario[termLimpio.padStart(12, '0')].descripcion; }
+            let stock = "0";
+            let rayon = "-";
+            
+            if (result) {
+                eanDetectado = result.ean;
+                desc = result.art.descripcion;
+                stock = result.art.stock;
+                rayon = result.art.rayon;
             }
 
-            let stock = inventario[eanDetectado] ? inventario[eanDetectado].stock : "0";
-            let rayon = inventario[eanDetectado] ? inventario[eanDetectado].rayon : "-";
-            
             itemActual = { ean: eanDetectado, desc: desc, stock: stock, rayon: rayon };
             
             resultadoDiv.style.display = 'flex';
+            resultadoDiv.style.borderColor = "#17a2b8";
             resultadoDiv.innerHTML = `
                 <h3 style='color:#17a2b8; margin:0;'>🛒 Cantidad a Pedir</h3>
                 <p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br>${desc}</p>
@@ -496,15 +555,13 @@
         }
 
         function procesarEscaneoRapido(termino) {
+            let result = buscarArticuloGlobal(termino);
             let desc = "ETIQUETA RÁPIDA (Sin datos)";
             let eanDetectado = termino;
-
-            if (inventario.hasOwnProperty(termino)) { 
-                eanDetectado = termino; desc = inventario[termino].descripcion;
-            } else if (/^\d+$/.test(termino)) {
-                let termLimpio = termino.replace(/^0+/, '');
-                if (inventario.hasOwnProperty(termLimpio)) { eanDetectado = termLimpio; desc = inventario[termLimpio].descripcion; }
-                else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) { eanDetectado = termLimpio.padStart(12, '0'); desc = inventario[termLimpio.padStart(12, '0')].descripcion; }
+            
+            if (result) {
+                eanDetectado = result.ean;
+                desc = result.art.descripcion;
             }
 
             listaTrabajo.push({
@@ -517,6 +574,7 @@
             localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
 
             resultadoDiv.style.display = 'flex';
+            resultadoDiv.style.borderColor = "#ffc107";
             resultadoDiv.innerHTML = `
                 <p style="margin:0; font-size:14px; color:#666;">Añadido a inventario:</p>
                 <h3 style="margin:2px 0; color:#28a745;">${eanDetectado}</h3>
@@ -528,9 +586,7 @@
             if (ultimoModo === 'camara') {
                 setTimeout(iniciarEscanerSegunOS, 800);
             } else {
-                setTimeout(() => {
-                    inputCodigo.focus();
-                }, 150);
+                setTimeout(() => { inputCodigo.focus(); }, 150);
             }
         }
 
@@ -591,42 +647,51 @@
             if (modoActivo === 'chequeo') { procesarEscaneoChequeo(termino); return; }
             if (modoActivo === 'pedidos') { procesarEscaneoPedido(termino); return; }
 
-            let eanDetectado = null;
-            if (inventario.hasOwnProperty(termino)) { eanDetectado = termino; } 
-            else if (/^\d+$/.test(termino)) {
-                let termLimpio = termino.replace(/^0+/, '');
-                if (inventario.hasOwnProperty(termLimpio)) eanDetectado = termLimpio; 
-                else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) eanDetectado = termLimpio.padStart(12, '0'); 
-            }
+            let result = buscarArticuloGlobal(termino);
 
-            if (eanDetectado) {
-                mostrarArticuloCompleto(eanDetectado);
+            if (result) {
+                mostrarArticuloCompleto(result.ean, result.esMaestro);
             } else {
+                // MOTOR DE BÚSQUEDA POR TEXTO (Limitado para no bloquear el móvil)
                 let palabras = termino.split(" ").filter(t => t.length > 0);
                 let coincidencias = [];
+                
+                // Buscar en Tienda
                 for (const [ean, articulo] of Object.entries(inventario)) {
                     if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) {
-                        coincidencias.push({ ean: ean, articulo: articulo });
+                        coincidencias.push({ ean: ean, articulo: articulo, esMaestro: false });
+                    }
+                }
+                
+                // Si hay pocas, buscar en Maestro
+                if (coincidencias.length < 50) {
+                    for (const [ean, articulo] of Object.entries(inventarioMaestro)) {
+                        if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) {
+                            coincidencias.push({ ean: ean, articulo: articulo, esMaestro: true });
+                            if (coincidencias.length >= 50) break; // Límite de seguridad
+                        }
                     }
                 }
 
                 if (coincidencias.length === 0) {
                     mostrarArticuloDesconocido(termino);
                 } else if (coincidencias.length === 1) {
-                    mostrarArticuloCompleto(coincidencias[0].ean);
+                    mostrarArticuloCompleto(coincidencias[0].ean, coincidencias[0].esMaestro);
                 } else {
                     let htmlLista = `<h3 style="margin: 0 0 8px 0; font-size: 14px; color: #007bff;">${coincidencias.length} encontrados:</h3><ul class="lista-resultados">`;
                     coincidencias.slice(0, 50).forEach(c => {
-                        htmlLista += `<li class="item-resultado" onclick="mostrarArticuloCompleto('${c.ean}')">
+                        let etiquetaExtra = c.esMaestro ? `<span style="color:#ff9800; font-size:10px;">(MAESTRO)</span>` : "";
+                        htmlLista += `<li class="item-resultado" onclick="mostrarArticuloCompleto('${c.ean}', ${c.esMaestro})">
                             <span class="item-desc">${c.articulo.descripcion}</span>
-                            <span class="item-ean">EAN: ${c.ean}</span></li>`;
+                            <span class="item-ean">EAN: ${c.ean} ${etiquetaExtra}</span></li>`;
                     });
-                    if (coincidencias.length > 50) {
-                        htmlLista += `<li class="item-resultado" style="text-align:center; color:#666; font-size:12px;">...y ${coincidencias.length - 50} más. Añade más palabras para filtrar.</li>`;
+                    if (coincidencias.length >= 50) {
+                        htmlLista += `<li class="item-resultado" style="text-align:center; color:#666; font-size:12px;">...limitado a 50. Añade más palabras para filtrar.</li>`;
                     }
                     htmlLista += `</ul>`;
                     
                     resultadoDiv.style.display = 'flex';
+                    resultadoDiv.style.borderColor = "#007bff";
                     resultadoDiv.innerHTML = htmlLista;
                 }
             }
@@ -634,22 +699,28 @@
             setTimeout(() => inputCodigo.blur(), 100);
         }
 
-        function mostrarArticuloCompleto(ean) {
-            let art = inventario[ean];
+        function mostrarArticuloCompleto(ean, esMaestro = false) {
+            let art = esMaestro ? inventarioMaestro[ean] : inventario[ean];
+            let colorBorde = esMaestro ? "#ff9800" : "#222222";
+            let titulo = esMaestro ? "📚 ¡Encontrado en Maestro Oficial!" : "¡Artículo encontrado!";
+            let colorTitulo = esMaestro ? "#ff9800" : "#28a745";
+            let colorStock = esMaestro ? "#dc3545" : "#28a745";
+
             resultadoDiv.style.display = 'flex';
+            resultadoDiv.style.borderColor = colorBorde;
             resultadoDiv.innerHTML = `
                 <div style="display: flex; flex-direction: column; gap: 2px;">
-                    <p class="titulo-encontrado">¡Artículo encontrado!</p>
+                    <p class="titulo-encontrado" style="color: ${colorTitulo};">${titulo}</p>
                     <p class="texto-ean">EAN: ${ean}</p>
                     <div class="descripcion-producto">${art.descripcion}</div>
                 </div>
                 <div class="panel-secundario">
                     <div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${art.rayon}</span></div>
                     <div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${art.precio}</span></div>
-                    <div class="item-secundario"><span class="etiqueta-secundaria">Últ. Recep.</span><span class="valor-secundario">${art.fecha}</span></div>
-                    <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${art.ventas}</span></div>
+                    <div class="item-secundario"><span class="etiqueta-secundaria">Últ. Mov.</span><span class="valor-secundario">${art.fecha}</span></div>
+                    <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${art.ventas || '0'}</span></div>
                 </div>
-                <div class="caja-stock">
+                <div class="caja-stock" style="background-color: ${colorStock};">
                     <p class="etiqueta-stock">STOCK DISPONIBLE</p>
                     <p class="numero-stock">${art.stock}</p>
                 </div>
@@ -665,8 +736,9 @@
 
         function mostrarArticuloDesconocido(termino) {
             resultadoDiv.style.display = 'flex';
+            resultadoDiv.style.borderColor = "#dc3545";
             resultadoDiv.innerHTML = `
-                <h3 style="color: #dc3545; margin: 0 0 4px 0;">No encontrado</h3>
+                <h3 style="color: #dc3545; margin: 0 0 4px 0;">No encontrado en BD</h3>
                 <p style="font-size: 15px;">Lectura: <strong>${termino}</strong></p>
                 <div id="panel-botones-accion" class="panel-acciones">
                     <button class="btn-accion-unica" style="background-color: #6c757d;" onclick="mostrarInputCantidad('${termino}', true)">Forzar Añadir</button>
@@ -692,7 +764,13 @@
             const cantidad = parseFloat(inputVal.replace(',', '.')) || 0;
             
             if (cantidad > 0) {
-                let desc = esDesconocido ? "DESCONOCIDO/FUERA SURTIDO" : inventario[identificador].descripcion;
+                // Si es un forzado, ponemos DESCONOCIDO. Si no, cogemos la descripción del Maestro o de Tienda.
+                let desc = "DESCONOCIDO/FUERA SURTIDO";
+                if (!esDesconocido) {
+                    let result = buscarArticuloGlobal(identificador);
+                    if (result) desc = result.art.descripcion;
+                }
+
                 listaTrabajo.push({ 
                     tipo: 'inventario',
                     ean: identificador, 
@@ -703,6 +781,7 @@
                 localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
                 
                 resultadoDiv.style.display = 'flex';
+                resultadoDiv.style.borderColor = "#28a745";
                 resultadoDiv.innerHTML = `<h3 style="color:#28a745; margin:0;">¡Añadidas ${cantidad} uds al inventario!</h3>`;
             } else {
                 resultadoDiv.style.display = 'none';
@@ -773,54 +852,102 @@
         function cambiarCamaraManual() { camaraManualId = document.getElementById('selector-camara').value; localStorage.setItem('camaraPreferida', camaraManualId); cerrarCamara(); setTimeout(iniciarEscanerSegunOS, 300); }
         function cerrarCamara() { if (codeReader) codeReader.reset(); document.getElementById('video-container').style.display = 'none'; }
 
-        async function cargarInventario() {
-            estadoDiv.innerHTML = "Sincronizando..."; estadoDiv.style.color = "blue";
-            let url = 'TIENDA.csv?' + new Date().getTime();
-            
-            try {
-                let response = await fetch(url);
-                if (!response.ok || (response.headers.get('content-type') && response.headers.get('content-type').includes('text/html'))) {
-                    url = 'tienda.csv?' + new Date().getTime(); response = await fetch(url);
-                }
-                const lastModifiedHeader = response.headers.get('Last-Modified');
-                const fechaReal = lastModifiedHeader ? new Date(lastModifiedHeader) : new Date();
-                const texto = await response.text();
-                
-                Papa.parse(texto, {
-                    header: false, delimiter: ";", skipEmptyLines: true,
-                    complete: function(results) {
-                        inventario = {};
-                        let contador = 0;
-                        results.data.forEach(fila => {
-                            if(fila.length >= 3) {
-                                let ean = fila[0] ? fila[0].trim() : "";
-                                let desc = fila[1] ? fila[1].trim() : "";
-                                let stock = fila[2] ? fila[2].trim() : "0";
-                                let val3 = fila[3] ? fila[3].trim() : "-";
-                                let val4 = fila[4] ? fila[4].trim() : "-";
-                                let precio = "-", rayon = "-";
+        // ==========================================
+        // PROCESADO DE CSVs MEDIANTE PROMESAS
+        // ==========================================
+        function parsearCSV(texto, options) {
+            return new Promise(resolve => {
+                Papa.parse(texto, { ...options, complete: resolve });
+            });
+        }
 
-                                if (/[a-zA-Z]/.test(val3) || val3.includes(" ")) { rayon = val3; precio = val4; } 
-                                else { precio = val3; rayon = val4; }
-                                
-                                let fecha = fila[5] ? fila[5].trim() : "-";
-                                let ventas = (fila.length > 6 && fila[6]) ? fila[6].trim() : "0";
-                                
-                                if(ean) { inventario[ean] = { descripcion: desc, stock, precio, rayon, fecha, ventas }; contador++; }
-                            }
-                        });
-                        
-                        const d = fechaReal;
-                        const fechaFmt = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-                        
-                        if (contador < 100) {
-                            estadoDiv.innerHTML = `⚠️ Atención: Solo se cargaron ${contador} items. Comprueba tu archivo CSV.`; estadoDiv.style.color = "red";
-                        } else {
-                            estadoDiv.innerHTML = `Base actualizada: ${contador} items <span class="texto-fecha">Últ. Sinc: ${fechaFmt}</span>`; estadoDiv.style.color = "#28a745";
+        async function cargarInventario() {
+            estadoDiv.innerHTML = "Iniciando BBDD Local..."; estadoDiv.style.color = "blue";
+            await initDB();
+            
+            let contadorTienda = 0;
+            let fechaFmt = "-";
+            
+            // 1. CARGAR TIENDA (STOCK DIARIO)
+            try {
+                estadoDiv.innerHTML = "Sincronizando Tienda (1/2)...";
+                let urlTienda = 'TIENDA.csv?' + new Date().getTime();
+                let response = await fetch(urlTienda);
+                if (!response.ok) {
+                    urlTienda = 'tienda.csv?' + new Date().getTime(); 
+                    response = await fetch(urlTienda);
+                }
+                
+                if (response.ok) {
+                    const lastModifiedHeader = response.headers.get('Last-Modified');
+                    const d = lastModifiedHeader ? new Date(lastModifiedHeader) : new Date();
+                    fechaFmt = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+                    
+                    let textoTienda = await response.text();
+                    let results = await parsearCSV(textoTienda, { header: false, delimiter: ";", skipEmptyLines: true });
+                    
+                    inventario = {};
+                    results.data.forEach(fila => {
+                        if(fila.length >= 3) {
+                            let ean = fila[0] ? fila[0].trim() : "";
+                            let desc = fila[1] ? fila[1].trim() : "";
+                            let stock = fila[2] ? fila[2].trim() : "0";
+                            let val3 = fila[3] ? fila[3].trim() : "-";
+                            let val4 = fila[4] ? fila[4].trim() : "-";
+                            let precio = "-", rayon = "-";
+                            if (/[a-zA-Z]/.test(val3) || val3.includes(" ")) { rayon = val3; precio = val4; } 
+                            else { precio = val3; rayon = val4; }
+                            
+                            let fecha = fila[5] ? fila[5].trim() : "-";
+                            let ventas = (fila.length > 6 && fila[6]) ? fila[6].trim() : "0";
+                            
+                            if(ean) { inventario[ean] = { descripcion: desc, stock, precio, rayon, fecha, ventas }; contadorTienda++; }
                         }
-                    }
-                });
-            } catch (error) { estadoDiv.innerText = "Error cargando CSV."; estadoDiv.style.color = "red"; }
+                    });
+                }
+            } catch (error) { console.error("Error cargando TIENDA.csv:", error); }
+
+            // 2. CARGAR MAESTRO (250K REFS)
+            try {
+                estadoDiv.innerHTML = "Sincronizando Maestro (2/2)...";
+                let urlMaestro = 'MAESTRO_FILTRADO.csv?' + new Date().getTime();
+                let responseM = await fetch(urlMaestro);
+                
+                if (responseM.ok) {
+                    let textoMaestro = await responseM.text();
+                    // Guardamos en la base de datos local para que funcione Offline mañana
+                    await guardarArchivoLocal('maestro_csv', textoMaestro);
+                    await procesarTextoMaestro(textoMaestro);
+                } else {
+                    throw new Error("No hay red para maestro nuevo");
+                }
+            } catch (e) {
+                // Si no hay internet, sacamos el de la base de datos local del móvil
+                let textoLocal = await leerArchivoLocal('maestro_csv');
+                if (textoLocal) {
+                    await procesarTextoMaestro(textoLocal);
+                }
+            }
+            
+            estadoDiv.innerHTML = `Stock: ${contadorTienda} | Maestro: ${Object.keys(inventarioMaestro).length} <span class="texto-fecha">Últ. Sinc: ${fechaFmt}</span>`; 
+            estadoDiv.style.color = "#28a745";
+        }
+
+        async function procesarTextoMaestro(texto) {
+            let results = await parsearCSV(texto, { header: true, delimiter: ";", skipEmptyLines: true });
+            inventarioMaestro = {};
+            results.data.forEach(fila => {
+                let ean = fila['EAN'] ? fila['EAN'].trim() : "";
+                if (ean) {
+                    inventarioMaestro[ean] = {
+                        descripcion: fila['DESCRIPCION'] || "",
+                        precio: fila['PVP_MAESTRO'] || "-",
+                        fecha: fila['ULTIMA_VENTA'] || "-",
+                        stock: "0",
+                        rayon: "-"
+                    };
+                }
+            });
         }
 
         function verListas() { document.getElementById('modalListas').style.display = 'flex'; renderizarLista(); }
@@ -943,7 +1070,6 @@
                 }
             });
 
-            // Prevenir hojas completamente vacías para que el Excel no dé error
             if(dataInventario.length === 0) dataInventario.push({"EAN":"-", "CANTIDAD":"-", "DESCRIPCION":"Sin datos", "FECHA":"-", "USUARIO / TERMINAL":"-"});
             if(dataCompetencia.length === 0) dataCompetencia.push({"RAYON":"-", "EAN":"-", "PVP COMPETENCIA":"-", "PVP LECLERC":"-", "OPUS":"-", "DESCRIPCION":"Sin datos", "COMPETENCIA":"-", "USUARIO / TERMINAL":"-"});
             if(dataPedidos.length === 0) dataPedidos.push({"RAYON":"-", "EAN":"-", "STOCK":"-", "CANTIDAD":"-", "DESCRIPCION":"Sin datos", "FECHA":"-", "USUARIO / TERMINAL":"-"});
