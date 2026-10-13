@@ -23,6 +23,7 @@
             padding: 6px; text-align: center; 
             background-color: #f4f6f8; display: flex; flex-direction: column; 
             min-height: 100dvh; overflow-y: auto; 
+            transition: padding-top 0.2s ease; /* Animación para bajar la app al abrir el visor */
         }
         
         #aviso-rotacion {
@@ -37,6 +38,19 @@
             #aviso-rotacion { display: flex; }
         }
 
+        /* --- VISOR DE CÁMARA SUPERIOR (NUEVO) --- */
+        #visor-camara-apunte {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 25vh; 
+            background-color: black; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        #video-preview-apunte { width: 100%; height: 100%; object-fit: cover; }
+        #linea-guia-apunte {
+            position: absolute; top: 50%; left: 10%; width: 80%; height: 2px;
+            background-color: rgba(255, 0, 0, 0.7); box-shadow: 0 0 8px red; z-index: 1001;
+        }
+        /* Esta clase se añade al body cuando se activa la cámara */
+        body.con-visor { padding-top: calc(25vh + 6px) !important; }
+
         .cabecera-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
         h1 { margin: 0; font-size: 18px; font-weight: 900; color: #111; }
         .btn-actualizar { padding: 8px 14px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
@@ -46,7 +60,7 @@
         
         /* RESULTADO INVISIBLE POR DEFECTO */
         .resultado { 
-            display: none; /* Oculto hasta que haya datos */
+            display: none; 
             margin-top: auto; margin-bottom: 8px; padding: 10px; border: 2px solid #222222; 
             border-radius: 12px; background-color: #ffffff; flex-direction: column; gap: 6px; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: auto; 
@@ -165,6 +179,12 @@
         <p>El escáner de códigos y la interfaz solo funcionan correctamente en modo vertical.</p>
     </div>
 
+    <!-- VISOR DE CÁMARA PARA APUNTAR (NUEVO) -->
+    <div id="visor-camara-apunte">
+        <video id="video-preview-apunte" playsinline autoplay muted></video>
+        <div id="linea-guia-apunte"></div>
+    </div>
+
     <div class="cabecera-top">
         <h1>Inventario</h1>
         <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar BBDD</button>
@@ -266,6 +286,38 @@
 
         document.getElementById('nombre-usuario-input').value = usuarioGuardado;
         document.getElementById('nombre-competencia-input').value = competenciaGuardada;
+
+        // --- VARIABLES VISOR CÁMARA DE APUNTE ---
+        let streamCamaraApunte = null;
+        const visorCamaraApunte = document.getElementById('visor-camara-apunte');
+        const videoApunte = document.getElementById('video-preview-apunte');
+
+        function abrirCamaraArriba() {
+            // Solo abrimos la cámara si estamos enfocados en el input de escaneo principal
+            if (inputActivoId !== 'inputCodigo') return;
+            
+            navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "environment" } 
+            })
+            .then(function(stream) {
+                streamCamaraApunte = stream;
+                videoApunte.srcObject = stream;
+                visorCamaraApunte.style.display = 'block';
+                document.body.classList.add('con-visor');
+            })
+            .catch(function(err) {
+                console.log("No se pudo iniciar la cámara de apunte: ", err);
+            });
+        }
+
+        function cerrarCamaraArriba() {
+            if (streamCamaraApunte) {
+                streamCamaraApunte.getTracks().forEach(track => track.stop());
+                streamCamaraApunte = null;
+            }
+            visorCamaraApunte.style.display = 'none';
+            document.body.classList.remove('con-visor');
+        }
 
         function guardarConfiguracion() {
             usuarioGuardado = document.getElementById('nombre-usuario-input').value.trim();
@@ -618,7 +670,7 @@
             if (tecladoVirtual.style.display === 'grid' && inputActivoId === 'inputCodigo') {
                 tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
             } else {
-                cerrarCamara(); inputActivoId = 'inputCodigo'; document.getElementById('btn-teclado-ok').innerText = 'BUSCAR';
+                cerrarCamara(); cerrarCamaraArriba(); inputActivoId = 'inputCodigo'; document.getElementById('btn-teclado-ok').innerText = 'BUSCAR';
                 inputCodigo.blur(); tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado');
             }
         }
@@ -645,6 +697,7 @@
             }
         }
 
+        // --- EVENTOS ACTUALIZADOS PARA ABRIR EL VISOR ---
         inputCodigo.addEventListener('focus', (e) => { 
             if (inputActivoId !== 'inputCodigo') {
                 e.preventDefault();
@@ -654,15 +707,21 @@
             document.body.classList.add('modo-teclado'); 
             tecladoVirtual.style.display = 'none'; 
             cerrarCamara(); 
+            abrirCamaraArriba(); // <-- Abrimos la cámara de apunte aquí
         });
         
-        inputCodigo.addEventListener('blur', () => { if (tecladoVirtual.style.display !== 'grid') document.body.classList.remove('modo-teclado'); });
+        inputCodigo.addEventListener('blur', () => { 
+            if (tecladoVirtual.style.display !== 'grid') document.body.classList.remove('modo-teclado'); 
+            cerrarCamaraArriba(); // <-- Cerramos la cámara al quitar el cursor
+        });
+
         inputCodigo.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); ultimoModo = 'teclado'; procesarBusqueda(inputCodigo.value.trim()); } });
 
         function procesarResultadoZXing(result) { if (result) { ultimoModo = 'camara'; procesarBusqueda(result.text.trim()); cerrarCamara(); } }
         function iniciarEscanerSegunOS() { ultimoModo = 'camara'; iniciarCamaraVideo(); }
 
         async function iniciarCamaraVideo() {
+            cerrarCamaraArriba(); // Cerramos la de apunte si estaba abierta
             const container = document.getElementById('video-container');
             container.style.display = 'block'; tecladoVirtual.style.display = 'none';
             if (!codeReader) codeReader = new ZXing.BrowserBarcodeReader(new Map().set(ZXing.DecodeHintType.TRY_HARDER, true));
