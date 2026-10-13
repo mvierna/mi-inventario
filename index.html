@@ -76,10 +76,6 @@
             flex: 1; padding: 12px; border: 3px solid #ff9800; border-radius: 8px; 
             font-size: 22px; text-align: center; font-weight: bold; outline: none; background-color: white; color: #111;
         }
-        .btn-confirmar { 
-            padding: 12px 24px; background-color: #28a745; color: white; 
-            border: none; border-radius: 8px; font-weight: 900; font-size: 18px; cursor: pointer;
-        }
 
         .lista-resultados { list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto; text-align: left; border: 1px solid #dee2e6; border-radius: 6px; }
         .item-resultado { padding: 10px; border-bottom: 1px solid #dee2e6; cursor: pointer; background-color: #fff; }
@@ -153,8 +149,9 @@
         .bg-competencia { background-color: #9c27b0; }
         .bg-pedido { background-color: #17a2b8; }
 
-        .item-cant-modal { font-size: 20px; font-weight: 900; color: #ff9800; margin-left: 10px; margin-right: 15px; }
-        .btn-borrar-item { background: #dc3545; color: white; border: none; border-radius: 8px; padding: 10px 14px; font-weight: bold; font-size: 16px;}
+        .item-cant-modal { font-size: 20px; font-weight: 900; color: #111; margin-right: 8px; }
+        .btn-editar-item { background: #ffc107; color: #000; border: none; border-radius: 8px; padding: 10px 14px; font-weight: bold; font-size: 16px; cursor: pointer; margin-right: 4px; }
+        .btn-borrar-item { background: #dc3545; color: white; border: none; border-radius: 8px; padding: 10px 14px; font-weight: bold; font-size: 16px; cursor: pointer;}
         
         .modal-footer { display: flex; gap: 6px; justify-content: space-between; }
         .btn-footer { flex: 1; padding: 14px 6px; border: none; border-radius: 8px; font-weight: 900; font-size: 14px; color: white; cursor: pointer; text-transform: uppercase; }
@@ -220,7 +217,7 @@
             <button class="tecla-v" style="grid-column: 1 / span 2;" onclick="pulsarTecla('0')">0</button>
             <button class="tecla-v" onclick="pulsarTecla('.')">.</button>
             
-            <button id="btn-teclado-ok" class="tecla-v tecla-ok" onclick="pulsarTecla('ENTER')">BUSCAR</button>
+            <button id="btn-teclado-ok" class="tecla-v tecla-ok" onclick="pulsarTecla('ENTER')">GUARDAR</button>
         </div>
     </div>
 
@@ -245,7 +242,8 @@
     </div>
 
     <script>
-        const URL_GOOGLE_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwDb6-Mx--K9V1Z8tc9DFg2m148AwMaLROu96qgPyOUIW2kOKlKod272m-Dtw9LDhBg/exec";
+        const URL_GOOGLE_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyDUMAiEws8GCAHOXiPGn73p7PwmAx5ZpzB--SWloa3MalE2ozGCxNjwDg6MPD9_MT2/exec
+";
 
         let inventario = {};
         let codeReader = null;
@@ -352,7 +350,6 @@
                 <p style='font-size:13px; color:#555; margin:2px 0;'>${textoPvp}</p>
                 <div class="panel-cantidad" style="display:flex;">
                     <input type="text" id="input-precio-accion" class="input-cantidad" placeholder="PVP Rival €..." readonly onclick="abrirTecladoPrecio()">
-                    <button class="btn-confirmar" style="background-color:#9c27b0;" onclick="guardarPrecioCompetencia()">OK</button>
                 </div>
             `;
             abrirTecladoPrecio();
@@ -367,6 +364,17 @@
         }
 
         function guardarPrecioCompetencia() {
+            // BLOQUEO DE DUPLICADOS EN CHEQUEO
+            let existe = listaTrabajo.findIndex(i => i.tipo === 'competencia' && i.ean === itemActual.ean);
+            if (existe !== -1) {
+                alert("⚠️ ¡CUIDADO! Ya has chequeado este producto.\nVe a la Lista si necesitas editar su precio.");
+                tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
+                inputActivoId = 'inputCodigo'; inputCodigo.value = "";
+                if (ultimoModo === 'camara') setTimeout(iniciarEscanerSegunOS, 800);
+                else setTimeout(() => { inputCodigo.focus(); }, 150);
+                return;
+            }
+
             const inputPrecio = document.getElementById('input-precio-accion');
             const precioCompStr = inputPrecio ? inputPrecio.value.trim().replace(/,/g, '.') : "";
             
@@ -445,7 +453,6 @@
 
                 <div class="panel-cantidad" style="display:flex;">
                     <input type="text" id="input-pedido-accion" class="input-cantidad" placeholder="Pedir Uds..." readonly onclick="abrirTecladoPedido()">
-                    <button class="btn-confirmar" style="background-color:#17a2b8;" onclick="guardarCantidadPedido()">OK</button>
                 </div>
             `;
             abrirTecladoPedido();
@@ -651,7 +658,6 @@
                 </div>
                 <div id="panel-cantidad-accion" class="panel-cantidad">
                     <input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly onclick="abrirTecladoCantidad()">
-                    <button class="btn-confirmar" onclick="guardarEnLista('${ean}', false)">OK</button>
                 </div>
             `;
             inputCodigo.value = ""; 
@@ -667,7 +673,6 @@
                 </div>
                 <div id="panel-cantidad-accion" class="panel-cantidad">
                     <input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly onclick="abrirTecladoCantidad()">
-                    <button class="btn-confirmar" onclick="guardarEnLista('${termino}', true)">OK</button>
                 </div>
             `;
             inputCodigo.value = ""; 
@@ -846,11 +851,48 @@
                             </div>
                             <div style="display:flex; align-items:center;">
                                 <span class="item-cant-modal">x${item.cantidad}</span>
+                                <button class="btn-editar-item" onclick="editarItemLista(${listaTrabajo.length - 1 - idx})">✏️</button>
                                 <button class="btn-borrar-item" onclick="eliminarItemLista(${listaTrabajo.length - 1 - idx})">✕</button>
                             </div>
                          </div>`;
             });
             contenedor.innerHTML = html;
+        }
+
+        function editarItemLista(index) {
+            let item = listaTrabajo[index];
+            if (item.tipo === 'competencia') {
+                let nuevo = prompt(`Editar precio de la competencia para:\n${item.descripcion}`, item.pvp_competencia);
+                if (nuevo !== null && nuevo.trim() !== "") {
+                    let precioCompStr = nuevo.trim().replace(/,/g, '.');
+                    item.pvp_competencia = precioCompStr;
+                    
+                    let opusFinal = "FALTA PVP";
+                    let pvpCompNum = parseFloat(precioCompStr);
+                    let pvpNuestroStr = item.pvp_nuestro;
+                    if (pvpNuestroStr !== "-" && pvpNuestroStr !== "") {
+                        let pvpNuesNum = parseFloat(pvpNuestroStr.replace(',', '.'));
+                        if (!isNaN(pvpNuesNum) && !isNaN(pvpCompNum) && pvpCompNum > 0) {
+                            let diff = ((pvpNuesNum - pvpCompNum) / pvpCompNum) * 100;
+                            let sign = diff > 0 ? "+" : "";
+                            opusFinal = sign + diff.toFixed(2) + "%";
+                        }
+                    }
+                    item.opus = opusFinal;
+                    localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
+                    renderizarLista();
+                }
+            } else {
+                let nuevo = prompt(`Editar cantidad para:\n${item.descripcion}`, item.cantidad);
+                if (nuevo !== null && nuevo.trim() !== "") {
+                    let cantNum = parseFloat(nuevo.trim().replace(',', '.'));
+                    if (!isNaN(cantNum) && cantNum > 0) {
+                        item.cantidad = cantNum;
+                        localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
+                        renderizarLista();
+                    }
+                }
+            }
         }
 
         function eliminarItemLista(index) { listaTrabajo.splice(index, 1); localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo)); renderizarLista(); }
@@ -859,17 +901,11 @@
         async function exportarListaCSV() {
             if(listaTrabajo.length === 0) return;
             
-            // 1. Separador por defecto de Excel en España (Punto y coma)
             let csv = "\ufeffTIPO;EAN;CANTIDAD;DESCRIPCION;COMPETENCIA;PVP_COMPETENCIA;PVP_NUESTRO;OPUS;RAYON;STOCK\n";
-            
-            // Invertimos la lista para que se guarde exactamente en el mismo orden visual de la aplicación (lo más nuevo arriba)
             let listaInvertida = [...listaTrabajo].reverse();
             
             listaInvertida.forEach(i => {
-                // 2. Envolvemos el EAN en =" " para forzar a Excel a leerlo como texto y evitar la notación científica
                 let eanLimpio = i.ean ? `="${i.ean}"` : "";
-                
-                // Limpiamos las descripciones de posibles comillas dobles que rompan el CSV
                 let desc = i.descripcion ? i.descripcion.replace(/"/g, '""') : "";
                 let comp = i.competencia ? i.competencia.replace(/"/g, '""') : "";
                 
@@ -881,10 +917,7 @@
             
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
-                    await navigator.share({
-                        title: 'Exportación de Lista',
-                        files: [file]
-                    });
+                    await navigator.share({ title: 'Exportación de Lista', files: [file] });
                     return; 
                 } catch (err) {
                     console.log('Compartir cancelado o no disponible.', err);
@@ -894,9 +927,7 @@
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
             link.setAttribute("download", `Trabajo.csv`); 
-            document.body.appendChild(link); 
-            link.click(); 
-            document.body.removeChild(link);
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
         window.onload = () => cargarInventario();
