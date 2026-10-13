@@ -245,7 +245,7 @@
     </div>
 
     <script>
-        const URL_GOOGLE_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwj0cB3cG97oiab2yCbdOC93lKpmUALPznVn9gHCV4gtOibF9GlwLd2wkeFxAqR9PL9/exec";
+        const URL_GOOGLE_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxnO4mABskfp8mEuT8NhZaEVYjOHrbk9dNwa4jpVSwpl0Fd4KajyahvtSGQxHTvZ7ab/exec";
 
         let inventario = {};
         let codeReader = null;
@@ -347,7 +347,7 @@
 
             resultadoDiv.style.display = 'flex';
             resultadoDiv.innerHTML = `
-                <h3 style='color:#9c27b0; margin:0;'>Introduce el PVP Competencia</h3>
+                <h3 style='color:#9c27b0; margin:0;'>Introduce el Precio PVP</h3>
                 <p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br>${desc}</p>
                 <p style='font-size:13px; color:#555; margin:2px 0;'>${textoPvp}</p>
                 <div class="panel-cantidad" style="display:flex;">
@@ -368,7 +368,6 @@
 
         function guardarPrecioCompetencia() {
             const inputPrecio = document.getElementById('input-precio-accion');
-            // Obligamos a usar un PUNTO como separador decimal para la competencia
             const precioCompStr = inputPrecio ? inputPrecio.value.trim().replace(/,/g, '.') : "";
             
             if (precioCompStr !== "") {
@@ -377,12 +376,11 @@
                 let pvpNuestroStr = itemActual.pvp_nuestro;
                 
                 if (pvpNuestroStr !== "-" && pvpNuestroStr !== "") {
-                    // Convertimos nuestro precio (que viene con coma) a punto para poder operarlo
                     let pvpNuesNum = parseFloat(pvpNuestroStr.replace(',', '.'));
                     if (!isNaN(pvpNuesNum) && !isNaN(pvpCompNum) && pvpCompNum > 0) {
                         let diff = ((pvpNuesNum - pvpCompNum) / pvpCompNum) * 100;
                         let sign = diff > 0 ? "+" : "";
-                        opusFinal = sign + diff.toFixed(2) + "%"; // Mantenemos el punto en el cálculo Opus
+                        opusFinal = sign + diff.toFixed(2) + "%"; 
                     }
                 }
 
@@ -519,8 +517,14 @@
                 <div style="margin-top:8px; font-size:20px;">📦 x1</div>
             `;
             inputCodigo.value = "";
-            if (ultimoModo === 'camara') setTimeout(iniciarEscanerSegunOS, 800);
-            else setTimeout(() => { inputCodigo.focus(); }, 150);
+            
+            if (ultimoModo === 'camara') {
+                setTimeout(iniciarEscanerSegunOS, 800);
+            } else {
+                setTimeout(() => {
+                    inputCodigo.focus();
+                }, 150);
+            }
         }
 
         async function enviarADrive() {
@@ -567,7 +571,10 @@
         }
 
         function procesarBusqueda(terminoBusqueda) {
-            if (inputActivoId !== 'inputCodigo') { inputCodigo.value = ""; return; }
+            if (inputActivoId !== 'inputCodigo') {
+                inputCodigo.value = ""; 
+                return;
+            }
 
             let termino = terminoBusqueda.trim().toUpperCase();
             inputCodigo.value = ""; 
@@ -852,29 +859,32 @@
         async function exportarListaCSV() {
             if(listaTrabajo.length === 0) return;
             
-            // CSV ampliado para soportar los tres modos
             let csv = "\ufeffTIPO;EAN;CANTIDAD;DESCRIPCION;COMPETENCIA;PVP_COMPETENCIA;PVP_NUESTRO;OPUS;RAYON;STOCK\n";
-            listaTrabajo.forEach(i => {
-                csv += `${i.tipo || 'inventario'};${i.ean || ''};${i.cantidad || ''};${i.descripcion || ''};${i.competencia || ''};${i.pvp_competencia || ''};${i.pvp_nuestro || ''};${i.opus || ''};${i.rayon || ''};${i.stock || ''}\n`;
+            
+            // Invertimos la lista para que se guarde exactamente en el mismo orden visual de la aplicación (lo más nuevo arriba)
+            let listaInvertida = [...listaTrabajo].reverse();
+            
+            listaInvertida.forEach(i => {
+                // Añadimos un tabulador oculto al EAN para obligar a Excel a tratarlo como texto y evitar la notación científica
+                let eanLimpio = i.ean ? `"${i.ean}\t"` : "";
+                csv += `${i.tipo || 'inventario'};${eanLimpio};${i.cantidad || ''};${i.descripcion || ''};${i.competencia || ''};${i.pvp_competencia || ''};${i.pvp_nuestro || ''};${i.opus || ''};${i.rayon || ''};${i.stock || ''}\n`;
             });
             
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const file = new File([blob], 'Trabajo.csv', { type: 'text/csv' });
             
-            // Opción NATIVA para móviles: permite abrir directamente en Excel o enviar por WhatsApp
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
                     await navigator.share({
                         title: 'Exportación de Lista',
                         files: [file]
                     });
-                    return; // Si el menú nativo funciona, paramos aquí
+                    return; 
                 } catch (err) {
                     console.log('Compartir cancelado o no disponible.', err);
                 }
             }
             
-            // Si estás en ordenador o el móvil no lo soporta, hace una descarga normal
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
             link.setAttribute("download", `Trabajo.csv`); 
