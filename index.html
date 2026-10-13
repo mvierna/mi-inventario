@@ -245,7 +245,7 @@
     </div>
 
     <script>
-        const URL_GOOGLE_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxnO4mABskfp8mEuT8NhZaEVYjOHrbk9dNwa4jpVSwpl0Fd4KajyahvtSGQxHTvZ7ab/exec";
+        const URL_GOOGLE_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwj0cB3cG97oiab2yCbdOC93lKpmUALPznVn9gHCV4gtOibF9GlwLd2wkeFxAqR9PL9/exec";
 
         let inventario = {};
         let codeReader = null;
@@ -859,15 +859,21 @@
         async function exportarListaCSV() {
             if(listaTrabajo.length === 0) return;
             
+            // 1. Separador por defecto de Excel en España (Punto y coma)
             let csv = "\ufeffTIPO;EAN;CANTIDAD;DESCRIPCION;COMPETENCIA;PVP_COMPETENCIA;PVP_NUESTRO;OPUS;RAYON;STOCK\n";
             
             // Invertimos la lista para que se guarde exactamente en el mismo orden visual de la aplicación (lo más nuevo arriba)
             let listaInvertida = [...listaTrabajo].reverse();
             
             listaInvertida.forEach(i => {
-                // Añadimos un tabulador oculto al EAN para obligar a Excel a tratarlo como texto y evitar la notación científica
-                let eanLimpio = i.ean ? `"${i.ean}\t"` : "";
-                csv += `${i.tipo || 'inventario'};${eanLimpio};${i.cantidad || ''};${i.descripcion || ''};${i.competencia || ''};${i.pvp_competencia || ''};${i.pvp_nuestro || ''};${i.opus || ''};${i.rayon || ''};${i.stock || ''}\n`;
+                // 2. Envolvemos el EAN en =" " para forzar a Excel a leerlo como texto y evitar la notación científica
+                let eanLimpio = i.ean ? `="${i.ean}"` : "";
+                
+                // Limpiamos las descripciones de posibles comillas dobles que rompan el CSV
+                let desc = i.descripcion ? i.descripcion.replace(/"/g, '""') : "";
+                let comp = i.competencia ? i.competencia.replace(/"/g, '""') : "";
+                
+                csv += `${i.tipo || 'inventario'};${eanLimpio};${i.cantidad || ''};"${desc}";"${comp}";${i.pvp_competencia || ''};${i.pvp_nuestro || ''};${i.opus || ''};${i.rayon || ''};${i.stock || ''}\n`;
             });
             
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
