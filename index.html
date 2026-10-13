@@ -43,18 +43,18 @@
         h1 { margin: 0; font-size: 18px; font-weight: 900; color: #111; }
         .btn-actualizar { padding: 8px 14px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
         
-        #estado { font-weight: bold; font-size: 11px; color: #28a745; margin-bottom: 8px; }
+        #estado { font-weight: bold; font-size: 11px; color: #28a745; margin-bottom: 6px; }
         .texto-fecha { font-size: 11px; color: #444444; font-weight: bold; display: block; margin-top: 1px; text-transform: uppercase; }
         
         .resultado { 
             display: none; 
-            margin-top: auto; margin-bottom: 8px; padding: 10px; border: 2px solid #222222; 
-            border-radius: 12px; background-color: #ffffff; flex-direction: column; gap: 6px; 
+            margin-top: auto; margin-bottom: 6px; padding: 8px; border: 2px solid #222222; 
+            border-radius: 12px; background-color: #ffffff; flex-direction: column; gap: 4px; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: auto; 
         }
         .titulo-encontrado { color: #28a745; margin: 0; font-size: 15px; font-weight: bold; }
         .texto-ean { font-size: 13px; color: #555; margin: 0; }
-        .descripcion-producto { font-size: 18px; font-weight: 800; line-height: 1.25; color: #000000; margin: 2px 0; text-transform: uppercase; }
+        .descripcion-producto { font-size: 17px; font-weight: 800; line-height: 1.2; color: #000000; margin: 2px 0; text-transform: uppercase; }
         
         .panel-secundario { display: flex; justify-content: space-around; gap: 4px; margin: 2px 0; background-color: #f8f9fa; padding: 6px; border-radius: 6px; border: 1px solid #e2e8f0; }
         .item-secundario { display: flex; flex-direction: column; align-items: center; flex: 1; text-align: center; }
@@ -63,20 +63,20 @@
 
         .caja-stock { margin-top: 2px; padding: 6px; background-color: #28a745; color: #ffffff; border-radius: 8px; border: none; }
         .etiqueta-stock { font-size: 12px; text-transform: uppercase; margin: 0; font-weight: bold; letter-spacing: 0.5px; opacity: 0.95; }
-        .numero-stock { font-size: 46px; font-weight: 900; margin: 0; line-height: 1; color: #ffffff; }
+        .numero-stock { font-size: 42px; font-weight: 900; margin: 0; line-height: 1; color: #ffffff; }
 
-        .panel-acciones { margin-top: 8px; }
+        .panel-acciones { margin-top: 6px; }
         .btn-accion-unica { 
-            width: 100%; padding: 14px; background-color: #ff9800; color: white; border: none; 
-            border-radius: 8px; font-weight: 900; font-size: 16px; cursor: pointer; text-transform: uppercase;
+            width: 100%; padding: 12px; background-color: #ff9800; color: white; border: none; 
+            border-radius: 8px; font-weight: 900; font-size: 15px; cursor: pointer; text-transform: uppercase;
             box-shadow: 0 4px 0 #e65100; transition: transform 0.1s;
         }
         .btn-accion-unica:active { transform: translateY(4px); box-shadow: none; }
         
-        .panel-cantidad { display: none; flex-direction: row; gap: 8px; margin-top: 8px; }
+        .panel-cantidad { display: none; flex-direction: row; gap: 8px; margin-top: 6px; }
         .input-cantidad { 
-            flex: 1; padding: 12px; border: 3px solid #ff9800; border-radius: 8px; 
-            font-size: 22px; text-align: center; font-weight: bold; outline: none; background-color: white; color: #111;
+            flex: 1; padding: 10px; border: 3px solid #ff9800; border-radius: 8px; 
+            font-size: 20px; text-align: center; font-weight: bold; outline: none; background-color: white; color: #111;
         }
 
         .lista-resultados { list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto; text-align: left; border: 1px solid #dee2e6; border-radius: 6px; }
@@ -93,9 +93,9 @@
 
         .caja-interfaz { padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); margin-top: auto; }
         
-        .contenedor-modos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+        .contenedor-modos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
         .btn-modo {
-            padding: 14px 4px; color: white; border: none; border-radius: 6px; 
+            padding: 12px 4px; color: white; border: none; border-radius: 6px; 
             font-weight: 900; font-size: 13px; text-transform: uppercase; cursor: pointer;
             box-shadow: 0 3px 0 rgba(0,0,0,0.2); transition: all 0.2s; display: flex; align-items: center; justify-content: center;
         }
@@ -118,17 +118,31 @@
         #inputCodigo:disabled { background-color: #e9ecef; border-color: #ced4da; opacity: 0.7; }
         .btn-camara-cuadrado { flex: 0 0 90px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
 
-        #teclado-virtual { display: none; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; background: #f8f9fa; padding: 8px; border-radius: 8px; border: 1px solid #dee2e6; }
-        .tecla-v { height: 55px; font-size: 24px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
+        #teclado-virtual { display: none; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; background: #f8f9fa; padding: 6px; border-radius: 8px; border: 1px solid #dee2e6; }
+        .tecla-v { height: 50px; font-size: 22px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
         .tecla-v:active { transform: translateY(2px); box-shadow: none; background: #e9ecef; }
         
-        .tecla-accion { background: #dc3545; color: white; border-color: #b02a37; box-shadow: 0 2px 0 #b02a37; font-size: 18px; grid-column: 4; grid-row: 1; height: 100%; }
+        .tecla-accion { background: #dc3545; color: white; border-color: #b02a37; box-shadow: 0 2px 0 #b02a37; font-size: 17px; grid-column: 4; grid-row: 1; height: 100%; }
         .tecla-accion:active { background: #c82333; }
         
-        .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; font-size: 16px; font-weight: 900; grid-column: 4; grid-row: 2 / span 3; height: 100%; letter-spacing: 1px; }
+        .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; font-size: 15px; font-weight: 900; grid-column: 4; grid-row: 2 / span 3; height: 100%; letter-spacing: 1px; }
         .tecla-ok:active { background: #218838; }
 
         body.modo-teclado .cabecera-top, body.modo-teclado #estado { display: none !important; }
+
+        /* REGLAS DE COMPRESIÓN PARA PANTALLAS PEQUEÑAS (Como las de 6.2" o menos) */
+        @media (max-height: 720px) {
+            .tecla-v { height: 44px; font-size: 20px; }
+            .tecla-accion { font-size: 15px; }
+            .tecla-ok { font-size: 14px; }
+            .btn-modo { padding: 8px 4px; font-size: 12px; }
+            .grupo-input-camara .btn-teclado, .grupo-input-camara #inputCodigo, .grupo-input-camara .btn-camara-cuadrado { height: 42px; }
+            .resultado { padding: 6px; margin-bottom: 4px; gap: 2px; }
+            .descripcion-producto { font-size: 15px; }
+            .numero-stock { font-size: 34px; }
+            .input-cantidad { padding: 8px; font-size: 18px; }
+            .panel-secundario { padding: 4px; margin: 0; }
+        }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .modal-content { background: #f4f6f8; width: 92%; max-height: 85dvh; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
@@ -281,12 +295,8 @@
             });
         }
 
-        // ==========================================
-        // VARIABLES GLOBALES
-        // ==========================================
         let inventario = {};
-        let inventarioMaestro = {}; // Base de datos extra para 250k referencias
-        
+        let inventarioMaestro = {};
         let codeReader = null;
         let camaraManualId = localStorage.getItem('camaraPreferida') || null; 
         
@@ -294,7 +304,6 @@
         let modoActivo = 'normal';
         
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
-        
         let usuarioGuardado = localStorage.getItem('inventarioUsuario') || '';
         let competenciaGuardada = localStorage.getItem('inventarioCompetencia') || '';
         
@@ -305,7 +314,6 @@
         const resultadoDiv = document.getElementById('resultado');
         const estadoDiv = document.getElementById('estado');
         const tecladoVirtual = document.getElementById('teclado-virtual');
-        const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
         document.getElementById('nombre-usuario-input').value = usuarioGuardado;
         document.getElementById('nombre-competencia-input').value = competenciaGuardada;
@@ -365,24 +373,19 @@
             setTimeout(() => { inputCodigo.disabled = false; }, 300);
         }
 
-        // ==========================================
-        // MOTOR DE BÚSQUEDA CENTRALIZADO (CASCADA)
-        // ==========================================
         function buscarArticuloGlobal(termino) {
             let termLimpio = termino.replace(/^0+/, '');
             let ean12 = termLimpio.padStart(12, '0');
             
-            // 1. Prioridad: Archivo Diario de TIENDA (Stock real)
             if (inventario.hasOwnProperty(termino)) return { ean: termino, art: inventario[termino], esMaestro: false };
             if (inventario.hasOwnProperty(termLimpio)) return { ean: termLimpio, art: inventario[termLimpio], esMaestro: false };
             if (inventario.hasOwnProperty(ean12)) return { ean: ean12, art: inventario[ean12], esMaestro: false };
             
-            // 2. Respaldo: Archivo Gigante MAESTRO (Stock 0 pero datos reales)
             if (inventarioMaestro.hasOwnProperty(termino)) return { ean: termino, art: inventarioMaestro[termino], esMaestro: true };
             if (inventarioMaestro.hasOwnProperty(termLimpio)) return { ean: termLimpio, art: inventarioMaestro[termLimpio], esMaestro: true };
             if (inventarioMaestro.hasOwnProperty(ean12)) return { ean: ean12, art: inventarioMaestro[ean12], esMaestro: true };
             
-            return null; // No encontrado en ningún sitio
+            return null;
         }
 
         function procesarEscaneoChequeo(termino) {
@@ -652,23 +655,20 @@
             if (result) {
                 mostrarArticuloCompleto(result.ean, result.esMaestro);
             } else {
-                // MOTOR DE BÚSQUEDA POR TEXTO (Limitado para no bloquear el móvil)
                 let palabras = termino.split(" ").filter(t => t.length > 0);
                 let coincidencias = [];
                 
-                // Buscar en Tienda
                 for (const [ean, articulo] of Object.entries(inventario)) {
                     if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) {
                         coincidencias.push({ ean: ean, articulo: articulo, esMaestro: false });
                     }
                 }
                 
-                // Si hay pocas, buscar en Maestro
                 if (coincidencias.length < 50) {
                     for (const [ean, articulo] of Object.entries(inventarioMaestro)) {
                         if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) {
                             coincidencias.push({ ean: ean, articulo: articulo, esMaestro: true });
-                            if (coincidencias.length >= 50) break; // Límite de seguridad
+                            if (coincidencias.length >= 50) break;
                         }
                     }
                 }
@@ -764,7 +764,6 @@
             const cantidad = parseFloat(inputVal.replace(',', '.')) || 0;
             
             if (cantidad > 0) {
-                // Si es un forzado, ponemos DESCONOCIDO. Si no, cogemos la descripción del Maestro o de Tienda.
                 let desc = "DESCONOCIDO/FUERA SURTIDO";
                 if (!esDesconocido) {
                     let result = buscarArticuloGlobal(identificador);
@@ -852,9 +851,6 @@
         function cambiarCamaraManual() { camaraManualId = document.getElementById('selector-camara').value; localStorage.setItem('camaraPreferida', camaraManualId); cerrarCamara(); setTimeout(iniciarEscanerSegunOS, 300); }
         function cerrarCamara() { if (codeReader) codeReader.reset(); document.getElementById('video-container').style.display = 'none'; }
 
-        // ==========================================
-        // PROCESADO DE CSVs MEDIANTE PROMESAS
-        // ==========================================
         function parsearCSV(texto, options) {
             return new Promise(resolve => {
                 Papa.parse(texto, { ...options, complete: resolve });
@@ -868,7 +864,6 @@
             let contadorTienda = 0;
             let fechaFmt = "-";
             
-            // 1. CARGAR TIENDA (STOCK DIARIO)
             try {
                 estadoDiv.innerHTML = "Sincronizando Tienda (1/2)...";
                 let urlTienda = 'TIENDA.csv?' + new Date().getTime();
@@ -907,7 +902,6 @@
                 }
             } catch (error) { console.error("Error cargando TIENDA.csv:", error); }
 
-            // 2. CARGAR MAESTRO (250K REFS)
             try {
                 estadoDiv.innerHTML = "Sincronizando Maestro (2/2)...";
                 let urlMaestro = 'MAESTRO_FILTRADO.csv?' + new Date().getTime();
@@ -915,14 +909,12 @@
                 
                 if (responseM.ok) {
                     let textoMaestro = await responseM.text();
-                    // Guardamos en la base de datos local para que funcione Offline mañana
                     await guardarArchivoLocal('maestro_csv', textoMaestro);
                     await procesarTextoMaestro(textoMaestro);
                 } else {
-                    throw new Error("No hay red para maestro nuevo");
+                    throw new Error("No red");
                 }
             } catch (e) {
-                // Si no hay internet, sacamos el de la base de datos local del móvil
                 let textoLocal = await leerArchivoLocal('maestro_csv');
                 if (textoLocal) {
                     await procesarTextoMaestro(textoLocal);
