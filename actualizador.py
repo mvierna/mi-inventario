@@ -20,25 +20,21 @@ def formatear_precio_abaco(precio_str):
 def procesar_tienda():
     print("-> Procesando TIENDA.csv (Stock Diario)...")
     try:
-        # Leemos asumiendo que TIENE cabeceras (header=0) y forzando texto
-        df_tienda = pd.read_csv('TIENDA.csv', sep=';', dtype=str, header=0)
+        # Añadimos encoding='latin1' para leer correctamente acentos y eñes de Abaco
+        df_tienda = pd.read_csv('TIENDA.csv', sep=';', dtype=str, header=0, encoding='latin1')
         df_tienda = df_tienda.fillna("")
         
-        # Mapeo inteligente de las columnas basado en tu captura de Excel
         col_ean = 'EAN' if 'EAN' in df_tienda.columns else df_tienda.columns[1]
         col_desc = 'Designación' if 'Designación' in df_tienda.columns else df_tienda.columns[2]
         col_stock = 'Stock' if 'Stock' in df_tienda.columns else df_tienda.columns[3]
         col_rayon = 'Rayon' if 'Rayon' in df_tienda.columns else df_tienda.columns[4]
         col_pvc = 'PVC' if 'PVC' in df_tienda.columns else df_tienda.columns[5]
         
-        # Buscar columnas de fecha y ventas (pueden variar según Abaco)
         col_fecha = 'Última recepción' if 'Última recepción' in df_tienda.columns else None
         col_ventas = 'Ventas' if 'Ventas' in df_tienda.columns else None
 
-        # Limpieza básica del EAN para quitar el ".0" invisible
         df_tienda[col_ean] = df_tienda[col_ean].str.strip().str.replace(r'\.0$', '', regex=True)
         
-        # Construimos un nuevo DataFrame ordenado EXACTAMENTE como lo lee tu PWA
         df_limpio = pd.DataFrame()
         df_limpio[0] = df_tienda[col_ean]
         df_limpio[1] = df_tienda[col_desc]
@@ -48,7 +44,6 @@ def procesar_tienda():
         df_limpio[5] = df_tienda[col_fecha] if col_fecha else "-"
         df_limpio[6] = df_tienda[col_ventas] if col_ventas else "0"
         
-        # Guardamos el archivo ya "masticado" para la web (sin cabeceras y en orden)
         df_limpio.to_csv('TIENDA.csv', sep=';', index=False, header=False, encoding='utf-8-sig')
         print(f"   TIENDA.csv procesado y reestructurado con {len(df_limpio)} líneas.")
         
@@ -67,7 +62,8 @@ def procesar_maestro(eans_en_tienda):
         return
 
     try:
-        df_maestro = pd.read_csv(archivo_maestro, sep=';', dtype=str, encoding='utf-8')
+        # También añadimos encoding='latin1' aquí por seguridad
+        df_maestro = pd.read_csv(archivo_maestro, sep=';', dtype=str, encoding='latin1')
         
         df_maestro['Code EAN'] = df_maestro['Code EAN'].str.strip().str.replace(r'\.0$', '', regex=True)
         df_maestro = df_maestro.drop_duplicates(subset=['Code EAN'], keep='first')
