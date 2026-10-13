@@ -138,11 +138,9 @@
         .btn-teclado { flex: 0 0 50px; height: 50px; background-color: #6c757d; color: white; border: none; border-radius: 6px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 16px; text-align: center; border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; }
         #inputCodigo:disabled { background-color: #e9ecef; border-color: #ced4da; opacity: 0.7; }
-        /* Aumentado el ancho del botón cámara para alinear con la columna de acción del teclado */
         .btn-camara-cuadrado { flex: 0 0 100px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
 
         /* TECLADO VIRTUAL CON SIMETRÍA AJUSTADA */
-        /* Ahora la columna 4 usa exactamente el ancho del botón cámara (100px) */
         #teclado-virtual { 
             display: none; 
             grid-template-columns: repeat(3, 1fr) 100px; 
@@ -152,10 +150,11 @@
         .tecla-v { height: 50px; font-size: 24px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
         .tecla-v:active { transform: translateY(2px); box-shadow: none; background: #e9ecef; }
         
-        .tecla-accion { background: #dc3545; color: white; border-color: #b02a37; box-shadow: 0 2px 0 #b02a37; font-size: 18px; grid-column: 4; grid-row: 1; height: 100%; }
+        /* Uso de !important para proteger la estructura del botón frente a resoluciones pequeñas */
+        .tecla-accion { background: #dc3545; color: white; border-color: #b02a37; box-shadow: 0 2px 0 #b02a37; font-size: 18px; grid-column: 4; grid-row: 1; height: 100% !important; }
         .tecla-accion:active { background: #c82333; }
         
-        .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; font-size: 16px; font-weight: 900; grid-column: 4; grid-row: 2 / span 3; height: 100%; letter-spacing: 1px; }
+        .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; font-size: 16px; font-weight: 900; grid-column: 4; grid-row: 2 / span 3; height: 100% !important; letter-spacing: 1px; }
         .tecla-ok:active { background: #218838; }
 
         /* OCULTAR ELEMENTOS PARA AHORRAR ESPACIO AL ABRIR EL TECLADO */
@@ -168,8 +167,6 @@
         /* ESCALADO INTELIGENTE SI EL MÓVIL ES MÁS PEQUEÑO */
         @media (max-height: 780px) {
             .tecla-v { height: 48px; font-size: 22px; }
-            .tecla-accion { font-size: 16px; }
-            .tecla-ok { font-size: 15px; }
             .btn-modo { padding: 10px 4px; font-size: 13px; }
             .grupo-input-camara .btn-teclado, .grupo-input-camara #inputCodigo, .grupo-input-camara .btn-camara-cuadrado { height: 46px; }
             .resultado { padding: 8px; margin-bottom: 2px; gap: 4px; margin-top: auto; }
