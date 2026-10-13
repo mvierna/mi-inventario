@@ -46,7 +46,7 @@
         
         /* RESULTADO INVISIBLE POR DEFECTO */
         .resultado { 
-            display: none; /* Oculto hasta que haya datos */
+            display: none; 
             margin-top: auto; margin-bottom: 8px; padding: 10px; border: 2px solid #222222; 
             border-radius: 12px; background-color: #ffffff; flex-direction: column; gap: 6px; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: auto; 
@@ -97,11 +97,11 @@
         /* AREA DE CONTROLES INFERIOR */
         .caja-interfaz { padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); margin-top: auto; }
         
-        /* BOTONES DE MODOS EN UNA SOLA FILA */
-        .contenedor-modos { display: flex; gap: 6px; margin-bottom: 8px; }
+        /* NUEVA BOTONERA EN CUADRÍCULA 2x2 */
+        .contenedor-modos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
         .btn-modo {
-            flex: 1; padding: 12px 2px; color: white; border: none; border-radius: 6px; 
-            font-weight: 900; font-size: 12px; text-transform: uppercase; cursor: pointer;
+            padding: 14px 4px; color: white; border: none; border-radius: 6px; 
+            font-weight: 900; font-size: 13px; text-transform: uppercase; cursor: pointer;
             box-shadow: 0 3px 0 rgba(0,0,0,0.2); transition: all 0.2s; display: flex; align-items: center; justify-content: center;
         }
         .btn-modo:active { transform: translateY(3px); box-shadow: none !important; }
@@ -109,6 +109,9 @@
         #btn-modo-rapido { background-color: #6c757d; }
         #btn-modo-rapido.activo { background-color: #ffc107; color: #000; box-shadow: 0 3px 0 #d39e00; }
         
+        #btn-modo-pedidos { background-color: #6c757d; }
+        #btn-modo-pedidos.activo { background-color: #17a2b8; color: #fff; box-shadow: 0 3px 0 #117a8b; }
+
         #btn-modo-chequeo { background-color: #6c757d; }
         #btn-modo-chequeo.activo { background-color: #9c27b0; color: #fff; box-shadow: 0 3px 0 #6a1b9a; }
         
@@ -148,6 +151,13 @@
         .item-lista-info { display: flex; flex-direction: column; text-align: left; flex: 1;}
         .item-desc-modal { font-size: 15px; font-weight: bold; color: #111; }
         .item-detalle-modal { font-size: 13px; color: #666; margin-top: 2px; }
+        
+        /* Colores para las etiquetas de tipo en la Lista */
+        .etiqueta-tipo-lista { font-size: 10px; font-weight: 900; padding: 2px 6px; border-radius: 4px; color: white; margin-bottom: 4px; display: inline-block; text-transform: uppercase; }
+        .bg-inventario { background-color: #6c757d; }
+        .bg-competencia { background-color: #9c27b0; }
+        .bg-pedido { background-color: #17a2b8; }
+
         .item-cant-modal { font-size: 20px; font-weight: 900; color: #ff9800; margin-left: 10px; margin-right: 15px; }
         .btn-borrar-item { background: #dc3545; color: white; border: none; border-radius: 8px; padding: 10px 14px; font-weight: bold; font-size: 16px;}
         
@@ -189,6 +199,7 @@
     <div class="caja-interfaz">
         <div class="contenedor-modos">
             <button id="btn-modo-rapido" class="btn-modo" onclick="activarModo('rapido')">⚡ MODO 1</button>
+            <button id="btn-modo-pedidos" class="btn-modo" onclick="activarModo('pedidos')">🛒 PEDIDOS</button>
             <button id="btn-modo-chequeo" class="btn-modo" onclick="activarModo('chequeo')">🕵️ CHEQUEO</button>
             <button id="btn-modo-lista" class="btn-modo" onclick="verListas()">📋 LISTA</button>
         </div>
@@ -256,7 +267,7 @@
         let competenciaGuardada = localStorage.getItem('inventarioCompetencia') || '';
         
         let inputActivoId = 'inputCodigo';
-        let itemActual = { ean: null, desc: null, esDesconocido: false };
+        let itemActual = { ean: null, desc: null, esDesconocido: false, rayon: null, stock: null, pvp_nuestro: null };
 
         const inputCodigo = document.getElementById('inputCodigo');
         const resultadoDiv = document.getElementById('resultado');
@@ -277,35 +288,40 @@
         function activarModo(modo) {
             const btnRapido = document.getElementById('btn-modo-rapido');
             const btnChequeo = document.getElementById('btn-modo-chequeo');
+            const btnPedidos = document.getElementById('btn-modo-pedidos');
             
             if (modoActivo === modo) {
                 modoActivo = 'normal';
                 btnRapido.classList.remove('activo');
                 btnChequeo.classList.remove('activo');
-                resultadoDiv.style.display = 'none'; // Limpiamos la pantalla
+                btnPedidos.classList.remove('activo');
+                resultadoDiv.style.display = 'none'; 
                 resultadoDiv.innerHTML = "";
             } else {
                 if (!usuarioGuardado) {
                     alert("¡Atención! Para usar modos especiales debes ir a 📋 Lista y guardar tu Nombre/Terminal.");
                     return;
                 }
-                
                 if (modo === 'chequeo' && !competenciaGuardada) {
                     alert("¡Atención! Para chequear precios debes ir a 📋 Lista y escribir el nombre de la Competencia (Ej: Mercadona).");
                     return;
                 }
 
                 modoActivo = modo;
-                resultadoDiv.style.display = 'flex'; // Mostramos el mensaje informativo
+                btnRapido.classList.remove('activo');
+                btnChequeo.classList.remove('activo');
+                btnPedidos.classList.remove('activo');
+                resultadoDiv.style.display = 'flex';
                 
                 if (modo === 'rapido') {
                     btnRapido.classList.add('activo');
-                    btnChequeo.classList.remove('activo');
-                    resultadoDiv.innerHTML = "<h3 style='color:#ffc107; margin:0;'>⚡ MODO RÁPIDO ACTIVO</h3><p style='font-size:14px; margin-top:4px;'>Se guardarán a tu Lista con cantidad 1 automáticamente.</p>";
+                    resultadoDiv.innerHTML = "<h3 style='color:#ffc107; margin:0;'>⚡ MODO 1 ACTIVO</h3><p style='font-size:14px; margin-top:4px;'>Se guardarán a tu Lista con cantidad 1 automáticamente.</p>";
                 } else if (modo === 'chequeo') {
                     btnChequeo.classList.add('activo');
-                    btnRapido.classList.remove('activo');
                     resultadoDiv.innerHTML = `<h3 style='color:#9c27b0; margin:0;'>🕵️ CHEQUEANDO: ${competenciaGuardada}</h3><p style='font-size:14px; margin-top:4px;'>Escanea el producto para introducir su PVP manualmente.</p>`;
+                } else if (modo === 'pedidos') {
+                    btnPedidos.classList.add('activo');
+                    resultadoDiv.innerHTML = `<h3 style='color:#17a2b8; margin:0;'>🛒 MODO PEDIDOS</h3><p style='font-size:14px; margin-top:4px;'>Escanea para ver Rayón/Stock y pedir.</p>`;
                 }
             }
             inputCodigo.focus();
@@ -314,11 +330,10 @@
         function forzarCierreTecladoNativo() {
             inputCodigo.disabled = true; 
             document.activeElement.blur();
-            setTimeout(() => {
-                inputCodigo.disabled = false; 
-            }, 300);
+            setTimeout(() => { inputCodigo.disabled = false; }, 300);
         }
 
+        // ====== LÓGICA MODO CHEQUEO (COMPETENCIA + OPUS) ======
         function procesarEscaneoChequeo(termino) {
             let desc = "COMPETENCIA (Sin datos)";
             let eanDetectado = termino;
@@ -331,15 +346,21 @@
                 else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) { eanDetectado = termLimpio.padStart(12, '0'); desc = inventario[termLimpio.padStart(12, '0')].descripcion; }
             }
 
-            itemActual = { ean: eanDetectado, desc: desc };
+            let pvp_nuestro = inventario[eanDetectado] ? inventario[eanDetectado].precio : "-";
+            let rayon = inventario[eanDetectado] ? inventario[eanDetectado].rayon : "-";
             
+            itemActual = { ean: eanDetectado, desc: desc, pvp_nuestro: pvp_nuestro, rayon: rayon };
+            
+            let textoPvp = pvp_nuestro === "-" ? "<span style='color:red;'>No tenemos PVP</span>" : `Nuestro PVP: <b>${pvp_nuestro}€</b>`;
+
             resultadoDiv.style.display = 'flex';
             resultadoDiv.innerHTML = `
-                <h3 style='color:#9c27b0; margin:0;'>Introduce el Precio PVP</h3>
+                <h3 style='color:#9c27b0; margin:0;'>Introduce el PVP Competencia</h3>
                 <p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br>${desc}</p>
+                <p style='font-size:13px; color:#555; margin:2px 0;'>${textoPvp}</p>
                 <div class="panel-cantidad" style="display:flex;">
-                    <input type="text" id="input-precio-accion" class="input-cantidad" placeholder="Precio €..." readonly onclick="abrirTecladoPrecio()">
-                    <button class="btn-confirmar" style="background-color:#9c27b0;" onclick="guardarPrecioCompetencia('${eanDetectado}', '${desc}')">OK</button>
+                    <input type="text" id="input-precio-accion" class="input-cantidad" placeholder="PVP Rival €..." readonly onclick="abrirTecladoPrecio()">
+                    <button class="btn-confirmar" style="background-color:#9c27b0;" onclick="guardarPrecioCompetencia()">OK</button>
                 </div>
             `;
             abrirTecladoPrecio();
@@ -350,51 +371,129 @@
             document.getElementById('btn-teclado-ok').innerText = 'GUARDAR';
             tecladoVirtual.style.display = 'grid'; 
             document.body.classList.add('modo-teclado');
-            
             forzarCierreTecladoNativo();
         }
 
-        function guardarPrecioCompetencia(ean, desc) {
+        function guardarPrecioCompetencia() {
             const inputPrecio = document.getElementById('input-precio-accion');
-            const precio = inputPrecio ? inputPrecio.value.trim().replace(/\./g, ',') : "";
+            const precioCompStr = inputPrecio ? inputPrecio.value.trim().replace(/\./g, ',') : "";
             
-            if (precio !== "") {
+            if (precioCompStr !== "") {
+                let opusFinal = "FALTA PVP";
+                let pvpCompNum = parseFloat(precioCompStr.replace(',', '.'));
+                let pvpNuestroStr = itemActual.pvp_nuestro;
+                
+                // Cálculo matemático de % de diferencia de precios
+                if (pvpNuestroStr !== "-" && pvpNuestroStr !== "") {
+                    let pvpNuesNum = parseFloat(pvpNuestroStr.replace(',', '.'));
+                    if (!isNaN(pvpNuesNum) && !isNaN(pvpCompNum) && pvpCompNum > 0) {
+                        let diff = ((pvpNuesNum - pvpCompNum) / pvpCompNum) * 100;
+                        let sign = diff > 0 ? "+" : "";
+                        opusFinal = sign + diff.toFixed(2).replace('.', ',') + "%";
+                    }
+                }
+
                 listaTrabajo.push({
-                    ean: ean,
-                    descripcion: desc,
+                    tipo: 'competencia',
+                    ean: itemActual.ean,
+                    descripcion: itemActual.desc,
                     cantidad: 1, 
                     fecha: new Date().toLocaleString('es-ES').replace(', ', ' '),
                     competencia: competenciaGuardada,
-                    precio_competencia: precio
+                    pvp_competencia: precioCompStr,
+                    pvp_nuestro: pvpNuestroStr,
+                    opus: opusFinal,
+                    rayon: itemActual.rayon
+                });
+                localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
+                
+                let colorOpus = opusFinal.includes("+") ? "red" : (opusFinal.includes("-") ? "#28a745" : "#555");
+
+                resultadoDiv.style.display = 'flex';
+                resultadoDiv.innerHTML = `
+                    <p style="margin:0; font-size:14px; color:#666;">Precio guardado:</p>
+                    <h3 style="margin:2px 0; color:#9c27b0;">${precioCompStr} €</h3>
+                    <p style="margin:0; font-size:13px;">Diferencia: <b style="color:${colorOpus}">${opusFinal}</b></p>
+                `;
+            } else {
+                resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = "";
+            }
+            
+            tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
+            inputActivoId = 'inputCodigo'; inputCodigo.value = "";
+            if (ultimoModo === 'camara') setTimeout(iniciarEscanerSegunOS, 800);
+            else setTimeout(() => { inputCodigo.focus(); }, 150); 
+        }
+
+        // ====== LÓGICA MODO PEDIDOS SUPERMERCADOS ======
+        function procesarEscaneoPedido(termino) {
+            let desc = "DESCONOCIDO (Sin datos)";
+            let eanDetectado = termino;
+
+            if (inventario.hasOwnProperty(termino)) { 
+                eanDetectado = termino; desc = inventario[termino].descripcion;
+            } else if (/^\d+$/.test(termino)) {
+                let termLimpio = termino.replace(/^0+/, '');
+                if (inventario.hasOwnProperty(termLimpio)) { eanDetectado = termLimpio; desc = inventario[termLimpio].descripcion; }
+                else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) { eanDetectado = termLimpio.padStart(12, '0'); desc = inventario[termLimpio.padStart(12, '0')].descripcion; }
+            }
+
+            let stock = inventario[eanDetectado] ? inventario[eanDetectado].stock : "0";
+            let rayon = inventario[eanDetectado] ? inventario[eanDetectado].rayon : "-";
+            
+            itemActual = { ean: eanDetectado, desc: desc, stock: stock, rayon: rayon };
+            
+            resultadoDiv.style.display = 'flex';
+            resultadoDiv.innerHTML = `
+                <h3 style='color:#17a2b8; margin:0;'>🛒 Cantidad a Pedir</h3>
+                <p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br>${desc}</p>
+                <p style='font-size:13px; color:#555; margin:2px 0;'>Rayón: <b>${rayon}</b> | Stock Actual: <b style='color:#28a745;'>${stock}</b></p>
+                <div class="panel-cantidad" style="display:flex;">
+                    <input type="text" id="input-pedido-accion" class="input-cantidad" placeholder="Uds..." readonly onclick="abrirTecladoPedido()">
+                    <button class="btn-confirmar" style="background-color:#17a2b8;" onclick="guardarCantidadPedido()">OK</button>
+                </div>
+            `;
+            abrirTecladoPedido();
+        }
+
+        function abrirTecladoPedido() {
+            inputActivoId = 'input-pedido-accion'; 
+            document.getElementById('btn-teclado-ok').innerText = 'PEDIR';
+            tecladoVirtual.style.display = 'grid'; 
+            document.body.classList.add('modo-teclado');
+            forzarCierreTecladoNativo();
+        }
+
+        function guardarCantidadPedido() {
+            let inputVal = document.getElementById('input-pedido-accion').value;
+            const cantidad = parseFloat(inputVal.replace(',', '.')) || 0;
+            
+            if (cantidad > 0) {
+                listaTrabajo.push({
+                    tipo: 'pedido',
+                    ean: itemActual.ean,
+                    descripcion: itemActual.desc,
+                    cantidad: cantidad, 
+                    fecha: new Date().toLocaleString('es-ES').replace(', ', ' '),
+                    rayon: itemActual.rayon,
+                    stock: itemActual.stock
                 });
                 localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
                 
                 resultadoDiv.style.display = 'flex';
-                resultadoDiv.innerHTML = `
-                    <p style="margin:0; font-size:14px; color:#666;">Precio de ${competenciaGuardada} guardado:</p>
-                    <h3 style="margin:2px 0; color:#9c27b0;">${precio} €</h3>
-                    <p style="margin:0; font-weight:bold;">EAN: ${ean}</p>
-                `;
+                resultadoDiv.innerHTML = `<h3 style="color:#17a2b8; margin:0;">✅ Pedidas ${cantidad} uds</h3><p style="margin:0; font-size:13px;">${itemActual.desc}</p>`;
             } else {
-                resultadoDiv.style.display = 'none';
-                resultadoDiv.innerHTML = "";
+                resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = "";
             }
+
+            tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
+            inputActivoId = 'inputCodigo'; inputCodigo.value = "";
             
-            tecladoVirtual.style.display = 'none';
-            document.body.classList.remove('modo-teclado');
-            
-            inputActivoId = 'inputCodigo'; 
-            inputCodigo.value = "";
-            
-            if (ultimoModo === 'camara') {
-                setTimeout(iniciarEscanerSegunOS, 800);
-            } else {
-                setTimeout(() => {
-                    inputCodigo.focus();
-                }, 150); 
-            }
+            if (ultimoModo === 'camara') setTimeout(iniciarEscanerSegunOS, 800);
+            else setTimeout(() => { inputCodigo.focus(); }, 150);
         }
 
+        // ====== LÓGICA MODO 1 ======
         function procesarEscaneoRapido(termino) {
             let desc = "ETIQUETA RÁPIDA (Sin datos)";
             let eanDetectado = termino;
@@ -408,6 +507,7 @@
             }
 
             listaTrabajo.push({
+                tipo: 'inventario',
                 ean: eanDetectado,
                 descripcion: desc,
                 cantidad: 1,
@@ -417,22 +517,17 @@
 
             resultadoDiv.style.display = 'flex';
             resultadoDiv.innerHTML = `
-                <p style="margin:0; font-size:14px; color:#666;">Añadido a tu lista:</p>
+                <p style="margin:0; font-size:14px; color:#666;">Añadido a inventario:</p>
                 <h3 style="margin:2px 0; color:#28a745;">${eanDetectado}</h3>
                 <p style="margin:0; font-weight:bold;">${desc}</p>
                 <div style="margin-top:8px; font-size:20px;">📦 x1</div>
             `;
             inputCodigo.value = "";
-            
-            if (ultimoModo === 'camara') {
-                setTimeout(iniciarEscanerSegunOS, 800);
-            } else {
-                setTimeout(() => {
-                    inputCodigo.focus();
-                }, 150);
-            }
+            if (ultimoModo === 'camara') setTimeout(iniciarEscanerSegunOS, 800);
+            else setTimeout(() => { inputCodigo.focus(); }, 150);
         }
 
+        // ====== ENVÍO A DRIVE ======
         async function enviarADrive() {
             if (listaTrabajo.length === 0) { alert("La lista está vacía."); return; }
             if (!usuarioGuardado) { alert("Pon tu nombre en la casilla de arriba primero."); return; }
@@ -443,13 +538,18 @@
 
             const datosAEnviar = listaTrabajo.map(item => {
                 return { 
+                    tipo: item.tipo || 'inventario',
                     ean: item.ean, 
                     cantidad: item.cantidad, 
                     descripcion: item.descripcion, 
                     fecha: item.fecha, 
                     usuario: usuarioGuardado,
                     competencia: item.competencia || "",
-                    precio_competencia: item.precio_competencia || ""
+                    pvp_competencia: item.pvp_competencia || "",
+                    pvp_nuestro: item.pvp_nuestro || "",
+                    opus: item.opus || "",
+                    rayon: item.rayon || "",
+                    stock: item.stock || ""
                 };
             });
 
@@ -460,7 +560,7 @@
                 const result = await response.json();
                 
                 if (result.status === "success") {
-                    alert("¡Sincronizado correctamente!");
+                    alert("¡Sincronizado con Google Drive correctamente!");
                     if(confirm("¿Quieres vaciar la lista de trabajo?")) {
                         listaTrabajo = [];
                         localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
@@ -472,10 +572,7 @@
         }
 
         function procesarBusqueda(terminoBusqueda) {
-            if (inputActivoId !== 'inputCodigo') {
-                inputCodigo.value = ""; 
-                return;
-            }
+            if (inputActivoId !== 'inputCodigo') { inputCodigo.value = ""; return; }
 
             let termino = terminoBusqueda.trim().toUpperCase();
             inputCodigo.value = ""; 
@@ -483,6 +580,7 @@
 
             if (modoActivo === 'rapido') { procesarEscaneoRapido(termino); return; }
             if (modoActivo === 'chequeo') { procesarEscaneoChequeo(termino); return; }
+            if (modoActivo === 'pedidos') { procesarEscaneoPedido(termino); return; }
 
             let eanDetectado = null;
             if (inventario.hasOwnProperty(termino)) { eanDetectado = termino; } 
@@ -495,7 +593,6 @@
             if (eanDetectado) {
                 mostrarArticuloCompleto(eanDetectado);
             } else {
-                // MOTOR DE BÚSQUEDA POR TEXTO (RESTAURADO)
                 let palabras = termino.split(" ").filter(t => t.length > 0);
                 let coincidencias = [];
                 for (const [ean, articulo] of Object.entries(inventario)) {
@@ -528,6 +625,7 @@
             setTimeout(() => inputCodigo.blur(), 100);
         }
 
+        // ====== MODO BÚSQUEDA NORMAL / AÑADIR MANUAL ======
         function mostrarArticuloCompleto(ean) {
             let art = inventario[ean];
             resultadoDiv.style.display = 'flex';
@@ -548,7 +646,7 @@
                     <p class="numero-stock">${art.stock}</p>
                 </div>
                 <div id="panel-botones-accion" class="panel-acciones">
-                    <button class="btn-accion-unica" onclick="mostrarInputCantidad('${ean}', false)">+ Añadir Cantidad</button>
+                    <button class="btn-accion-unica" onclick="mostrarInputCantidad('${ean}', false)">+ Añadir Inventario</button>
                 </div>
                 <div id="panel-cantidad-accion" class="panel-cantidad">
                     <input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly onclick="abrirTecladoCantidad()">
@@ -589,29 +687,27 @@
             
             if (cantidad > 0) {
                 let desc = esDesconocido ? "DESCONOCIDO/FUERA SURTIDO" : inventario[identificador].descripcion;
-                listaTrabajo.push({ ean: identificador, descripcion: desc, cantidad: cantidad, fecha: new Date().toLocaleString('es-ES').replace(', ', ' ') });
+                listaTrabajo.push({ 
+                    tipo: 'inventario',
+                    ean: identificador, 
+                    descripcion: desc, 
+                    cantidad: cantidad, 
+                    fecha: new Date().toLocaleString('es-ES').replace(', ', ' ') 
+                });
                 localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
                 
                 resultadoDiv.style.display = 'flex';
-                resultadoDiv.innerHTML = `<h3 style="color:#28a745; margin:0;">¡Añadidas ${cantidad} uds!</h3>`;
+                resultadoDiv.innerHTML = `<h3 style="color:#28a745; margin:0;">¡Añadidas ${cantidad} uds al inventario!</h3>`;
             } else {
                 resultadoDiv.style.display = 'none';
                 resultadoDiv.innerHTML = "";
             }
 
-            tecladoVirtual.style.display = 'none';
-            document.body.classList.remove('modo-teclado');
+            tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
+            inputActivoId = 'inputCodigo'; inputCodigo.value = "";
             
-            inputActivoId = 'inputCodigo'; 
-            inputCodigo.value = "";
-            
-            if (ultimoModo === 'camara') {
-                iniciarEscanerSegunOS();
-            } else {
-                setTimeout(() => {
-                    inputCodigo.focus();
-                }, 150);
-            }
+            if (ultimoModo === 'camara') iniciarEscanerSegunOS();
+            else setTimeout(() => { inputCodigo.focus(); }, 150);
         }
 
         function toggleTecladoVirtual() {
@@ -639,21 +735,16 @@
                     tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); 
                 } 
                 else if (inputActivoId === 'input-cant-accion') guardarEnLista(itemActual.ean, itemActual.esDesconocido);
-                else if (inputActivoId === 'input-precio-accion') guardarPrecioCompetencia(itemActual.ean, itemActual.desc);
+                else if (inputActivoId === 'input-precio-accion') guardarPrecioCompetencia();
+                else if (inputActivoId === 'input-pedido-accion') guardarCantidadPedido();
             } else {
                 inputDestino.value += valor;
             }
         }
 
         inputCodigo.addEventListener('focus', (e) => { 
-            if (inputActivoId !== 'inputCodigo') {
-                e.preventDefault();
-                inputCodigo.blur();
-                return;
-            }
-            document.body.classList.add('modo-teclado'); 
-            tecladoVirtual.style.display = 'none'; 
-            cerrarCamara(); 
+            if (inputActivoId !== 'inputCodigo') { e.preventDefault(); inputCodigo.blur(); return; }
+            document.body.classList.add('modo-teclado'); tecladoVirtual.style.display = 'none'; cerrarCamara(); 
         });
         
         inputCodigo.addEventListener('blur', () => { if (tecladoVirtual.style.display !== 'grid') document.body.classList.remove('modo-teclado'); });
@@ -677,18 +768,14 @@
         function cerrarCamara() { if (codeReader) codeReader.reset(); document.getElementById('video-container').style.display = 'none'; }
 
         async function cargarInventario() {
-            estadoDiv.innerHTML = "Sincronizando...";
-            estadoDiv.style.color = "blue";
-            
+            estadoDiv.innerHTML = "Sincronizando..."; estadoDiv.style.color = "blue";
             let url = 'TIENDA.csv?' + new Date().getTime();
             
             try {
                 let response = await fetch(url);
                 if (!response.ok || (response.headers.get('content-type') && response.headers.get('content-type').includes('text/html'))) {
-                    url = 'tienda.csv?' + new Date().getTime();
-                    response = await fetch(url);
+                    url = 'tienda.csv?' + new Date().getTime(); response = await fetch(url);
                 }
-                
                 const lastModifiedHeader = response.headers.get('Last-Modified');
                 const fechaReal = lastModifiedHeader ? new Date(lastModifiedHeader) : new Date();
                 const texto = await response.text();
@@ -702,7 +789,7 @@
                             if(fila.length >= 3) {
                                 let ean = fila[0] ? fila[0].trim() : "";
                                 let desc = fila[1] ? fila[1].trim() : "";
-                                let stock = fila[2] ? fila[2].trim() : "";
+                                let stock = fila[2] ? fila[2].trim() : "0";
                                 let val3 = fila[3] ? fila[3].trim() : "-";
                                 let val4 = fila[4] ? fila[4].trim() : "-";
                                 let precio = "-", rayon = "-";
@@ -713,10 +800,7 @@
                                 let fecha = fila[5] ? fila[5].trim() : "-";
                                 let ventas = (fila.length > 6 && fila[6]) ? fila[6].trim() : "0";
                                 
-                                if(ean) {
-                                    inventario[ean] = { descripcion: desc, stock, precio, rayon, fecha, ventas };
-                                    contador++;
-                                }
+                                if(ean) { inventario[ean] = { descripcion: desc, stock, precio, rayon, fecha, ventas }; contador++; }
                             }
                         });
                         
@@ -724,18 +808,13 @@
                         const fechaFmt = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
                         
                         if (contador < 100) {
-                            estadoDiv.innerHTML = `⚠️ Atención: Solo se cargaron ${contador} items. Comprueba tu archivo CSV.`;
-                            estadoDiv.style.color = "red";
+                            estadoDiv.innerHTML = `⚠️ Atención: Solo se cargaron ${contador} items. Comprueba tu archivo CSV.`; estadoDiv.style.color = "red";
                         } else {
-                            estadoDiv.innerHTML = `Base actualizada: ${contador} items <span class="texto-fecha">Últ. Sinc: ${fechaFmt}</span>`;
-                            estadoDiv.style.color = "#28a745";
+                            estadoDiv.innerHTML = `Base actualizada: ${contador} items <span class="texto-fecha">Últ. Sinc: ${fechaFmt}</span>`; estadoDiv.style.color = "#28a745";
                         }
                     }
                 });
-            } catch (error) {
-                estadoDiv.innerText = "Error cargando CSV.";
-                estadoDiv.style.color = "red";
-            }
+            } catch (error) { estadoDiv.innerText = "Error cargando CSV."; estadoDiv.style.color = "red"; }
         }
 
         function verListas() { document.getElementById('modalListas').style.display = 'flex'; renderizarLista(); }
@@ -746,8 +825,29 @@
             if (listaTrabajo.length === 0) { contenedor.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">Lista vacía</div>'; return; }
             let html = '';
             [...listaTrabajo].reverse().forEach((item, idx) => {
-                let detalleCompetencia = item.precio_competencia ? `<br><span style="color:#9c27b0; font-weight:bold;">${item.competencia}: ${item.precio_competencia}€</span>` : '';
-                html += `<div class="item-lista-guardada"><div class="item-lista-info"><span class="item-desc-modal">${item.descripcion}</span><span class="item-detalle-modal">EAN: ${item.ean}${detalleCompetencia}</span></div><div style="display:flex; align-items:center;"><span class="item-cant-modal">x${item.cantidad}</span><button class="btn-borrar-item" onclick="eliminarItemLista(${listaTrabajo.length - 1 - idx})">✕</button></div></div>`;
+                let badge = "";
+                let detalleEx = "";
+                if (item.tipo === 'competencia') {
+                    badge = `<span class="etiqueta-tipo-lista bg-competencia">Chequeo</span>`;
+                    detalleEx = `<br><span style="color:#9c27b0; font-weight:bold;">${item.competencia}: ${item.pvp_competencia}€ (Dif: ${item.opus})</span>`;
+                } else if (item.tipo === 'pedido') {
+                    badge = `<span class="etiqueta-tipo-lista bg-pedido">Pedido</span>`;
+                    detalleEx = `<br><span style="color:#17a2b8; font-weight:bold;">Stock actual: ${item.stock}</span>`;
+                } else {
+                    badge = `<span class="etiqueta-tipo-lista bg-inventario">Inventario</span>`;
+                }
+
+                html += `<div class="item-lista-guardada">
+                            <div class="item-lista-info">
+                                ${badge}
+                                <span class="item-desc-modal">${item.descripcion}</span>
+                                <span class="item-detalle-modal">EAN: ${item.ean}${detalleEx}</span>
+                            </div>
+                            <div style="display:flex; align-items:center;">
+                                <span class="item-cant-modal">x${item.cantidad}</span>
+                                <button class="btn-borrar-item" onclick="eliminarItemLista(${listaTrabajo.length - 1 - idx})">✕</button>
+                            </div>
+                         </div>`;
             });
             contenedor.innerHTML = html;
         }
@@ -758,7 +858,7 @@
         function exportarListaCSV() {
             if(listaTrabajo.length === 0) return;
             let csv = "\ufeffEAN;Cantidad;Descripcion;Competencia;Precio_PVP\n";
-            listaTrabajo.forEach(i => csv += `${i.ean};${i.cantidad};${i.descripcion};${i.competencia || ''};${i.precio_competencia || ''}\n`);
+            listaTrabajo.forEach(i => csv += `${i.ean};${i.cantidad};${i.descripcion};${i.competencia || ''};${i.pvp_competencia || ''}\n`);
             const link = document.createElement("a");
             link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
             link.setAttribute("download", `Trabajo.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
