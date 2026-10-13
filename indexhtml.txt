@@ -12,8 +12,10 @@
     <meta name="apple-mobile-web-app-title" content="Inventario">
     <link rel="apple-touch-icon" href="icono.png">
 
+    <!-- LIBRERÍAS DE LECTURA (CSV, Escáner y NUEVO EXCEL) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         * { box-sizing: border-box; }
@@ -44,7 +46,6 @@
         #estado { font-weight: bold; font-size: 11px; color: #28a745; margin-bottom: 8px; }
         .texto-fecha { font-size: 11px; color: #444444; font-weight: bold; display: block; margin-top: 1px; text-transform: uppercase; }
         
-        /* RESULTADO INVISIBLE POR DEFECTO */
         .resultado { 
             display: none; 
             margin-top: auto; margin-bottom: 8px; padding: 10px; border: 2px solid #222222; 
@@ -77,10 +78,6 @@
             flex: 1; padding: 12px; border: 3px solid #ff9800; border-radius: 8px; 
             font-size: 22px; text-align: center; font-weight: bold; outline: none; background-color: white; color: #111;
         }
-        .btn-confirmar { 
-            padding: 12px 24px; background-color: #28a745; color: white; 
-            border: none; border-radius: 8px; font-weight: 900; font-size: 18px; cursor: pointer;
-        }
 
         .lista-resultados { list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto; text-align: left; border: 1px solid #dee2e6; border-radius: 6px; }
         .item-resultado { padding: 10px; border-bottom: 1px solid #dee2e6; cursor: pointer; background-color: #fff; }
@@ -94,10 +91,8 @@
         #selector-camara { width: 100%; max-width: 200px; padding: 6px; border-radius: 4px; font-size: 12px; background: white; color: black; border: 1px solid #ccc; }
         video { width: 100%; height: auto; display: block; object-fit: cover; }
 
-        /* AREA DE CONTROLES INFERIOR */
         .caja-interfaz { padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); margin-top: auto; }
         
-        /* NUEVA BOTONERA EN CUADRÍCULA 2x2 */
         .contenedor-modos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
         .btn-modo {
             padding: 14px 4px; color: white; border: none; border-radius: 6px; 
@@ -123,7 +118,6 @@
         #inputCodigo:disabled { background-color: #e9ecef; border-color: #ced4da; opacity: 0.7; }
         .btn-camara-cuadrado { flex: 0 0 90px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
 
-        /* TECLADO VIRTUAL */
         #teclado-virtual { display: none; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; background: #f8f9fa; padding: 8px; border-radius: 8px; border: 1px solid #dee2e6; }
         .tecla-v { height: 55px; font-size: 24px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
         .tecla-v:active { transform: translateY(2px); box-shadow: none; background: #e9ecef; }
@@ -152,14 +146,14 @@
         .item-desc-modal { font-size: 15px; font-weight: bold; color: #111; }
         .item-detalle-modal { font-size: 13px; color: #666; margin-top: 2px; }
         
-        /* Colores para las etiquetas de tipo en la Lista */
         .etiqueta-tipo-lista { font-size: 10px; font-weight: 900; padding: 2px 6px; border-radius: 4px; color: white; margin-bottom: 4px; display: inline-block; text-transform: uppercase; }
         .bg-inventario { background-color: #6c757d; }
         .bg-competencia { background-color: #9c27b0; }
         .bg-pedido { background-color: #17a2b8; }
 
-        .item-cant-modal { font-size: 20px; font-weight: 900; color: #ff9800; margin-left: 10px; margin-right: 15px; }
-        .btn-borrar-item { background: #dc3545; color: white; border: none; border-radius: 8px; padding: 10px 14px; font-weight: bold; font-size: 16px;}
+        .item-cant-modal { font-size: 20px; font-weight: 900; color: #111; margin-right: 8px; }
+        .btn-editar-item { background: #ffc107; color: #000; border: none; border-radius: 8px; padding: 10px 14px; font-weight: bold; font-size: 16px; cursor: pointer; margin-right: 4px; }
+        .btn-borrar-item { background: #dc3545; color: white; border: none; border-radius: 8px; padding: 10px 14px; font-weight: bold; font-size: 16px; cursor: pointer;}
         
         .modal-footer { display: flex; gap: 6px; justify-content: space-between; }
         .btn-footer { flex: 1; padding: 14px 6px; border: none; border-radius: 8px; font-weight: 900; font-size: 14px; color: white; cursor: pointer; text-transform: uppercase; }
@@ -192,9 +186,7 @@
         <video id="video-preview" playsinline autoplay muted></video>
     </div>
 
-    <div id="resultado" class="resultado">
-        <!-- El contenido se inyecta por JS y la celda solo aparece cuando hace falta -->
-    </div>
+    <div id="resultado" class="resultado"></div>
 
     <div class="caja-interfaz">
         <div class="contenedor-modos">
@@ -225,9 +217,9 @@
             <button class="tecla-v" onclick="pulsarTecla('3')">3</button>
 
             <button class="tecla-v" style="grid-column: 1 / span 2;" onclick="pulsarTecla('0')">0</button>
-            <button class="tecla-v" onclick="pulsarTecla(',')">,</button>
+            <button class="tecla-v" onclick="pulsarTecla('.')">.</button>
             
-            <button id="btn-teclado-ok" class="tecla-v tecla-ok" onclick="pulsarTecla('ENTER')">BUSCAR</button>
+            <button id="btn-teclado-ok" class="tecla-v tecla-ok" onclick="pulsarTecla('ENTER')">GUARDAR</button>
         </div>
     </div>
 
@@ -246,13 +238,13 @@
             <div class="modal-footer">
                 <button class="btn-footer" style="background: #dc3545; flex: 0.3;" onclick="borrarListaActual()">🗑</button>
                 <button id="btn-drive" class="btn-footer btn-sync-drive" onclick="enviarADrive()">☁️ A Drive</button>
-                <button class="btn-footer" style="background: #28a745; flex: 0.8;" onclick="exportarListaCSV()">📥 CSV</button>
+                <button class="btn-footer" style="background: #28a745; flex: 0.8;" onclick="exportarListaExcel()">📥 EXCEL</button>
             </div>
         </div>
     </div>
 
     <script>
-        const URL_GOOGLE_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzJf7DWuhqweONALJxgkNZ6iF5rQIvt-5pMWAQ2nDLfCRZIvrRJ2rUuL8PL1Y5vTY3z/exec";
+        const URL_GOOGLE_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyDUMAiEws8GCAHOXiPGn73p7PwmAx5ZpzB--SWloa3MalE2ozGCxNjwDg6MPD9_MT2/exec";
 
         let inventario = {};
         let codeReader = null;
@@ -333,7 +325,6 @@
             setTimeout(() => { inputCodigo.disabled = false; }, 300);
         }
 
-        // ====== LÓGICA MODO CHEQUEO (COMPETENCIA + OPUS) ======
         function procesarEscaneoChequeo(termino) {
             let desc = "COMPETENCIA (Sin datos)";
             let eanDetectado = termino;
@@ -355,12 +346,11 @@
 
             resultadoDiv.style.display = 'flex';
             resultadoDiv.innerHTML = `
-                <h3 style='color:#9c27b0; margin:0;'>Introduce el PVP Competencia</h3>
+                <h3 style='color:#9c27b0; margin:0;'>Introduce el Precio PVP</h3>
                 <p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br>${desc}</p>
                 <p style='font-size:13px; color:#555; margin:2px 0;'>${textoPvp}</p>
                 <div class="panel-cantidad" style="display:flex;">
                     <input type="text" id="input-precio-accion" class="input-cantidad" placeholder="PVP Rival €..." readonly onclick="abrirTecladoPrecio()">
-                    <button class="btn-confirmar" style="background-color:#9c27b0;" onclick="guardarPrecioCompetencia()">OK</button>
                 </div>
             `;
             abrirTecladoPrecio();
@@ -375,21 +365,30 @@
         }
 
         function guardarPrecioCompetencia() {
+            let existe = listaTrabajo.findIndex(i => i.tipo === 'competencia' && i.ean === itemActual.ean);
+            if (existe !== -1) {
+                alert("⚠️ ¡CUIDADO! Ya has chequeado este producto.\nVe a la Lista si necesitas editar su precio.");
+                tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
+                inputActivoId = 'inputCodigo'; inputCodigo.value = "";
+                if (ultimoModo === 'camara') setTimeout(iniciarEscanerSegunOS, 800);
+                else setTimeout(() => { inputCodigo.focus(); }, 150);
+                return;
+            }
+
             const inputPrecio = document.getElementById('input-precio-accion');
-            const precioCompStr = inputPrecio ? inputPrecio.value.trim().replace(/\./g, ',') : "";
+            const precioCompStr = inputPrecio ? inputPrecio.value.trim().replace(/,/g, '.') : "";
             
             if (precioCompStr !== "") {
                 let opusFinal = "FALTA PVP";
-                let pvpCompNum = parseFloat(precioCompStr.replace(',', '.'));
+                let pvpCompNum = parseFloat(precioCompStr);
                 let pvpNuestroStr = itemActual.pvp_nuestro;
                 
-                // Cálculo matemático de % de diferencia de precios
                 if (pvpNuestroStr !== "-" && pvpNuestroStr !== "") {
                     let pvpNuesNum = parseFloat(pvpNuestroStr.replace(',', '.'));
                     if (!isNaN(pvpNuesNum) && !isNaN(pvpCompNum) && pvpCompNum > 0) {
                         let diff = ((pvpNuesNum - pvpCompNum) / pvpCompNum) * 100;
                         let sign = diff > 0 ? "+" : "";
-                        opusFinal = sign + diff.toFixed(2).replace('.', ',') + "%";
+                        opusFinal = sign + diff.toFixed(2) + "%"; 
                     }
                 }
 
@@ -412,7 +411,7 @@
                 resultadoDiv.style.display = 'flex';
                 resultadoDiv.innerHTML = `
                     <p style="margin:0; font-size:14px; color:#666;">Precio guardado:</p>
-                    <h3 style="margin:2px 0; color:#9c27b0;">${precioCompStr} €</h3>
+                    <h3 style="margin:2px 0; color:#9c27b0;">${precioCompStr}</h3>
                     <p style="margin:0; font-size:13px;">Diferencia: <b style="color:${colorOpus}">${opusFinal}</b></p>
                 `;
             } else {
@@ -425,7 +424,6 @@
             else setTimeout(() => { inputCodigo.focus(); }, 150); 
         }
 
-        // ====== LÓGICA MODO PEDIDOS SUPERMERCADOS ======
         function procesarEscaneoPedido(termino) {
             let desc = "DESCONOCIDO (Sin datos)";
             let eanDetectado = termino;
@@ -447,10 +445,14 @@
             resultadoDiv.innerHTML = `
                 <h3 style='color:#17a2b8; margin:0;'>🛒 Cantidad a Pedir</h3>
                 <p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br>${desc}</p>
-                <p style='font-size:13px; color:#555; margin:2px 0;'>Rayón: <b>${rayon}</b> | Stock Actual: <b style='color:#28a745;'>${stock}</b></p>
+                
+                <div style='background:#e8f5e9; padding:8px; border-radius:6px; margin:6px 0; border: 2px solid #28a745;'>
+                    <span style='font-size:12px; color:#28a745; font-weight:bold; display:block; text-transform:uppercase;'>Stock Actual en ${rayon}</span>
+                    <span style='font-size:36px; color:#28a745; font-weight:900; line-height:1;'>${stock}</span>
+                </div>
+
                 <div class="panel-cantidad" style="display:flex;">
-                    <input type="text" id="input-pedido-accion" class="input-cantidad" placeholder="Uds..." readonly onclick="abrirTecladoPedido()">
-                    <button class="btn-confirmar" style="background-color:#17a2b8;" onclick="guardarCantidadPedido()">OK</button>
+                    <input type="text" id="input-pedido-accion" class="input-cantidad" placeholder="Pedir Uds..." readonly onclick="abrirTecladoPedido()">
                 </div>
             `;
             abrirTecladoPedido();
@@ -493,7 +495,6 @@
             else setTimeout(() => { inputCodigo.focus(); }, 150);
         }
 
-        // ====== LÓGICA MODO 1 ======
         function procesarEscaneoRapido(termino) {
             let desc = "ETIQUETA RÁPIDA (Sin datos)";
             let eanDetectado = termino;
@@ -523,11 +524,16 @@
                 <div style="margin-top:8px; font-size:20px;">📦 x1</div>
             `;
             inputCodigo.value = "";
-            if (ultimoModo === 'camara') setTimeout(iniciarEscanerSegunOS, 800);
-            else setTimeout(() => { inputCodigo.focus(); }, 150);
+            
+            if (ultimoModo === 'camara') {
+                setTimeout(iniciarEscanerSegunOS, 800);
+            } else {
+                setTimeout(() => {
+                    inputCodigo.focus();
+                }, 150);
+            }
         }
 
-        // ====== ENVÍO A DRIVE ======
         async function enviarADrive() {
             if (listaTrabajo.length === 0) { alert("La lista está vacía."); return; }
             if (!usuarioGuardado) { alert("Pon tu nombre en la casilla de arriba primero."); return; }
@@ -572,7 +578,10 @@
         }
 
         function procesarBusqueda(terminoBusqueda) {
-            if (inputActivoId !== 'inputCodigo') { inputCodigo.value = ""; return; }
+            if (inputActivoId !== 'inputCodigo') {
+                inputCodigo.value = ""; 
+                return;
+            }
 
             let termino = terminoBusqueda.trim().toUpperCase();
             inputCodigo.value = ""; 
@@ -625,7 +634,6 @@
             setTimeout(() => inputCodigo.blur(), 100);
         }
 
-        // ====== MODO BÚSQUEDA NORMAL / AÑADIR MANUAL ======
         function mostrarArticuloCompleto(ean) {
             let art = inventario[ean];
             resultadoDiv.style.display = 'flex';
@@ -650,7 +658,6 @@
                 </div>
                 <div id="panel-cantidad-accion" class="panel-cantidad">
                     <input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly onclick="abrirTecladoCantidad()">
-                    <button class="btn-confirmar" onclick="guardarEnLista('${ean}', false)">OK</button>
                 </div>
             `;
             inputCodigo.value = ""; 
@@ -666,7 +673,6 @@
                 </div>
                 <div id="panel-cantidad-accion" class="panel-cantidad">
                     <input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly onclick="abrirTecladoCantidad()">
-                    <button class="btn-confirmar" onclick="guardarEnLista('${termino}', true)">OK</button>
                 </div>
             `;
             inputCodigo.value = ""; 
@@ -845,6 +851,7 @@
                             </div>
                             <div style="display:flex; align-items:center;">
                                 <span class="item-cant-modal">x${item.cantidad}</span>
+                                <button class="btn-editar-item" onclick="editarItemLista(${listaTrabajo.length - 1 - idx})">✏️</button>
                                 <button class="btn-borrar-item" onclick="eliminarItemLista(${listaTrabajo.length - 1 - idx})">✕</button>
                             </div>
                          </div>`;
@@ -852,16 +859,121 @@
             contenedor.innerHTML = html;
         }
 
+        function editarItemLista(index) {
+            let item = listaTrabajo[index];
+            if (item.tipo === 'competencia') {
+                let nuevo = prompt(`Editar precio de la competencia para:\n${item.descripcion}`, item.pvp_competencia);
+                if (nuevo !== null && nuevo.trim() !== "") {
+                    let precioCompStr = nuevo.trim().replace(/,/g, '.');
+                    item.pvp_competencia = precioCompStr;
+                    
+                    let opusFinal = "FALTA PVP";
+                    let pvpCompNum = parseFloat(precioCompStr);
+                    let pvpNuestroStr = item.pvp_nuestro;
+                    if (pvpNuestroStr !== "-" && pvpNuestroStr !== "") {
+                        let pvpNuesNum = parseFloat(pvpNuestroStr.replace(',', '.'));
+                        if (!isNaN(pvpNuesNum) && !isNaN(pvpCompNum) && pvpCompNum > 0) {
+                            let diff = ((pvpNuesNum - pvpCompNum) / pvpCompNum) * 100;
+                            let sign = diff > 0 ? "+" : "";
+                            opusFinal = sign + diff.toFixed(2) + "%";
+                        }
+                    }
+                    item.opus = opusFinal;
+                    localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
+                    renderizarLista();
+                }
+            } else {
+                let nuevo = prompt(`Editar cantidad para:\n${item.descripcion}`, item.cantidad);
+                if (nuevo !== null && nuevo.trim() !== "") {
+                    let cantNum = parseFloat(nuevo.trim().replace(',', '.'));
+                    if (!isNaN(cantNum) && cantNum > 0) {
+                        item.cantidad = cantNum;
+                        localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
+                        renderizarLista();
+                    }
+                }
+            }
+        }
+
         function eliminarItemLista(index) { listaTrabajo.splice(index, 1); localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo)); renderizarLista(); }
         function borrarListaActual() { if(confirm('¿VACIAR toda la lista?')) { listaTrabajo = []; localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo)); renderizarLista(); } }
         
-        function exportarListaCSV() {
+        async function exportarListaExcel() {
             if(listaTrabajo.length === 0) return;
-            let csv = "\ufeffEAN;Cantidad;Descripcion;Competencia;Precio_PVP\n";
-            listaTrabajo.forEach(i => csv += `${i.ean};${i.cantidad};${i.descripcion};${i.competencia || ''};${i.pvp_competencia || ''}\n`);
+            
+            let listaInvertida = [...listaTrabajo].reverse();
+            
+            let dataInventario = [];
+            let dataCompetencia = [];
+            let dataPedidos = [];
+
+            listaInvertida.forEach(item => {
+                let descLimpia = item.descripcion || "";
+                let eanLimpio = item.ean ? String(item.ean) : ""; 
+
+                if (item.tipo === 'competencia') {
+                    dataCompetencia.push({
+                        "RAYON": item.rayon || "",
+                        "EAN": eanLimpio,
+                        "PVP COMPETENCIA": item.pvp_competencia || "",
+                        "PVP LECLERC": item.pvp_nuestro || "",
+                        "OPUS": item.opus || "",
+                        "DESCRIPCION": descLimpia,
+                        "COMPETENCIA": item.competencia || "",
+                        "USUARIO / TERMINAL": usuarioGuardado
+                    });
+                } else if (item.tipo === 'pedido') {
+                    dataPedidos.push({
+                        "RAYON": item.rayon || "",
+                        "EAN": eanLimpio,
+                        "STOCK": item.stock || "",
+                        "CANTIDAD": item.cantidad || "",
+                        "DESCRIPCION": descLimpia,
+                        "FECHA": item.fecha || "",
+                        "USUARIO / TERMINAL": usuarioGuardado
+                    });
+                } else {
+                    dataInventario.push({
+                        "EAN": eanLimpio,
+                        "CANTIDAD": item.cantidad || "",
+                        "DESCRIPCION": descLimpia,
+                        "FECHA": item.fecha || "",
+                        "USUARIO / TERMINAL": usuarioGuardado
+                    });
+                }
+            });
+
+            // Prevenir hojas completamente vacías para que el Excel no dé error
+            if(dataInventario.length === 0) dataInventario.push({"EAN":"-", "CANTIDAD":"-", "DESCRIPCION":"Sin datos", "FECHA":"-", "USUARIO / TERMINAL":"-"});
+            if(dataCompetencia.length === 0) dataCompetencia.push({"RAYON":"-", "EAN":"-", "PVP COMPETENCIA":"-", "PVP LECLERC":"-", "OPUS":"-", "DESCRIPCION":"Sin datos", "COMPETENCIA":"-", "USUARIO / TERMINAL":"-"});
+            if(dataPedidos.length === 0) dataPedidos.push({"RAYON":"-", "EAN":"-", "STOCK":"-", "CANTIDAD":"-", "DESCRIPCION":"Sin datos", "FECHA":"-", "USUARIO / TERMINAL":"-"});
+
+            var wb = XLSX.utils.book_new();
+            var wsInventario = XLSX.utils.json_to_sheet(dataInventario);
+            var wsCompetencia = XLSX.utils.json_to_sheet(dataCompetencia);
+            var wsPedidos = XLSX.utils.json_to_sheet(dataPedidos);
+
+            XLSX.utils.book_append_sheet(wb, wsInventario, "LISTADO");
+            XLSX.utils.book_append_sheet(wb, wsCompetencia, "SEGUIMIENTO PRECIOS");
+            XLSX.utils.book_append_sheet(wb, wsPedidos, "PEDIDOS");
+
+            var wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+            var blob = new Blob([wbout], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+            var file = new File([blob], 'Trabajo.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({ title: 'Exportación de Inventario', files: [file] });
+                    return; 
+                } catch (err) {
+                    console.log('Compartir cancelado o no disponible.', err);
+                }
+            }
+            
             const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-            link.setAttribute("download", `Trabajo.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", `Trabajo.xlsx`); 
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
         window.onload = () => cargarInventario();
