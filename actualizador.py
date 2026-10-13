@@ -9,13 +9,10 @@ def formatear_precio_abaco(precio_str):
     if pd.isna(precio_str) or str(precio_str).strip() == "":
         return "-"
     
-    # 1. Eliminamos los puntos que Abaco usa como separador
     precio_limpio = str(precio_str).replace(".", "").strip()
     
     try:
-        # 2. Dividimos entre 10.000 (Ej: "16900" -> 1.69)
         precio_num = float(precio_limpio) / 10000
-        # 3. Lo devolvemos formateado con 2 decimales y coma española
         return f"{precio_num:.2f}".replace(".", ",")
     except ValueError:
         return str(precio_str)
@@ -23,16 +20,39 @@ def formatear_precio_abaco(precio_str):
 def procesar_tienda():
     print("-> Procesando TIENDA.csv (Stock Diario)...")
     try:
-        df_tienda = pd.read_csv('TIENDA.csv', sep=';', dtype=str, header=None)
+        # Leemos asumiendo que TIENE cabeceras (header=0) y forzando texto
+        df_tienda = pd.read_csv('TIENDA.csv', sep=';', dtype=str, header=0)
         df_tienda = df_tienda.fillna("")
         
-        # Limpieza básica del EAN (columna 0)
-        df_tienda[0] = df_tienda[0].str.strip().str.replace(r'\.0$', '', regex=True)
+        # Mapeo inteligente de las columnas basado en tu captura de Excel
+        col_ean = 'EAN' if 'EAN' in df_tienda.columns else df_tienda.columns[1]
+        col_desc = 'Designación' if 'Designación' in df_tienda.columns else df_tienda.columns[2]
+        col_stock = 'Stock' if 'Stock' in df_tienda.columns else df_tienda.columns[3]
+        col_rayon = 'Rayon' if 'Rayon' in df_tienda.columns else df_tienda.columns[4]
+        col_pvc = 'PVC' if 'PVC' in df_tienda.columns else df_tienda.columns[5]
         
-        df_tienda.to_csv('TIENDA.csv', sep=';', index=False, header=False, encoding='utf-8-sig')
-        print(f"   TIENDA.csv procesado con {len(df_tienda)} líneas.")
+        # Buscar columnas de fecha y ventas (pueden variar según Abaco)
+        col_fecha = 'Última recepción' if 'Última recepción' in df_tienda.columns else None
+        col_ventas = 'Ventas' if 'Ventas' in df_tienda.columns else None
+
+        # Limpieza básica del EAN para quitar el ".0" invisible
+        df_tienda[col_ean] = df_tienda[col_ean].str.strip().str.replace(r'\.0$', '', regex=True)
         
-        return df_tienda[0].unique()
+        # Construimos un nuevo DataFrame ordenado EXACTAMENTE como lo lee tu PWA
+        df_limpio = pd.DataFrame()
+        df_limpio[0] = df_tienda[col_ean]
+        df_limpio[1] = df_tienda[col_desc]
+        df_limpio[2] = df_tienda[col_stock]
+        df_limpio[3] = df_tienda[col_pvc]
+        df_limpio[4] = df_tienda[col_rayon]
+        df_limpio[5] = df_tienda[col_fecha] if col_fecha else "-"
+        df_limpio[6] = df_tienda[col_ventas] if col_ventas else "0"
+        
+        # Guardamos el archivo ya "masticado" para la web (sin cabeceras y en orden)
+        df_limpio.to_csv('TIENDA.csv', sep=';', index=False, header=False, encoding='utf-8-sig')
+        print(f"   TIENDA.csv procesado y reestructurado con {len(df_limpio)} líneas.")
+        
+        return df_limpio[0].unique()
     
     except Exception as e:
         print(f"❌ Error procesando TIENDA.csv: {e}")
@@ -49,18 +69,15 @@ def procesar_maestro(eans_en_tienda):
     try:
         df_maestro = pd.read_csv(archivo_maestro, sep=';', dtype=str, encoding='utf-8')
         
-        # Limpiar EANs y eliminar duplicados
         df_maestro['Code EAN'] = df_maestro['Code EAN'].str.strip().str.replace(r'\.0$', '', regex=True)
         df_maestro = df_maestro.drop_duplicates(subset=['Code EAN'], keep='first')
         
-        # Filtrar los que no están en tienda
         df_faltantes = df_maestro[~df_maestro['Code EAN'].isin(eans_en_tienda)]
         
         columnas_clave = ['Code EAN', 'Designación', 'PV', 'Date dernier mouvement']
         columnas_presentes = [col for col in columnas_clave if col in df_maestro.columns]
         df_final = df_faltantes[columnas_presentes].copy()
         
-        # APLICAR LA CORRECCIÓN DE PRECIO AL MAESTRO
         if 'PV' in df_final.columns:
             df_final['PV'] = df_final['PV'].apply(formatear_precio_abaco)
         
