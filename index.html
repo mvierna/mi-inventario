@@ -28,8 +28,8 @@
             background-color: #f4f6f8; 
             display: flex; 
             flex-direction: column; 
-            height: 100dvh; /* Exactamente el 100% de la pantalla visible */
-            overflow: hidden; /* Prohíbe que el cuerpo entero haga scroll */
+            height: 100dvh; 
+            overflow: hidden; 
         }
         
         #aviso-rotacion {
@@ -53,11 +53,11 @@
         
         /* CONTENEDOR CENTRAL FLEXIBLE (El "muelle") */
         #espaciador-central {
-            flex: 1; /* Ocupa todo el espacio en blanco disponible */
-            min-height: 0; /* Necesario en flexbox para que pueda encogerse */
+            flex: 1; 
+            min-height: 0; 
             display: flex;
             flex-direction: column;
-            justify-content: center; /* Centra la tarjeta si hay espacio de sobra */
+            justify-content: center; 
         }
 
         .resultado { 
@@ -65,8 +65,8 @@
             width: 98%; margin: 0 auto; padding: 10px; border: 2px solid #222222; 
             border-radius: 12px; background-color: #ffffff; flex-direction: column; gap: 6px; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            max-height: 100%; /* Nunca será más grande que el espacio disponible */
-            overflow-y: auto; /* Si el contenido es gigante, hace scroll interno aquí */
+            max-height: 100%; 
+            overflow-y: auto; 
         }
         
         .titulo-encontrado { color: #28a745; margin: 0; font-size: 16px; font-weight: bold; }
@@ -110,7 +110,7 @@
 
         /* CAJA INFERIOR (Teclado y Modos) - FIJA ABAJO */
         .caja-interfaz { 
-            flex-shrink: 0; /* Prohíbe que esta caja se encoja */
+            flex-shrink: 0; 
             padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; 
             width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); 
         }
@@ -135,22 +135,23 @@
         #btn-modo-lista { background-color: #007bff; }
 
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
-        .btn-teclado { flex: 0 0 50px; height: 50px; background-color: #6c757d; color: white; border: none; border-radius: 6px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 16px; text-align: center; border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; }
         #inputCodigo:disabled { background-color: #e9ecef; border-color: #ced4da; opacity: 0.7; }
-        .btn-camara-cuadrado { flex: 0 0 100px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
+        
+        /* Botón de cámara ajustado a 80px para alinear perfectamente con el nuevo teclado */
+        .btn-camara-cuadrado { flex: 0 0 80px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
 
-        /* TECLADO VIRTUAL CON SIMETRÍA AJUSTADA */
+        /* TECLADO VIRTUAL CON SIMETRÍA AJUSTADA Y NÚMEROS MÁS GRANDES */
         #teclado-virtual { 
             display: none; 
-            grid-template-columns: repeat(3, 1fr) 100px; 
+            grid-template-columns: repeat(3, 1fr) 80px; /* Columna derecha estrechada a 80px */
             gap: 6px; margin-top: 6px; background: #f8f9fa; padding: 6px; 
             border-radius: 8px; border: 1px solid #dee2e6; 
         }
-        .tecla-v { height: 50px; font-size: 24px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
+        .tecla-v { height: 50px; font-size: 28px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
         .tecla-v:active { transform: translateY(2px); box-shadow: none; background: #e9ecef; }
         
-        .tecla-accion { background: #dc3545; color: white; border-color: #b02a37; box-shadow: 0 2px 0 #b02a37; font-size: 18px; grid-column: 4; grid-row: 1; height: 100% !important; }
+        .tecla-accion { background: #dc3545; color: white; border-color: #b02a37; box-shadow: 0 2px 0 #b02a37; font-size: 16px; grid-column: 4; grid-row: 1; height: 100% !important; }
         .tecla-accion:active { background: #c82333; }
         
         .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; font-size: 40px; font-weight: 900; grid-column: 4; grid-row: 2 / span 3; height: 100% !important; }
@@ -165,11 +166,11 @@
 
         /* ESCALADO INTELIGENTE SI EL MÓVIL ES MÁS PEQUEÑO */
         @media (max-height: 780px) {
-            .tecla-v { height: 48px; font-size: 22px; }
-            .tecla-accion { font-size: 16px; }
+            .tecla-v { height: 48px; font-size: 26px; }
+            .tecla-accion { font-size: 15px; }
             .tecla-ok { font-size: 34px; }
             .btn-modo { padding: 10px 4px; font-size: 13px; }
-            .grupo-input-camara .btn-teclado, .grupo-input-camara #inputCodigo, .grupo-input-camara .btn-camara-cuadrado { height: 46px; }
+            .grupo-input-camara #inputCodigo, .grupo-input-camara .btn-camara-cuadrado { height: 46px; }
             .resultado { padding: 8px; margin-bottom: 2px; gap: 4px; margin-top: auto; }
             .descripcion-producto { font-size: 17px; }
             .numero-stock { font-size: 42px; }
@@ -178,7 +179,7 @@
             .btn-accion-unica { padding: 12px; font-size: 15px; }
         }
         @media (max-height: 680px) {
-            .tecla-v { height: 42px; font-size: 18px; }
+            .tecla-v { height: 42px; font-size: 22px; }
             .tecla-ok { font-size: 28px; }
             .btn-modo { padding: 8px 4px; font-size: 12px; }
             .numero-stock { font-size: 34px; }
@@ -230,7 +231,6 @@
 
     <div id="estado">Iniciando BBDD Local...</div>
 
-    <!-- AQUÍ ESTÁ EL TRUCO: Este contenedor cede el espacio cuando no se usa -->
     <div id="espaciador-central">
         <div id="video-container">
             <div id="controles-video">
@@ -245,7 +245,6 @@
         <div id="resultado" class="resultado"></div>
     </div>
 
-    <!-- CAJA FIJA INFERIOR -->
     <div class="caja-interfaz">
         <div class="contenedor-modos">
             <button id="btn-modo-rapido" class="btn-modo" onclick="activarModo('rapido')">⚡ MODO 1</button>
@@ -255,7 +254,6 @@
         </div>
         
         <div class="grupo-input-camara">
-            <button class="btn-teclado" onclick="toggleTecladoVirtual()">🔢</button>
             <input type="text" id="inputCodigo" placeholder="Escribe, escanea o EAN..." autocomplete="off">
             <button class="btn-camara-cuadrado" onclick="iniciarEscanerSegunOS()">📷 CÁMARA</button>
         </div>
@@ -831,15 +829,6 @@
             
             if (ultimoModo === 'camara') iniciarEscanerSegunOS();
             else setTimeout(() => { inputCodigo.focus(); }, 150);
-        }
-
-        function toggleTecladoVirtual() {
-            if (tecladoVirtual.style.display === 'grid' && inputActivoId === 'inputCodigo') {
-                tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
-            } else {
-                cerrarCamara(); inputActivoId = 'inputCodigo'; 
-                inputCodigo.blur(); tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado');
-            }
         }
 
         function abrirTecladoCantidad() {
