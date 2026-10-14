@@ -146,8 +146,8 @@ def ejecutar_robot():
         time.sleep(1.5)
         
         print("Escribiendo ruta de destino...")
-        pyautogui.write(r'C:\Users\Usuario\mi-inventario', interval=0.05)
-        time.sleep(1)
+        pyautogui.write(r'C:\Users\Usuario\mi-inventario', interval=0.2)
+        time.sleep(1.5)
         pyautogui.press('enter')
         time.sleep(3) 
         
