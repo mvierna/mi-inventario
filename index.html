@@ -150,11 +150,11 @@
         .tecla-v { height: 50px; font-size: 24px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
         .tecla-v:active { transform: translateY(2px); box-shadow: none; background: #e9ecef; }
         
-        /* Uso de !important para proteger la estructura del botón frente a resoluciones pequeñas */
         .tecla-accion { background: #dc3545; color: white; border-color: #b02a37; box-shadow: 0 2px 0 #b02a37; font-size: 18px; grid-column: 4; grid-row: 1; height: 100% !important; }
         .tecla-accion:active { background: #c82333; }
         
-        .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; font-size: 16px; font-weight: 900; grid-column: 4; grid-row: 2 / span 3; height: 100% !important; letter-spacing: 1px; }
+        /* BOTÓN ENTER GIGANTE */
+        .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; font-size: 40px; font-weight: 900; grid-column: 4; grid-row: 2 / span 3; height: 100% !important; }
         .tecla-ok:active { background: #218838; }
 
         /* OCULTAR ELEMENTOS PARA AHORRAR ESPACIO AL ABRIR EL TECLADO */
@@ -167,6 +167,8 @@
         /* ESCALADO INTELIGENTE SI EL MÓVIL ES MÁS PEQUEÑO */
         @media (max-height: 780px) {
             .tecla-v { height: 48px; font-size: 22px; }
+            .tecla-accion { font-size: 16px; }
+            .tecla-ok { font-size: 34px; }
             .btn-modo { padding: 10px 4px; font-size: 13px; }
             .grupo-input-camara .btn-teclado, .grupo-input-camara #inputCodigo, .grupo-input-camara .btn-camara-cuadrado { height: 46px; }
             .resultado { padding: 8px; margin-bottom: 2px; gap: 4px; margin-top: auto; }
@@ -178,6 +180,7 @@
         }
         @media (max-height: 680px) {
             .tecla-v { height: 42px; font-size: 18px; }
+            .tecla-ok { font-size: 28px; }
             .btn-modo { padding: 8px 4px; font-size: 12px; }
             .numero-stock { font-size: 34px; }
         }
@@ -275,7 +278,7 @@
             <button class="tecla-v" style="grid-column: 1 / span 2;" onclick="pulsarTecla('0')">0</button>
             <button class="tecla-v" onclick="pulsarTecla('.')">.</button>
             
-            <button id="btn-teclado-ok" class="tecla-v tecla-ok" onclick="pulsarTecla('ENTER')">GUARDAR</button>
+            <button id="btn-teclado-ok" class="tecla-v tecla-ok" onclick="pulsarTecla('ENTER')">↵</button>
         </div>
     </div>
 
@@ -459,7 +462,6 @@
 
         function abrirTecladoPrecio() {
             inputActivoId = 'input-precio-accion'; 
-            document.getElementById('btn-teclado-ok').innerText = 'GUARDAR';
             tecladoVirtual.style.display = 'grid'; 
             document.body.classList.add('modo-teclado');
             forzarCierreTecladoNativo();
@@ -561,7 +563,6 @@
 
         function abrirTecladoPedido() {
             inputActivoId = 'input-pedido-accion'; 
-            document.getElementById('btn-teclado-ok').innerText = 'PEDIR';
             tecladoVirtual.style.display = 'grid'; 
             document.body.classList.add('modo-teclado');
             forzarCierreTecladoNativo();
@@ -843,7 +844,7 @@
         }
 
         function abrirTecladoCantidad() {
-            inputActivoId = 'input-cant-accion'; document.getElementById('btn-teclado-ok').innerText = 'AÑADIR';
+            inputActivoId = 'input-cant-accion'; 
             tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado');
             forzarCierreTecladoNativo();
         }
