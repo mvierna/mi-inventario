@@ -14,26 +14,15 @@ def formatear_precio_abaco(precio_str):
         return str(precio_str)
 
 def limpiar_cantidad_abaco(val_str):
-    """
-    Convierte las cantidades de Abaco (ej: '-1.600.000') a unidades reales (ej: '-1600')
-    """
     if not val_str or str(val_str).strip() == "": return "0"
     val = str(val_str).strip()
-    
-    # Abaco suele exportar 3 o 4 ceros decimales
-    if val.endswith('.0000'):
-        val = val[:-5]
-    elif val.endswith('.000'):
-        val = val[:-4]
-        
-    # Quitamos los puntos de miles que pueda haber dejado Abaco
+    if val.endswith('.0000'): val = val[:-5]
+    elif val.endswith('.000'): val = val[:-4]
     val = val.replace('.', '')
-    
     if val == "" or val == "-": return "0"
     return val
 
 def limpiar_ean(ean_raw):
-    # Elimina el formato '="8413423030233"' de Excel/Abaco y el '.0' final
     return str(ean_raw).replace('="', '').replace('"', '').replace('=', '').strip().replace('.0', '')
 
 def limpiar_datos():
@@ -59,8 +48,7 @@ def limpiar_datos():
         lector = list(csv.reader(f, delimiter=delimitador_entrada))
         f.close()
 
-        if not lector:
-            return set()
+        if not lector: return set()
 
         fila_muestra = None
         for fila in lector:
@@ -76,8 +64,7 @@ def limpiar_datos():
                 for fila in lector:
                     if len(fila) > 0:
                         ean_limpio = limpiar_ean(fila[0])
-                        if ean_limpio and ean_limpio.upper() not in ['EAN', 'CODIGO']:
-                            eans_tienda.add(ean_limpio)
+                        if ean_limpio and ean_limpio.upper() not in ['EAN', 'CODIGO']: eans_tienda.add(ean_limpio)
                 return eans_tienda
 
         print("   Iniciando limpieza profunda de TIENDA...")
@@ -146,9 +133,8 @@ def procesar_sin_stock(eans_en_tienda):
         
         cabeceras = [str(c).strip().upper().replace('"', '').replace('\ufeff', '') for c in lector[0]]
         
-        # Búsqueda dinámica de las nuevas columnas
         idx_ean, idx_desc, idx_pv, idx_fecha = -1, -1, -1, -1
-        idx_stock, idx_ventas, idx_rayon = -1, -1, -1
+        idx_stock, idx_ventas, idx_rayon_code, idx_rayon_lib = -1, -1, -1, -1
         
         for i, col in enumerate(cabeceras):
             if 'EAN' in col or 'CÓDIGO' in col or 'CODIGO' in col: idx_ean = i
@@ -157,19 +143,14 @@ def procesar_sin_stock(eans_en_tienda):
             elif 'DATE' in col or 'MOUVEMENT' in col or 'FECHA' in col or 'ÚLTIMA' in col or 'ULTIMA' in col: idx_fecha = i
             elif 'STOCK' in col: idx_stock = i
             elif 'UV' in col or 'VENDUES' in col or 'VENTAS' in col: idx_ventas = i
-            elif 'LIB. RAYON' in col: idx_rayon = i
-            
-        # Si no encontramos "LIB. RAYON", buscamos "RAYON" genérico como respaldo
-        if idx_rayon == -1:
-            for i, col in enumerate(cabeceras):
-                if 'RAYON' in col: idx_rayon = i
+            elif 'LIB. RAYON' in col: idx_rayon_lib = i
+            elif col == 'RAYON' or col == 'RAYÓN': idx_rayon_code = i
 
         if idx_ean == -1 or idx_desc == -1:
             print(f"   ❌ Error: No se detectan columnas principales. Esto es lo que veo: {cabeceras}")
             return
 
-        # Estructura idéntica al archivo TIENDA
-        sin_stock_limpio = [['EAN', 'DESCRripcion', 'STOCK', 'RAYON', 'PVC', 'FECHA', 'VENTAS']]
+        sin_stock_limpio = [['EAN', 'DESCRIPCION', 'STOCK', 'RAYON', 'PVC', 'FECHA', 'VENTAS']]
         eans_procesados = set()
 
         for fila in lector[1:]:
@@ -182,10 +163,17 @@ def procesar_sin_stock(eans_en_tienda):
                 pv = fila[idx_pv].strip() if idx_pv != -1 and len(fila) > idx_pv else "-"
                 fecha = fila[idx_fecha].strip() if idx_fecha != -1 and len(fila) > idx_fecha else "-"
                 
-                # Nuevos datos procesados
                 stock = limpiar_cantidad_abaco(fila[idx_stock]) if idx_stock != -1 and len(fila) > idx_stock else "0"
                 ventas = limpiar_cantidad_abaco(fila[idx_ventas]) if idx_ventas != -1 and len(fila) > idx_ventas else "0"
-                rayon = fila[idx_rayon].strip() if idx_rayon != -1 and len(fila) > idx_rayon else "-"
+                
+                # UNIFICACIÓN DEL FORMATO DEL RAYÓN
+                r_code = fila[idx_rayon_code].strip() if idx_rayon_code != -1 and len(fila) > idx_rayon_code else ""
+                r_lib = fila[idx_rayon_lib].strip() if idx_rayon_lib != -1 and len(fila) > idx_rayon_lib else ""
+                
+                if r_code and r_lib: rayon = f"{r_code} {r_lib}"
+                elif r_lib: rayon = r_lib
+                elif r_code: rayon = r_code
+                else: rayon = "-"
                 
                 sin_stock_limpio.append([ean, desc, stock, rayon, formatear_precio_abaco(pv), fecha, ventas])
                 eans_procesados.add(ean)
@@ -200,7 +188,7 @@ def subir_a_github():
     print("-> Sincronizando GitHub...")
     try:
         subprocess.run(['git', 'add', '.'], check=True)
-        subprocess.run(['git', 'commit', '-m', 'Actualización Tienda y Sin Stock con todos los datos'], check=False)
+        subprocess.run(['git', 'commit', '-m', 'Unificación del formato del Rayón'], check=False)
         subprocess.run(['git', 'pull', '--rebase'], check=False)
         subprocess.run(['git', 'push'], check=True)
         print("✅ Sincronización completada.")
@@ -214,4 +202,3 @@ if __name__ == '__main__':
         procesar_sin_stock(eans_actuales)
     subir_a_github()
     print("="*60)
-    input("\nPresiona ENTER para cerrar esta ventana...")
