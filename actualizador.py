@@ -13,6 +13,10 @@ def formatear_precio_abaco(precio_str):
     except ValueError:
         return str(precio_str)
 
+def limpiar_ean(ean_raw):
+    # Elimina el formato '="8413423030233"' de Excel/Abaco y el '.0' final
+    return str(ean_raw).replace('="', '').replace('"', '').replace('=', '').strip().replace('.0', '')
+
 def limpiar_datos():
     archivo = 'TIENDA.csv'
     if not os.path.exists(archivo):
@@ -24,30 +28,36 @@ def limpiar_datos():
     eans_tienda = set()
     
     try:
-        with open(archivo, 'r', encoding='latin-1') as f:
+        # Intentar leer con utf-8-sig (para respetar acentos) y si no, latin-1
+        try:
+            f = open(archivo, 'r', encoding='utf-8-sig', errors='replace')
             primera_linea = f.readline()
-            # Detectar inteligentemente si viene separado por comas, puntos y coma o tabuladores
-            delimitador_entrada = ';' if ';' in primera_linea else (',' if ',' in primera_linea else '\t')
-            f.seek(0)
-            lector = list(csv.reader(f, delimiter=delimitador_entrada))
+        except:
+            f = open(archivo, 'r', encoding='latin-1', errors='replace')
+            primera_linea = f.readline()
+            
+        delimitador_entrada = ';' if ';' in primera_linea else (',' if ',' in primera_linea else '\t')
+        f.seek(0)
+        lector = list(csv.reader(f, delimiter=delimitador_entrada))
+        f.close()
 
         if not lector:
             return set()
 
         fila_muestra = None
         for fila in lector:
-            if len(fila) > 1 and fila[0].strip().upper() not in ['EAN', 'CODIGO', 'CÓDIGO', 'FALSE'] and fila[1].strip().upper() != 'EAN':
+            if len(fila) > 1 and limpiar_ean(fila[0]).upper() not in ['EAN', 'CODIGO', 'CÓDIGO', 'FALSE'] and fila[1].strip().upper() != 'EAN':
                 fila_muestra = fila
                 break
 
         if fila_muestra:
-            col0 = fila_muestra[0].strip()
+            col0 = limpiar_ean(fila_muestra[0])
             col1 = fila_muestra[1].strip() if len(fila_muestra) > 1 else ""
             if len(col0) >= 6 and (col0.isdigit() or 'E+' in col0.upper()) and any(c.isalpha() for c in col1) and len(fila_muestra) == 7:
                 print("   TIENDA.csv YA está limpio.")
                 for fila in lector:
                     if len(fila) > 0:
-                        ean_limpio = fila[0].strip().replace('.0', '')
+                        ean_limpio = limpiar_ean(fila[0])
                         if ean_limpio and ean_limpio.upper() not in ['EAN', 'CODIGO']:
                             eans_tienda.add(ean_limpio)
                 return eans_tienda
@@ -56,11 +66,11 @@ def limpiar_datos():
         for fila in lector:
             if len(fila) < 3: continue
                 
-            shift = 1 if fila[0].strip().upper() == 'FALSE' else 0
-            if shift == 0 and not (fila[0].strip().isdigit() and len(fila[0].strip()) >= 6) and len(fila) > 1 and fila[1].strip().isdigit() and len(fila[1].strip()) >= 6:
+            shift = 1 if limpiar_ean(fila[0]).upper() == 'FALSE' else 0
+            if shift == 0 and not (limpiar_ean(fila[0]).isdigit() and len(limpiar_ean(fila[0])) >= 6) and len(fila) > 1 and limpiar_ean(fila[1]).isdigit() and len(limpiar_ean(fila[1])) >= 6:
                 shift = 1
 
-            ean = (fila[0 + shift].strip() if len(fila) > 0 + shift else "").replace('.0', '')
+            ean = limpiar_ean(fila[0 + shift] if len(fila) > 0 + shift else "")
             if ean.upper() in ['EAN', 'CODIGO', 'CÓDIGO', 'DESIGNACIÓN', 'DESIGNACION'] or not ean: continue
 
             desc = fila[1 + shift].strip() if len(fila) > 1 + shift else ""
@@ -102,16 +112,20 @@ def procesar_sin_stock(eans_en_tienda):
 
     print(f"-> Procesando {archivo_origen}...")
     try:
-        # Usamos errors='replace' para ignorar caracteres dañados invisibles
-        with open(archivo_origen, 'r', encoding='latin-1', errors='replace') as f:
+        try:
+            f = open(archivo_origen, 'r', encoding='utf-8-sig', errors='replace')
             primera_linea = f.readline()
-            delimitador_entrada = ';' if ';' in primera_linea else (',' if ',' in primera_linea else '\t')
-            f.seek(0)
-            lector = list(csv.reader(f, delimiter=delimitador_entrada))
+        except:
+            f = open(archivo_origen, 'r', encoding='latin-1', errors='replace')
+            primera_linea = f.readline()
+            
+        delimitador_entrada = ';' if ';' in primera_linea else (',' if ',' in primera_linea else '\t')
+        f.seek(0)
+        lector = list(csv.reader(f, delimiter=delimitador_entrada))
+        f.close()
 
         if len(lector) < 2: return
         
-        # Se eliminan comillas y caracteres BOM invisibles que rompen la detección
         cabeceras = [str(c).strip().upper().replace('"', '').replace('\ufeff', '') for c in lector[0]]
         
         idx_ean, idx_desc, idx_pv, idx_fecha = -1, -1, -1, -1
@@ -130,7 +144,9 @@ def procesar_sin_stock(eans_en_tienda):
 
         for fila in lector[1:]:
             if len(fila) > idx_ean:
-                ean = str(fila[idx_ean]).strip().replace('.0', '')
+                # Utilizamos la nueva función para arrancar el formato '="8413423030233"'
+                ean = limpiar_ean(fila[idx_ean])
+                
                 if not ean or ean in eans_procesados or ean in eans_en_tienda: continue
                     
                 desc = fila[idx_desc].strip() if len(fila) > idx_desc else ""
@@ -150,7 +166,7 @@ def subir_a_github():
     print("-> Sincronizando GitHub...")
     try:
         subprocess.run(['git', 'add', '.'], check=True)
-        subprocess.run(['git', 'commit', '-m', 'Actualización Tienda y Sin Stock'], check=False)
+        subprocess.run(['git', 'commit', '-m', 'Actualización Tienda y Sin Stock con EAN puro'], check=False)
         subprocess.run(['git', 'pull', '--rebase'], check=False)
         subprocess.run(['git', 'push'], check=True)
         print("✅ Sincronización completada.")
