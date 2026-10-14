@@ -105,7 +105,7 @@
 
         #video-container { width: 100%; max-width: 320px; background: #000; margin: 4px auto; border-radius: 6px; overflow: hidden; position: relative; display: none; }
         #controles-video { padding: 6px; background: rgba(0,0,0,0.7); display: flex; justify-content: space-between; align-items: center; }
-        #selector-camara { width: 100%; max-width: 200px; padding: 6px; border-radius: 4px; font-size: 12px; background: white; color: black; border: 1px solid #ccc; }
+        #selector-camara { width: 100%; max-width: 200px; padding: 6px; border-radius: 4px; font-size: 12px; background: white; color: black; border: 1px solid #ccc; outline: none; }
         video { width: 100%; height: auto; max-height: 200px; display: block; object-fit: cover; }
 
         /* CAJA INFERIOR (Teclado y Modos) - FIJA ABAJO */
@@ -115,7 +115,7 @@
             width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); 
         }
         
-        .contenedor-modos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; transition: max-height 0.2s; overflow: hidden; }
+        .contenedor-modos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; overflow: hidden; }
         .btn-modo {
             padding: 12px 4px; color: white; border: none; border-radius: 6px; 
             font-weight: 900; font-size: 13px; text-transform: uppercase; cursor: pointer;
@@ -137,9 +137,10 @@
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
         #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 16px; text-align: center; border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; }
         #inputCodigo:disabled { background-color: #e9ecef; border-color: #ced4da; opacity: 0.7; }
+        
         .btn-camara-cuadrado { flex: 0 0 80px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
 
-        /* TECLADO VIRTUAL CON SIMETRÍA AJUSTADA */
+        /* TECLADO VIRTUAL CON SIMETRÍA AJUSTADA Y NÚMEROS MÁS GRANDES */
         #teclado-virtual { 
             display: none; 
             grid-template-columns: repeat(3, 1fr) 80px; 
@@ -401,7 +402,6 @@
                     resultadoDiv.innerHTML = `<h3 style='color:#17a2b8; margin:0;'>🛒 MODO PEDIDOS</h3><p style='font-size:15px; margin-top:4px;'>Escanea para ver Rayón/Stock y pedir.</p>`;
                 }
             }
-            inputCodigo.focus();
         }
 
         function forzarCierreTecladoNativo() {
@@ -869,8 +869,19 @@
             if (!codeReader) codeReader = new ZXing.BrowserBarcodeReader(new Map().set(ZXing.DecodeHintType.TRY_HARDER, true));
             try {
                 const devices = await codeReader.listVideoInputDevices();
+                const select = document.getElementById('selector-camara');
+                select.innerHTML = '';
+                devices.forEach((device, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = device.deviceId;
+                    opt.text = device.label || 'Cámara ' + (idx + 1);
+                    select.appendChild(opt);
+                });
                 let selected = camaraManualId || (devices.length > 0 ? devices[devices.length - 1].deviceId : null);
-                if (selected) codeReader.decodeFromVideoDevice(selected, 'video-preview', (result) => { if (result) procesarResultadoZXing(result); });
+                if (selected) {
+                    select.value = selected;
+                    codeReader.decodeFromVideoDevice(selected, 'video-preview', (result) => { if (result) procesarResultadoZXing(result); });
+                }
             } catch (err) { alert("Error cámara: " + err.message); container.style.display = 'none'; }
         }
 
@@ -909,7 +920,7 @@
                     
                     inventario = {};
                     results.data.forEach(fila => {
-                        if(fila.length >= 5) {
+                        if(fila.length >= 7) {
                             let ean = fila[0] ? fila[0].trim() : "";
                             let desc = fila[1] ? fila[1].trim() : "";
                             let stock = fila[2] ? fila[2].trim() : "0";
