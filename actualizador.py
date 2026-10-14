@@ -26,7 +26,8 @@ def limpiar_datos():
     try:
         with open(archivo, 'r', encoding='latin-1') as f:
             primera_linea = f.readline()
-            delimitador_entrada = ';' if ';' in primera_linea else '\t'
+            # Detectar inteligentemente si viene separado por comas, puntos y coma o tabuladores
+            delimitador_entrada = ';' if ';' in primera_linea else (',' if ',' in primera_linea else '\t')
             f.seek(0)
             lector = list(csv.reader(f, delimiter=delimitador_entrada))
 
@@ -87,33 +88,45 @@ def limpiar_datos():
         return set()
 
 def procesar_sin_stock(eans_en_tienda):
-    archivo_origen = 'SIN STOCK.csv'
-    print(f"-> Procesando {archivo_origen}...")
+    archivos_posibles = ['SIN STOCK_2.csv', 'SIN STOCK.csv']
+    archivo_origen = None
     
-    if not os.path.exists(archivo_origen):
-        print(f"   ⚠️ Archivo '{archivo_origen}' no encontrado.")
+    for f in archivos_posibles:
+        if os.path.exists(f):
+            archivo_origen = f
+            break
+            
+    if not archivo_origen:
+        print("   ⚠️ Archivos de SIN STOCK no encontrados.")
         return
 
+    print(f"-> Procesando {archivo_origen}...")
     try:
-        with open(archivo_origen, 'r', encoding='latin-1') as f:
-            lector = list(csv.reader(f, delimiter=';' if ';' in f.readline() else '\t'))
+        # Usamos errors='replace' para ignorar caracteres dañados invisibles
+        with open(archivo_origen, 'r', encoding='latin-1', errors='replace') as f:
+            primera_linea = f.readline()
+            delimitador_entrada = ';' if ';' in primera_linea else (',' if ',' in primera_linea else '\t')
+            f.seek(0)
+            lector = list(csv.reader(f, delimiter=delimitador_entrada))
 
         if len(lector) < 2: return
-        cabeceras = [str(c).strip().upper() for c in lector[0]]
+        
+        # Se eliminan comillas y caracteres BOM invisibles que rompen la detección
+        cabeceras = [str(c).strip().upper().replace('"', '').replace('\ufeff', '') for c in lector[0]]
         
         idx_ean, idx_desc, idx_pv, idx_fecha = -1, -1, -1, -1
         for i, col in enumerate(cabeceras):
-            if 'EAN' in col: idx_ean = i
-            elif 'DESIG' in col: idx_desc = i
+            if 'EAN' in col or 'CÓDIGO' in col or 'CODIGO' in col: idx_ean = i
+            elif 'DESIG' in col or 'ARTICULO' in col: idx_desc = i
             elif col == 'PV' or 'PVC' in col or 'PRECIO' in col: idx_pv = i
-            elif 'DATE' in col or 'MOUVEMENT' in col or 'FECHA' in col: idx_fecha = i
+            elif 'DATE' in col or 'MOUVEMENT' in col or 'FECHA' in col or 'ÚLTIMA' in col or 'ULTIMA' in col: idx_fecha = i
 
         if idx_ean == -1 or idx_desc == -1:
-            print("   ❌ Error: No se detectan columnas EAN/Designación.")
+            print(f"   ❌ Error: No se detectan columnas principales. Esto es lo que veo: {cabeceras}")
             return
 
         sin_stock_limpio = [['EAN', 'DESCRIPCION', 'PVP_SIN_STOCK', 'ULTIMA_VENTA']]
-        eans_procesados = set() # Mantiene la limpieza de duplicados IDÉNTICOS, pero permite EANs distintos por artículo.
+        eans_procesados = set()
 
         for fila in lector[1:]:
             if len(fila) > idx_ean:
