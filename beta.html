@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Inventario BETA V3</title>
+    <title>Inventario BETA V4</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#28a745">
@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-title" content="Inv. BETA">
     <link rel="apple-touch-icon" href="icono.png">
 
-    <!-- LIBRERÍAS (CSV, NUEVO Escáner HTML5 y EXCEL) -->
+    <!-- LIBRERÍAS (CSV, Escáner HTML5 Robusto y EXCEL) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -60,23 +60,19 @@
             justify-content: center; 
         }
 
-        /* =========================================
-           NUEVO ESCÁNER SUPERIOR TIPO APP NATIVA
-           ========================================= */
-        #scanner-container { 
-            display: none; 
-            width: 100%; max-width: 380px; margin: 0 auto 8px auto; 
-            background: #000; border-radius: 12px; overflow: hidden; 
-            border: 4px solid #17a2b8; box-shadow: 0 6px 15px rgba(0,0,0,0.3);
-            flex-direction: column;
+        /* CONTENEDOR DEL ESCÁNER LIBRERÍA */
+        #reader-container {
+            display: none;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            border: 2px solid #17a2b8;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        #reader { width: 100%; background: #000; }
-        #reader video { object-fit: cover; }
-        .btn-cerrar-camara {
-            width: 100%; padding: 12px; background: #dc3545; color: white;
-            border: none; font-weight: bold; font-size: 14px; cursor: pointer; text-transform: uppercase;
-        }
-        .btn-cerrar-camara:active { background: #c82333; }
+        #reader { width: 100%; }
 
         .resultado { 
             display: none; 
@@ -149,12 +145,16 @@
 
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
         
-        /* CAJA PRINCIPAL DE TEXTO - READONLY PARA BLOQUEAR TECLADO NATIVO */
-        #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 18px; text-align: center; border: 3px solid #007bff; border-radius: 8px; outline: none; font-weight: bold; background: #fff; color: #111; cursor: pointer; }
+        /* BOTÓN TECLADO VIRTUAL */
+        .btn-teclado { flex: 0 0 50px; height: 50px; background-color: #6c757d; color: white; border: none; border-radius: 6px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        
+        /* CAJA PRINCIPAL DE TEXTO - AHORA SÍ ADMITE TEXTO NORMAL */
+        #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 18px; text-align: center; border: 3px solid #007bff; border-radius: 8px; outline: none; font-weight: bold; background: #fff; color: #111; }
+        #inputCodigo:disabled { background-color: #e9ecef; border-color: #ced4da; opacity: 0.7; }
         
         .btn-camara-cuadrado { flex: 0 0 80px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
 
-        /* TECLADO VIRTUAL GIGANTE RESTAURADO */
+        /* TECLADO VIRTUAL GIGANTE */
         #teclado-virtual { 
             display: none; 
             grid-template-columns: repeat(3, 1fr) 80px; 
@@ -180,7 +180,7 @@
             .tecla-v { height: 48px; font-size: 26px; }
             .tecla-ok { font-size: 34px; }
             .btn-modo { padding: 10px 4px; font-size: 13px; }
-            .grupo-input-camara #inputCodigo, .grupo-input-camara .btn-camara-cuadrado { height: 46px; }
+            .grupo-input-camara .btn-teclado, .grupo-input-camara #inputCodigo, .grupo-input-camara .btn-camara-cuadrado { height: 46px; }
             .resultado { padding: 8px; margin-bottom: 2px; gap: 4px; margin-top: auto; }
             .descripcion-producto { font-size: 17px; }
             .numero-stock { font-size: 42px; }
@@ -235,10 +235,10 @@
 
     <div id="espaciador-central">
         
-        <!-- NUEVO ESCÁNER SUPERIOR ROBUSTO -->
-        <div id="scanner-container">
+        <!-- CONTENEDOR DEL ESCÁNER -->
+        <div id="reader-container">
             <div id="reader"></div>
-            <button class="btn-cerrar-camara" onclick="cerrarCamara()">✕ Cerrar Escáner</button>
+            <button class="btn-cerrar-camara" onclick="cerrarEscaner()">✕ Cerrar Cámara</button>
         </div>
 
         <div id="resultado" class="resultado"></div>
@@ -253,9 +253,11 @@
         </div>
         
         <div class="grupo-input-camara">
-            <!-- READONLY BLOQUEA EL TECLADO NATIVO. ONCLICK ABRE NUESTRO TECLADO VIRTUAL -->
-            <input type="text" id="inputCodigo" placeholder="Toca para escribir EAN..." readonly onclick="abrirTecladoPrincipal()">
-            <button class="btn-camara-cuadrado" onclick="iniciarCamaraVideo()">📷 CÁMARA</button>
+            <!-- BOTÓN PARA ABRIR TECLADO VIRTUAL -->
+            <button class="btn-teclado" onclick="toggleTecladoVirtual()">🔢</button>
+            <!-- INPUT NORMAL PARA PERMITIR TEXTO O ESCÁNER EXTERNO -->
+            <input type="text" id="inputCodigo" placeholder="Escribe, escanea o EAN..." autocomplete="off">
+            <button class="btn-camara-cuadrado" onclick="abrirEscaner()">📷 CÁMARA</button>
         </div>
 
         <div id="teclado-virtual">
@@ -280,7 +282,6 @@
     </div>
 
     <div id="modalListas" class="modal-overlay">
-        <!-- MODAL DE LISTAS (Igual que antes) -->
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Ajustes y Lista</h2>
@@ -394,12 +395,20 @@
             }
         }
 
-        // CONTROL DEL TECLADO VIRTUAL
-        function abrirTecladoPrincipal() {
-            inputActivoId = 'inputCodigo';
-            tecladoVirtual.style.display = 'grid';
-            document.body.classList.add('modo-teclado');
-            cerrarCamara();
+        // CONTROL DEL TECLADO VIRTUAL HÍBRIDO
+        function toggleTecladoVirtual() {
+            if (tecladoVirtual.style.display === 'grid') {
+                tecladoVirtual.style.display = 'none';
+                document.body.classList.remove('modo-teclado');
+                inputCodigo.readOnly = false; // Permite el teclado de Android de nuevo
+            } else {
+                cerrarEscaner();
+                inputActivoId = 'inputCodigo';
+                inputCodigo.readOnly = true; // Bloquea el teclado de Android
+                inputCodigo.blur();
+                tecladoVirtual.style.display = 'grid';
+                document.body.classList.add('modo-teclado');
+            }
         }
 
         function pulsarTecla(valor) {
@@ -410,7 +419,8 @@
                 if (inputActivoId === 'inputCodigo') { 
                     procesarBusqueda(inputDestino.value.trim()); 
                     tecladoVirtual.style.display = 'none'; 
-                    document.body.classList.remove('modo-teclado'); 
+                    document.body.classList.remove('modo-teclado');
+                    inputCodigo.readOnly = false;
                 } 
                 else if (inputActivoId === 'input-cant-accion') guardarEnLista(itemActual.ean, itemActual.esDesconocido);
                 else if (inputActivoId === 'input-precio-accion') guardarPrecioCompetencia();
@@ -438,10 +448,7 @@
         function procesarEscaneoChequeo(termino) {
             let result = buscarArticuloGlobal(termino);
             let desc = "COMPETENCIA (Sin datos)";
-            let eanDetectado = termino;
-            let pvp_nuestro = "-";
-            let rayon = "-";
-            
+            let eanDetectado = termino; let pvp_nuestro = "-"; let rayon = "-";
             if (result) { eanDetectado = result.ean; desc = result.art.descripcion; pvp_nuestro = result.art.precio; rayon = result.art.rayon; }
 
             itemActual = { ean: eanDetectado, desc: desc, pvp_nuestro: pvp_nuestro, rayon: rayon };
@@ -467,6 +474,7 @@
             if (existe !== -1) {
                 alert("⚠️ ¡CUIDADO! Ya has chequeado este producto.\nVe a la Lista si necesitas editar su precio.");
                 tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
+                inputCodigo.readOnly = false;
                 inputActivoId = 'inputCodigo'; inputCodigo.value = "";
                 return;
             }
@@ -476,55 +484,40 @@
             
             if (precioCompStr !== "") {
                 let opusFinal = "FALTA PVP";
-                let pvpCompNum = parseFloat(precioCompStr);
-                let pvpNuestroStr = itemActual.pvp_nuestro;
-                
+                let pvpCompNum = parseFloat(precioCompStr); let pvpNuestroStr = itemActual.pvp_nuestro;
                 if (pvpNuestroStr !== "-" && pvpNuestroStr !== "") {
                     let pvpNuesNum = parseFloat(pvpNuestroStr.replace(',', '.'));
-                    if (!isNaN(pvpNuesNum) && !isNaN(pvpCompNum) && pvpCompNum > 0) {
-                        let diff = ((pvpNuesNum - pvpCompNum) / pvpCompNum) * 100;
-                        let sign = diff > 0 ? "+" : "";
-                        opusFinal = sign + diff.toFixed(2) + "%"; 
-                    }
+                    if (!isNaN(pvpNuesNum) && !isNaN(pvpCompNum) && pvpCompNum > 0) { let diff = ((pvpNuesNum - pvpCompNum) / pvpCompNum) * 100; opusFinal = (diff > 0 ? "+" : "") + diff.toFixed(2) + "%"; }
                 }
 
                 listaTrabajo.push({ tipo: 'competencia', ean: itemActual.ean, descripcion: itemActual.desc, cantidad: 1, fecha: new Date().toLocaleString('es-ES').replace(', ', ' '), competencia: competenciaGuardada, pvp_competencia: precioCompStr, pvp_nuestro: pvpNuestroStr, opus: opusFinal, rayon: itemActual.rayon });
                 localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
                 
                 let colorOpus = opusFinal.includes("+") ? "red" : (opusFinal.includes("-") ? "#28a745" : "#555");
-
                 resultadoDiv.style.display = 'flex';
-                resultadoDiv.innerHTML = `
-                    <p style="margin:0; font-size:14px; color:#666;">Precio guardado:</p>
-                    <h3 style="margin:4px 0; color:#9c27b0; font-size:22px;">${precioCompStr} €</h3>
-                    <p style="margin:0; font-size:14px;">Diferencia: <b style="color:${colorOpus}">${opusFinal}</b></p>
-                `;
+                resultadoDiv.innerHTML = `<p style="margin:0; font-size:14px; color:#666;">Precio guardado:</p><h3 style="margin:4px 0; color:#9c27b0; font-size:22px;">${precioCompStr} €</h3><p style="margin:0; font-size:14px;">Diferencia: <b style="color:${colorOpus}">${opusFinal}</b></p>`;
             } else { resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = ""; }
             
             tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
+            inputCodigo.readOnly = false;
             inputActivoId = 'inputCodigo'; inputCodigo.value = "";
         }
 
         function procesarEscaneoPedido(termino) {
             let result = buscarArticuloGlobal(termino);
-            let desc = "DESCONOCIDO (Sin datos)";
-            let eanDetectado = termino; let stock = "0"; let rayon = "-";
-            
+            let desc = "DESCONOCIDO (Sin datos)"; let eanDetectado = termino; let stock = "0"; let rayon = "-";
             if (result) { eanDetectado = result.ean; desc = result.art.descripcion; stock = result.art.stock; rayon = result.art.rayon; }
 
             itemActual = { ean: eanDetectado, desc: desc, stock: stock, rayon: rayon };
-            
             resultadoDiv.style.display = 'flex';
             resultadoDiv.style.borderColor = "#17a2b8";
             resultadoDiv.innerHTML = `
                 <h3 style='color:#17a2b8; margin:0;'>🛒 Cantidad a Pedir</h3>
                 <p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br><strong style="font-size:16px;">${desc}</strong></p>
-                
                 <div style='background:#e8f5e9; padding:8px; border-radius:8px; margin:6px 0; border: 3px solid #28a745;'>
                     <span style='font-size:12px; color:#28a745; font-weight:bold; display:block; text-transform:uppercase;'>Stock Actual en ${rayon}</span>
                     <span style='font-size:40px; color:#28a745; font-weight:900; line-height:1;'>${stock}</span>
                 </div>
-
                 <div class="panel-cantidad" style="display:flex;">
                     <input type="text" id="input-pedido-accion" class="input-cantidad" placeholder="Pedir Uds..." readonly onclick="inputActivoId='input-pedido-accion'; tecladoVirtual.style.display='grid'; document.body.classList.add('modo-teclado');">
                 </div>
@@ -537,16 +530,15 @@
         function guardarCantidadPedido() {
             let inputVal = document.getElementById('input-pedido-accion').value;
             const cantidad = parseFloat(inputVal.replace(',', '.')) || 0;
-            
             if (cantidad > 0) {
                 listaTrabajo.push({ tipo: 'pedido', ean: itemActual.ean, descripcion: itemActual.desc, cantidad: cantidad, fecha: new Date().toLocaleString('es-ES').replace(', ', ' '), rayon: itemActual.rayon, stock: itemActual.stock });
                 localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
-                
                 resultadoDiv.style.display = 'flex';
                 resultadoDiv.innerHTML = `<h3 style="color:#17a2b8; margin:0; font-size:20px;">✅ Pedidas ${cantidad} uds</h3><p style="margin:4px 0; font-size:14px;">${itemActual.desc}</p>`;
             } else { resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = ""; }
 
             tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
+            inputCodigo.readOnly = false;
             inputActivoId = 'inputCodigo'; inputCodigo.value = "";
         }
 
@@ -560,12 +552,7 @@
 
             resultadoDiv.style.display = 'flex';
             resultadoDiv.style.borderColor = "#ffc107";
-            resultadoDiv.innerHTML = `
-                <p style="margin:0; font-size:14px; color:#666;">Añadido a inventario:</p>
-                <h3 style="margin:4px 0; color:#28a745; font-size:20px;">${eanDetectado}</h3>
-                <p style="margin:0; font-weight:bold; font-size:16px;">${desc}</p>
-                <div style="margin-top:8px; font-size:24px;">📦 x1</div>
-            `;
+            resultadoDiv.innerHTML = `<p style="margin:0; font-size:14px; color:#666;">Añadido a inventario:</p><h3 style="margin:4px 0; color:#28a745; font-size:20px;">${eanDetectado}</h3><p style="margin:0; font-weight:bold; font-size:16px;">${desc}</p><div style="margin-top:8px; font-size:24px;">📦 x1</div>`;
             inputCodigo.value = "";
         }
 
@@ -576,18 +563,14 @@
             const btnDrive = document.getElementById('btn-drive');
             btnDrive.classList.add('loading'); btnDrive.innerText = "⏳ Enviando...";
 
-            const datosAEnviar = listaTrabajo.map(item => {
-                return { tipo: item.tipo || 'inventario', ean: item.ean, cantidad: item.cantidad, descripcion: item.descripcion, fecha: item.fecha, usuario: usuarioGuardado, competencia: item.competencia || "", pvp_competencia: item.pvp_competencia || "", pvp_nuestro: item.pvp_nuestro || "", opus: item.opus || "", rayon: item.rayon || "", stock: item.stock || "" };
-            });
+            const datosAEnviar = listaTrabajo.map(item => { return { tipo: item.tipo || 'inventario', ean: item.ean, cantidad: item.cantidad, descripcion: item.descripcion, fecha: item.fecha, usuario: usuarioGuardado, competencia: item.competencia || "", pvp_competencia: item.pvp_competencia || "", pvp_nuestro: item.pvp_nuestro || "", opus: item.opus || "", rayon: item.rayon || "", stock: item.stock || "" }; });
 
             try {
                 const response = await fetch(URL_GOOGLE_APPS_SCRIPT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(datosAEnviar) });
                 const result = await response.json();
                 if (result.status === "success") {
                     alert("¡Sincronizado con Google Drive correctamente!");
-                    if(confirm("¿Quieres vaciar la lista de trabajo?")) {
-                        listaTrabajo = []; localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo)); renderizarLista();
-                    }
+                    if(confirm("¿Quieres vaciar la lista de trabajo?")) { listaTrabajo = []; localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo)); renderizarLista(); }
                 } else alert("Error Drive: " + result.message);
             } catch (error) { alert("Error conexión: " + error); } 
             finally { btnDrive.classList.remove('loading'); btnDrive.innerText = "☁️ A Drive"; }
@@ -604,22 +587,13 @@
 
             let result = buscarArticuloGlobal(termino);
 
-            if (result) {
-                mostrarArticuloCompleto(result.ean, result.esSinStock);
-            } else {
+            if (result) { mostrarArticuloCompleto(result.ean, result.esSinStock); } 
+            else {
                 let palabras = termino.split(" ").filter(t => t.length > 0);
                 let coincidencias = [];
-                
-                for (const [ean, articulo] of Object.entries(inventario)) {
-                    if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) { coincidencias.push({ ean: ean, articulo: articulo, esSinStock: false }); }
-                }
+                for (const [ean, articulo] of Object.entries(inventario)) { if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) { coincidencias.push({ ean: ean, articulo: articulo, esSinStock: false }); } }
                 if (coincidencias.length < 50) {
-                    for (const [ean, articulo] of Object.entries(inventarioSinStock)) {
-                        if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) {
-                            coincidencias.push({ ean: ean, articulo: articulo, esSinStock: true });
-                            if (coincidencias.length >= 50) break;
-                        }
-                    }
+                    for (const [ean, articulo] of Object.entries(inventarioSinStock)) { if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) { coincidencias.push({ ean: ean, articulo: articulo, esSinStock: true }); if (coincidencias.length >= 50) break; } }
                 }
 
                 if (coincidencias.length === 0) { mostrarArticuloDesconocido(termino); } 
@@ -628,8 +602,7 @@
                     let htmlLista = `<h3 style="margin: 0 0 8px 0; font-size: 14px; color: #007bff;">${coincidencias.length} encontrados:</h3><ul class="lista-resultados">`;
                     coincidencias.slice(0, 50).forEach(c => {
                         let etiquetaExtra = c.esSinStock ? `<span style="color:#ff9800; font-size:10px; font-weight:bold;">(SIN STOCK)</span>` : "";
-                        htmlLista += `<li class="item-resultado" onclick="mostrarArticuloCompleto('${c.ean}', ${c.esSinStock})">
-                            <span class="item-desc">${c.articulo.descripcion}</span><span class="item-ean">EAN: ${c.ean} ${etiquetaExtra}</span></li>`;
+                        htmlLista += `<li class="item-resultado" onclick="mostrarArticuloCompleto('${c.ean}', ${c.esSinStock})"><span class="item-desc">${c.articulo.descripcion}</span><span class="item-ean">EAN: ${c.ean} ${etiquetaExtra}</span></li>`;
                     });
                     if (coincidencias.length >= 50) { htmlLista += `<li class="item-resultado" style="text-align:center; color:#666; font-size:12px;">...limitado a 50. Añade más palabras para filtrar.</li>`; }
                     htmlLista += `</ul>`;
@@ -718,70 +691,59 @@
                 resultadoDiv.style.display = 'flex';
                 resultadoDiv.style.borderColor = "#28a745";
                 resultadoDiv.innerHTML = `<h3 style="color:#28a745; margin:0; font-size:20px;">¡Añadidas ${cantidad} uds!</h3><p style="margin:4px 0; font-size:14px;">al inventario general</p>`;
-            } else {
-                resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = "";
-            }
+            } else { resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = ""; }
 
             inputCodigo.value = "";
             tecladoVirtual.style.display = 'none'; 
             document.body.classList.remove('modo-teclado');
+            inputCodigo.readOnly = false;
             inputActivoId = 'inputCodigo';
         }
 
-        // ==========================================
-        // NUEVO MOTOR DE ESCÁNER (html5-qrcode)
-        // ==========================================
-        let isScanning = false;
+        // EVENT LISTENER PARA EL TECLADO NATIVO / APP EXTERNA
+        inputCodigo.addEventListener('keypress', function(e) { 
+            if (e.key === 'Enter') { e.preventDefault(); procesarBusqueda(inputCodigo.value.trim()); } 
+        });
 
-        function iniciarCamaraVideo() {
-            const container = document.getElementById('scanner-container');
+        // ==========================================
+        // NUEVO ESCÁNER TIPO APP NATIVA (html5-qrcode)
+        // ==========================================
+        let html5QrcodeScanner;
+
+        function abrirEscaner() {
+            const container = document.getElementById('reader-container');
             container.style.display = 'flex';
             document.getElementById('resultado').style.display = 'none';
+            if (tecladoVirtual.style.display === 'grid') { toggleTecladoVirtual(); }
 
-            if (tecladoVirtual.style.display === 'grid') {
-                tecladoVirtual.style.display = 'none';
-                document.body.classList.remove('modo-teclado');
-            }
-
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("reader");
-            }
-
-            html5QrCode.start(
-                { facingMode: "environment" }, // Fuerza cámara trasera
-                {
-                    fps: 15,
-                    qrbox: { width: 250, height: 120 }, // Área de lectura láser
-                    aspectRatio: 1.333334
-                },
-                (decodedText) => {
+            if (!html5QrcodeScanner) {
+                html5QrcodeScanner = new Html5QrcodeScanner(
+                    "reader", 
+                    { fps: 10, qrbox: {width: 250, height: 150}, aspectRatio: 1.0 },
+                    /* verbose= */ false
+                );
+                
+                html5QrcodeScanner.render((decodedText) => {
                     // CÓDIGO LEÍDO CON ÉXITO
-                    if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // Vibración nativa!
-                    cerrarCamara();
+                    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                    cerrarEscaner();
                     procesarBusqueda(decodedText);
-                },
-                (errorMessage) => {
-                    // Ignorar errores de frame buscando código
-                }
-            ).then(() => {
-                isScanning = true;
-            }).catch((err) => {
-                alert("❌ Permiso de cámara denegado. Asegúrate de usar Chrome/Safari. Detalle: " + err);
-                cerrarCamara();
-            });
+                }, (errorMessage) => {
+                    // Ignorar errores de lectura continua
+                });
+            }
         }
 
-        function cerrarCamara() {
-            if (html5QrCode && isScanning) {
-                html5QrCode.stop().then(() => {
-                    isScanning = false;
-                    document.getElementById('scanner-container').style.display = 'none';
-                }).catch(err => {
-                    isScanning = false;
-                    document.getElementById('scanner-container').style.display = 'none';
+        function cerrarEscaner() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear().then(() => {
+                    html5QrcodeScanner = null;
+                    document.getElementById('reader-container').style.display = 'none';
+                }).catch(error => {
+                    document.getElementById('reader-container').style.display = 'none';
                 });
             } else {
-                document.getElementById('scanner-container').style.display = 'none';
+                document.getElementById('reader-container').style.display = 'none';
             }
         }
 
@@ -840,9 +802,7 @@
             inventarioSinStock = {};
             results.data.forEach(fila => {
                 let ean = fila['EAN'] ? fila['EAN'].trim() : "";
-                if (ean) {
-                    inventarioSinStock[ean] = { descripcion: fila['DESCRIPCION'] || "", precio: fila['PVC'] || "-", fecha: fila['FECHA'] || "-", stock: fila['STOCK'] || "0", rayon: fila['RAYON'] || "-", ventas: fila['VENTAS'] || "0" };
-                }
+                if (ean) { inventarioSinStock[ean] = { descripcion: fila['DESCRIPCION'] || "", precio: fila['PVC'] || "-", fecha: fila['FECHA'] || "-", stock: fila['STOCK'] || "0", rayon: fila['RAYON'] || "-", ventas: fila['VENTAS'] || "0" }; }
             });
         }
 
