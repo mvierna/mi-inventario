@@ -141,15 +141,21 @@ def ejecutar_robot():
         pyautogui.hotkey('ctrl', 'x')
         time.sleep(1.5)
         
-        print("Pulsando botón Windows...")
-        pyautogui.press('win') 
+        # --- INICIO DEL CÓDIGO MODIFICADO ---
+        print("Abriendo el Explorador de archivos (Win + E)...")
+        pyautogui.hotkey('win', 'e') 
         time.sleep(1.5)
         
+        print("Seleccionando la barra de direcciones (Alt + D)...")
+        pyautogui.hotkey('alt', 'd')
+        time.sleep(0.5)
+        
         print("Escribiendo ruta de destino...")
-        pyautogui.write(r'C:\Users\Usuario\mi-inventario', interval=0.2)
-        time.sleep(1.5)
+        pyautogui.write(r'C:\Users\Usuario\mi-inventario', interval=0.1)
+        time.sleep(0.5)
         pyautogui.press('enter')
         time.sleep(3) 
+        # --- FIN DEL CÓDIGO MODIFICADO ---
         
         print("Pegando archivo...")
         pyautogui.hotkey('ctrl', 'v')
