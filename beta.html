@@ -21,7 +21,6 @@
         * { box-sizing: border-box; }
         html, body { height: 100%; margin: 0; padding: 0; }
         
-        /* BLOQUEO ESTRICTO DE ALTURA */
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             padding: 6px; text-align: center; 
@@ -52,44 +51,31 @@
         .texto-fecha { font-size: 11px; color: #444444; font-weight: bold; display: block; margin-top: 1px; text-transform: uppercase; }
         
         /* =========================================
-           NUEVO ESCÁNER SUPERIOR (Más grande y arriba)
+           ESCÁNER ANCLADO AL TECHO (Soporte iOS Notch)
            ========================================= */
-        #scanner-wrapper {
-            flex-shrink: 0; /* Evita que el contenedor flexible lo aplaste */
-            display: none;
-            width: 100%;
-            margin-bottom: 8px;
+        #scanner-container { 
+            display: none; 
+            position: fixed;
+            top: 0; left: 0; width: 100%;
             background: #000;
-            border-radius: 12px;
-            border: 4px solid #17a2b8;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            overflow: hidden;
-            position: relative;
+            z-index: 9999; /* Por encima de todo */
+            /* padding-top env() dibuja el contenedor detrás de las lentes del iPhone */
+            padding-top: max(10px, env(safe-area-inset-top)); 
+            flex-direction: column;
+            border-bottom: 4px solid #17a2b8;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
-        #reader { width: 100%; }
+        #reader { width: 100%; background: #000; }
+        #reader video { object-fit: cover; }
         
-        /* Ocultar elementos feos de la librería html5-qrcode */
-        #reader__dashboard_section_csr, #reader__dashboard_section_swaplink { display: none !important; }
-        #reader__scan_region { background: #000; }
-        
-        /* Láser animado sobre el vídeo */
-        .laser-rojo {
-            position: absolute; width: 100%; height: 3px; background: rgba(255,0,0,0.8);
-            box-shadow: 0 0 15px rgba(255,0,0,0.8); top: 50%; left: 0; z-index: 10;
-            animation: scan-laser 1.5s infinite alternate ease-in-out;
-            pointer-events: none; /* Para que no bloquee toques */
-        }
-        @keyframes scan-laser { 0% { top: 20%; } 100% { top: 80%; } }
-
         .btn-cerrar-camara {
-            position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
-            padding: 8px 20px; background: rgba(220,53,69,0.9); color: white;
-            border: none; border-radius: 20px; font-weight: bold; font-size: 13px; cursor: pointer;
-            z-index: 20; box-shadow: 0 2px 5px rgba(0,0,0,0.5); text-transform: uppercase;
+            margin: 10px auto 15px auto; width: 90%; max-width: 300px;
+            padding: 12px; background: #dc3545; color: white;
+            border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; text-transform: uppercase;
         }
         .btn-cerrar-camara:active { background: #c82333; }
 
-        /* CONTENEDOR CENTRAL FLEXIBLE (El "muelle" para los resultados) */
+        /* CONTENEDOR CENTRAL FLEXIBLE */
         #espaciador-central {
             flex: 1; 
             min-height: 0; 
@@ -169,10 +155,8 @@
 
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
         
-        /* BOTÓN TECLADO VIRTUAL */
         .btn-teclado { flex: 0 0 50px; height: 50px; background-color: #6c757d; color: white; border: none; border-radius: 6px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         
-        /* CAJA PRINCIPAL DE TEXTO */
         #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 18px; text-align: center; border: 3px solid #007bff; border-radius: 8px; outline: none; font-weight: bold; background: #fff; color: #111; }
         #inputCodigo:disabled { background-color: #e9ecef; border-color: #ced4da; opacity: 0.7; }
         
@@ -194,14 +178,12 @@
         .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; font-size: 40px; font-weight: 900; grid-column: 4; grid-row: 2 / span 3; height: 100% !important; }
         .tecla-ok:active { background: #218838; }
 
-        /* Si el teclado virtual está abierto, ocultamos cosas de arriba para hacer hueco */
         body.modo-teclado .cabecera-top, 
         body.modo-teclado #estado,
         body.modo-teclado .contenedor-modos { 
             display: none !important; 
         }
 
-        /* ESCALADO INTELIGENTE SI EL MÓVIL ES MÁS PEQUEÑO */
         @media (max-height: 780px) {
             .tecla-v { height: 48px; font-size: 26px; }
             .tecla-ok { font-size: 34px; }
@@ -252,17 +234,15 @@
         <p>La interfaz solo funciona correctamente en modo vertical.</p>
     </div>
 
-    <!-- EL ESCÁNER ESTÁ AHORA JUSTO DEBAJO DE ESTA CABECERA Y SE MOSTRARÁ AL PULSAR EL BOTÓN -->
+    <!-- ESCÁNER ANCLADO AL TECHO (Fuera del flujo normal para no romper la librería en iOS) -->
+    <div id="scanner-container">
+        <div id="reader"></div>
+        <button class="btn-cerrar-camara" onclick="cerrarEscaner()">✕ Cerrar Cámara</button>
+    </div>
+
     <div class="cabecera-top">
         <h1>MOVILEC</h1>
         <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar BBDD</button>
-    </div>
-
-    <!-- NUEVO CONTENEDOR DEL ESCÁNER -->
-    <div id="scanner-wrapper">
-        <div class="laser-rojo"></div>
-        <div id="reader"></div>
-        <button class="btn-cerrar-camara" onclick="cerrarEscaner()">✕ Cerrar Escáner</button>
     </div>
 
     <div id="estado">Iniciando BBDD Local...</div>
@@ -280,11 +260,8 @@
         </div>
         
         <div class="grupo-input-camara">
-            <!-- BOTÓN PARA ABRIR TECLADO VIRTUAL -->
             <button class="btn-teclado" onclick="toggleTecladoVirtual()">🔢</button>
-            <!-- INPUT NORMAL -->
             <input type="text" id="inputCodigo" placeholder="Escribe, escanea o EAN..." autocomplete="off">
-            <!-- BOTÓN QUE ABRE LA CÁMARA ARRIBA -->
             <button class="btn-camara-cuadrado" onclick="abrirEscaner()">📷 CÁMARA</button>
         </div>
 
@@ -423,7 +400,6 @@
             }
         }
 
-        // CONTROL DEL TECLADO VIRTUAL HÍBRIDO
         function toggleTecladoVirtual() {
             if (tecladoVirtual.style.display === 'grid') {
                 tecladoVirtual.style.display = 'none';
@@ -742,9 +718,8 @@
         let html5QrcodeScanner;
 
         function abrirEscaner() {
-            const container = document.getElementById('scanner-wrapper');
-            container.style.display = 'block';
-            document.getElementById('resultado').style.display = 'none';
+            const container = document.getElementById('scanner-container');
+            container.style.display = 'flex';
             if (tecladoVirtual.style.display === 'grid') { toggleTecladoVirtual(); }
 
             // Configuramos html5qrcode si no estaba creado
@@ -753,8 +728,8 @@
                     "reader", 
                     { 
                         fps: 10, 
-                        qrbox: {width: 280, height: 180},
-                        aspectRatio: 1.0, 
+                        qrbox: {width: 250, height: 150},
+                        aspectRatio: 1.333334,
                         showTorchButtonIfSupported: true
                     },
                     /* verbose= */ false
@@ -775,12 +750,12 @@
             if (html5QrcodeScanner) {
                 html5QrcodeScanner.clear().then(() => {
                     html5QrcodeScanner = null;
-                    document.getElementById('scanner-wrapper').style.display = 'none';
+                    document.getElementById('scanner-container').style.display = 'none';
                 }).catch(error => {
-                    document.getElementById('scanner-wrapper').style.display = 'none';
+                    document.getElementById('scanner-container').style.display = 'none';
                 });
             } else {
-                document.getElementById('scanner-wrapper').style.display = 'none';
+                document.getElementById('scanner-container').style.display = 'none';
             }
         }
 
@@ -893,7 +868,7 @@
 
             listaInvertida.forEach(item => {
                 let descLimpia = item.descripcion || ""; let eanLimpio = item.ean ? String(item.ean) : ""; 
-                if (item.tipo === 'competencia') { dataCompetencia.push({"RAYON": item.rayon || "", "EAN": eanLimpio, "PVP COMPETENCIA": item.pvp_competencia || "", "PVP LECLERC": item.pvp_nuestro || "", "OPUS": item.opus || "", "DESCRripciones": descLimpia, "COMPETENCIA": item.competencia || "", "USUARIO / TERMINAL": usuarioGuardado }); } 
+                if (item.tipo === 'competencia') { dataCompetencia.push({"RAYON": item.rayon || "", "EAN": eanLimpio, "PVP COMPETENCIA": item.pvp_competencia || "", "PVP LECLERC": item.pvp_nuestro || "", "OPUS": item.opus || "", "DESCRIPCION": descLimpia, "COMPETENCIA": item.competencia || "", "USUARIO / TERMINAL": usuarioGuardado }); } 
                 else if (item.tipo === 'pedido') { dataPedidos.push({"RAYON": item.rayon || "", "EAN": eanLimpio, "STOCK": item.stock || "", "CANTIDAD": item.cantidad || "", "DESCRIPCION": descLimpia, "FECHA": item.fecha || "", "USUARIO / TERMINAL": usuarioGuardado }); } 
                 else { dataInventario.push({"EAN": eanLimpio, "CANTIDAD": item.cantidad || "", "DESCRIPCION": descLimpia, "FECHA": item.fecha || "", "USUARIO / TERMINAL": usuarioGuardado }); }
             });
