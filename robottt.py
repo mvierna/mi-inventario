@@ -120,7 +120,7 @@ def ejecutar_robot():
         pyautogui.press('enter')
         
         print("Esperando a que el archivo se guarde físicamente...")
-        time.sleep(15)
+        time.sleep(18)
         
         # ---------------------------------------------------------
         # 6. EXTRACCIÓN VISUAL EN WINDOWS
