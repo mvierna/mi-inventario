@@ -51,27 +51,29 @@
         .texto-fecha { font-size: 11px; color: #444444; font-weight: bold; display: block; margin-top: 1px; text-transform: uppercase; }
         
         /* =========================================
-           ESCÁNER ANCLADO AL TECHO (Soporte iOS Notch)
+           ESCÁNER EN FLUJO NORMAL (Más arriba y ajustado)
            ========================================= */
-        #scanner-container { 
-            display: none; 
-            position: fixed;
-            top: 0; left: 0; width: 100%;
+        #scanner-wrapper {
+            display: none;
+            width: 100%;
+            max-width: 380px;
+            margin: 4px auto 8px auto; /* Reducido el margen superior para subirlo */
             background: #000;
-            z-index: 9999; /* Por encima de todo */
-            /* padding-top env() dibuja el contenedor detrás de las lentes del iPhone */
-            padding-top: max(10px, env(safe-area-inset-top)); 
+            border-radius: 12px;
+            border: 3px solid #17a2b8;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            overflow: hidden;
             flex-direction: column;
-            border-bottom: 4px solid #17a2b8;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
         #reader { width: 100%; background: #000; }
-        #reader video { object-fit: cover; }
+        #reader video { object-fit: cover !important; } /* Fuerza a centrar el vídeo sin offsets */
+        
+        /* Ocultar elementos feos de la librería html5-qrcode */
+        #reader__dashboard_section_csr, #reader__dashboard_section_swaplink { display: none !important; }
         
         .btn-cerrar-camara {
-            margin: 10px auto 15px auto; width: 90%; max-width: 300px;
-            padding: 12px; background: #dc3545; color: white;
-            border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; text-transform: uppercase;
+            width: 100%; padding: 12px; background: #dc3545; color: white;
+            border: none; font-weight: bold; font-size: 14px; cursor: pointer; text-transform: uppercase;
         }
         .btn-cerrar-camara:active { background: #c82333; }
 
@@ -234,15 +236,15 @@
         <p>La interfaz solo funciona correctamente en modo vertical.</p>
     </div>
 
-    <!-- ESCÁNER ANCLADO AL TECHO (Fuera del flujo normal para no romper la librería en iOS) -->
-    <div id="scanner-container">
-        <div id="reader"></div>
-        <button class="btn-cerrar-camara" onclick="cerrarEscaner()">✕ Cerrar Cámara</button>
-    </div>
-
     <div class="cabecera-top">
         <h1>MOVILEC</h1>
         <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar BBDD</button>
+    </div>
+
+    <!-- NUEVO CONTENEDOR DEL ESCÁNER (Restaurado a la versión V4 pero ajustado hacia arriba) -->
+    <div id="scanner-wrapper">
+        <div id="reader"></div>
+        <button class="btn-cerrar-camara" onclick="cerrarEscaner()">✕ Cerrar Cámara</button>
     </div>
 
     <div id="estado">Iniciando BBDD Local...</div>
@@ -580,12 +582,21 @@
             finally { btnDrive.classList.remove('loading'); btnDrive.innerText = "☁️ A Drive"; }
         }
 
-        function procesarBusqueda(terminoBusqueda) {
+        // Modificamos procesarBusqueda para recibir si el escaneo viene de la cámara
+        function procesarBusqueda(terminoBusqueda, fromCamera = false) {
             inputCodigo.value = ""; 
             let termino = terminoBusqueda.trim().toUpperCase();
             if (!termino) return;
 
-            if (modoActivo === 'rapido') { procesarEscaneoRapido(termino); return; }
+            if (modoActivo === 'rapido') { 
+                procesarEscaneoRapido(termino); 
+                // AUTO-APERTURA EN MODO RÁPIDO DESPUÉS DE 1.5s SI VIENE DE LA CÁMARA
+                if (fromCamera) {
+                    setTimeout(() => { abrirEscaner(); }, 1500);
+                }
+                return; 
+            }
+            
             if (modoActivo === 'chequeo') { procesarEscaneoChequeo(termino); return; }
             if (modoActivo === 'pedidos') { procesarEscaneoPedido(termino); return; }
 
@@ -718,8 +729,9 @@
         let html5QrcodeScanner;
 
         function abrirEscaner() {
-            const container = document.getElementById('scanner-container');
+            const container = document.getElementById('scanner-wrapper');
             container.style.display = 'flex';
+            document.getElementById('resultado').style.display = 'none';
             if (tecladoVirtual.style.display === 'grid') { toggleTecladoVirtual(); }
 
             // Configuramos html5qrcode si no estaba creado
@@ -739,7 +751,8 @@
                     // CÓDIGO LEÍDO CON ÉXITO
                     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
                     cerrarEscaner();
-                    procesarBusqueda(decodedText);
+                    // Pasamos 'true' para indicar que viene de la cámara
+                    procesarBusqueda(decodedText, true);
                 }, (errorMessage) => {
                     // Ignorar errores de lectura continua
                 });
@@ -750,12 +763,12 @@
             if (html5QrcodeScanner) {
                 html5QrcodeScanner.clear().then(() => {
                     html5QrcodeScanner = null;
-                    document.getElementById('scanner-container').style.display = 'none';
+                    document.getElementById('scanner-wrapper').style.display = 'none';
                 }).catch(error => {
-                    document.getElementById('scanner-container').style.display = 'none';
+                    document.getElementById('scanner-wrapper').style.display = 'none';
                 });
             } else {
-                document.getElementById('scanner-container').style.display = 'none';
+                document.getElementById('scanner-wrapper').style.display = 'none';
             }
         }
 
