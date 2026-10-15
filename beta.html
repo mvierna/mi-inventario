@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Inventario BETA V4</title>
+    <title>MOVILEC</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#28a745">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Inv. BETA">
+    <meta name="apple-mobile-web-app-title" content="MOVILEC">
     <link rel="apple-touch-icon" href="icono.png">
 
     <!-- LIBRERÍAS (CSV, Escáner HTML5 Robusto y EXCEL) -->
@@ -51,7 +51,45 @@
         #estado { flex-shrink: 0; font-weight: bold; font-size: 11px; color: #28a745; margin-bottom: 4px; }
         .texto-fecha { font-size: 11px; color: #444444; font-weight: bold; display: block; margin-top: 1px; text-transform: uppercase; }
         
-        /* CONTENEDOR CENTRAL FLEXIBLE */
+        /* =========================================
+           NUEVO ESCÁNER SUPERIOR (Más grande y arriba)
+           ========================================= */
+        #scanner-wrapper {
+            flex-shrink: 0; /* Evita que el contenedor flexible lo aplaste */
+            display: none;
+            width: 100%;
+            margin-bottom: 8px;
+            background: #000;
+            border-radius: 12px;
+            border: 4px solid #17a2b8;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            overflow: hidden;
+            position: relative;
+        }
+        #reader { width: 100%; }
+        
+        /* Ocultar elementos feos de la librería html5-qrcode */
+        #reader__dashboard_section_csr, #reader__dashboard_section_swaplink { display: none !important; }
+        #reader__scan_region { background: #000; }
+        
+        /* Láser animado sobre el vídeo */
+        .laser-rojo {
+            position: absolute; width: 100%; height: 3px; background: rgba(255,0,0,0.8);
+            box-shadow: 0 0 15px rgba(255,0,0,0.8); top: 50%; left: 0; z-index: 10;
+            animation: scan-laser 1.5s infinite alternate ease-in-out;
+            pointer-events: none; /* Para que no bloquee toques */
+        }
+        @keyframes scan-laser { 0% { top: 20%; } 100% { top: 80%; } }
+
+        .btn-cerrar-camara {
+            position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+            padding: 8px 20px; background: rgba(220,53,69,0.9); color: white;
+            border: none; border-radius: 20px; font-weight: bold; font-size: 13px; cursor: pointer;
+            z-index: 20; box-shadow: 0 2px 5px rgba(0,0,0,0.5); text-transform: uppercase;
+        }
+        .btn-cerrar-camara:active { background: #c82333; }
+
+        /* CONTENEDOR CENTRAL FLEXIBLE (El "muelle" para los resultados) */
         #espaciador-central {
             flex: 1; 
             min-height: 0; 
@@ -59,20 +97,6 @@
             flex-direction: column;
             justify-content: center; 
         }
-
-        /* CONTENEDOR DEL ESCÁNER LIBRERÍA */
-        #reader-container {
-            display: none;
-            width: 100%;
-            max-width: 400px;
-            margin: 0 auto;
-            background: white;
-            border: 2px solid #17a2b8;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        #reader { width: 100%; }
 
         .resultado { 
             display: none; 
@@ -148,7 +172,7 @@
         /* BOTÓN TECLADO VIRTUAL */
         .btn-teclado { flex: 0 0 50px; height: 50px; background-color: #6c757d; color: white; border: none; border-radius: 6px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         
-        /* CAJA PRINCIPAL DE TEXTO - AHORA SÍ ADMITE TEXTO NORMAL */
+        /* CAJA PRINCIPAL DE TEXTO */
         #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 18px; text-align: center; border: 3px solid #007bff; border-radius: 8px; outline: none; font-weight: bold; background: #fff; color: #111; }
         #inputCodigo:disabled { background-color: #e9ecef; border-color: #ced4da; opacity: 0.7; }
         
@@ -170,12 +194,14 @@
         .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; font-size: 40px; font-weight: 900; grid-column: 4; grid-row: 2 / span 3; height: 100% !important; }
         .tecla-ok:active { background: #218838; }
 
+        /* Si el teclado virtual está abierto, ocultamos cosas de arriba para hacer hueco */
         body.modo-teclado .cabecera-top, 
         body.modo-teclado #estado,
         body.modo-teclado .contenedor-modos { 
             display: none !important; 
         }
 
+        /* ESCALADO INTELIGENTE SI EL MÓVIL ES MÁS PEQUEÑO */
         @media (max-height: 780px) {
             .tecla-v { height: 48px; font-size: 26px; }
             .tecla-ok { font-size: 34px; }
@@ -226,21 +252,22 @@
         <p>La interfaz solo funciona correctamente en modo vertical.</p>
     </div>
 
+    <!-- EL ESCÁNER ESTÁ AHORA JUSTO DEBAJO DE ESTA CABECERA Y SE MOSTRARÁ AL PULSAR EL BOTÓN -->
     <div class="cabecera-top">
-        <h1>Inventario BETA</h1>
+        <h1>MOVILEC</h1>
         <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar BBDD</button>
+    </div>
+
+    <!-- NUEVO CONTENEDOR DEL ESCÁNER -->
+    <div id="scanner-wrapper">
+        <div class="laser-rojo"></div>
+        <div id="reader"></div>
+        <button class="btn-cerrar-camara" onclick="cerrarEscaner()">✕ Cerrar Escáner</button>
     </div>
 
     <div id="estado">Iniciando BBDD Local...</div>
 
     <div id="espaciador-central">
-        
-        <!-- CONTENEDOR DEL ESCÁNER -->
-        <div id="reader-container">
-            <div id="reader"></div>
-            <button class="btn-cerrar-camara" onclick="cerrarEscaner()">✕ Cerrar Cámara</button>
-        </div>
-
         <div id="resultado" class="resultado"></div>
     </div>
 
@@ -255,8 +282,9 @@
         <div class="grupo-input-camara">
             <!-- BOTÓN PARA ABRIR TECLADO VIRTUAL -->
             <button class="btn-teclado" onclick="toggleTecladoVirtual()">🔢</button>
-            <!-- INPUT NORMAL PARA PERMITIR TEXTO O ESCÁNER EXTERNO -->
+            <!-- INPUT NORMAL -->
             <input type="text" id="inputCodigo" placeholder="Escribe, escanea o EAN..." autocomplete="off">
+            <!-- BOTÓN QUE ABRE LA CÁMARA ARRIBA -->
             <button class="btn-camara-cuadrado" onclick="abrirEscaner()">📷 CÁMARA</button>
         </div>
 
@@ -400,11 +428,11 @@
             if (tecladoVirtual.style.display === 'grid') {
                 tecladoVirtual.style.display = 'none';
                 document.body.classList.remove('modo-teclado');
-                inputCodigo.readOnly = false; // Permite el teclado de Android de nuevo
+                inputCodigo.readOnly = false; 
             } else {
                 cerrarEscaner();
                 inputActivoId = 'inputCodigo';
-                inputCodigo.readOnly = true; // Bloquea el teclado de Android
+                inputCodigo.readOnly = true; 
                 inputCodigo.blur();
                 tecladoVirtual.style.display = 'grid';
                 document.body.classList.add('modo-teclado');
@@ -691,7 +719,10 @@
                 resultadoDiv.style.display = 'flex';
                 resultadoDiv.style.borderColor = "#28a745";
                 resultadoDiv.innerHTML = `<h3 style="color:#28a745; margin:0; font-size:20px;">¡Añadidas ${cantidad} uds!</h3><p style="margin:4px 0; font-size:14px;">al inventario general</p>`;
-            } else { resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = ""; }
+            } else {
+                resultadoDiv.style.display = 'none';
+                resultadoDiv.innerHTML = "";
+            }
 
             inputCodigo.value = "";
             tecladoVirtual.style.display = 'none'; 
@@ -706,20 +737,26 @@
         });
 
         // ==========================================
-        // NUEVO ESCÁNER TIPO APP NATIVA (html5-qrcode)
+        // NUEVO ESCÁNER HTML5-QRCODE NATIVO
         // ==========================================
         let html5QrcodeScanner;
 
         function abrirEscaner() {
-            const container = document.getElementById('reader-container');
-            container.style.display = 'flex';
+            const container = document.getElementById('scanner-wrapper');
+            container.style.display = 'block';
             document.getElementById('resultado').style.display = 'none';
             if (tecladoVirtual.style.display === 'grid') { toggleTecladoVirtual(); }
 
+            // Configuramos html5qrcode si no estaba creado
             if (!html5QrcodeScanner) {
                 html5QrcodeScanner = new Html5QrcodeScanner(
                     "reader", 
-                    { fps: 10, qrbox: {width: 250, height: 150}, aspectRatio: 1.0 },
+                    { 
+                        fps: 10, 
+                        qrbox: {width: 280, height: 180},
+                        aspectRatio: 1.0, 
+                        showTorchButtonIfSupported: true
+                    },
                     /* verbose= */ false
                 );
                 
@@ -738,12 +775,12 @@
             if (html5QrcodeScanner) {
                 html5QrcodeScanner.clear().then(() => {
                     html5QrcodeScanner = null;
-                    document.getElementById('reader-container').style.display = 'none';
+                    document.getElementById('scanner-wrapper').style.display = 'none';
                 }).catch(error => {
-                    document.getElementById('reader-container').style.display = 'none';
+                    document.getElementById('scanner-wrapper').style.display = 'none';
                 });
             } else {
-                document.getElementById('reader-container').style.display = 'none';
+                document.getElementById('scanner-wrapper').style.display = 'none';
             }
         }
 
@@ -856,7 +893,7 @@
 
             listaInvertida.forEach(item => {
                 let descLimpia = item.descripcion || ""; let eanLimpio = item.ean ? String(item.ean) : ""; 
-                if (item.tipo === 'competencia') { dataCompetencia.push({"RAYON": item.rayon || "", "EAN": eanLimpio, "PVP COMPETENCIA": item.pvp_competencia || "", "PVP LECLERC": item.pvp_nuestro || "", "OPUS": item.opus || "", "DESCRIPCION": descLimpia, "COMPETENCIA": item.competencia || "", "USUARIO / TERMINAL": usuarioGuardado }); } 
+                if (item.tipo === 'competencia') { dataCompetencia.push({"RAYON": item.rayon || "", "EAN": eanLimpio, "PVP COMPETENCIA": item.pvp_competencia || "", "PVP LECLERC": item.pvp_nuestro || "", "OPUS": item.opus || "", "DESCRripciones": descLimpia, "COMPETENCIA": item.competencia || "", "USUARIO / TERMINAL": usuarioGuardado }); } 
                 else if (item.tipo === 'pedido') { dataPedidos.push({"RAYON": item.rayon || "", "EAN": eanLimpio, "STOCK": item.stock || "", "CANTIDAD": item.cantidad || "", "DESCRIPCION": descLimpia, "FECHA": item.fecha || "", "USUARIO / TERMINAL": usuarioGuardado }); } 
                 else { dataInventario.push({"EAN": eanLimpio, "CANTIDAD": item.cantidad || "", "DESCRIPCION": descLimpia, "FECHA": item.fecha || "", "USUARIO / TERMINAL": usuarioGuardado }); }
             });
