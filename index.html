@@ -865,24 +865,53 @@
 
         async function iniciarCamaraVideo() {
             const container = document.getElementById('video-container');
-            container.style.display = 'block'; tecladoVirtual.style.display = 'none';
-            if (!codeReader) codeReader = new ZXing.BrowserBarcodeReader(new Map().set(ZXing.DecodeHintType.TRY_HARDER, true));
+            container.style.display = 'block'; 
+            tecladoVirtual.style.display = 'none';
+            
+            if (!codeReader) {
+                codeReader = new ZXing.BrowserBarcodeReader(new Map().set(ZXing.DecodeHintType.TRY_HARDER, true));
+            }
+            
             try {
+                // FORZAR PETICIÓN DE PERMISOS PRIMERO (Soluciona el "Video device 1" en iOS)
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                
                 const devices = await codeReader.listVideoInputDevices();
                 const select = document.getElementById('selector-camara');
                 select.innerHTML = '';
+                
+                let idCamaraTrasera = null;
+
                 devices.forEach((device, idx) => {
                     const opt = document.createElement('option');
                     opt.value = device.deviceId;
+                    // Ahora iOS devolverá nombres reales como "Back Camera"
                     opt.text = device.label || 'Cámara ' + (idx + 1);
                     select.appendChild(opt);
+                    
+                    // Intentar detectar la cámara trasera por su nombre
+                    const label = device.label.toLowerCase();
+                    if (label.includes('back') || label.includes('trasera') || label.includes('environment')) {
+                        idCamaraTrasera = device.deviceId;
+                    }
                 });
-                let selected = camaraManualId || (devices.length > 0 ? devices[devices.length - 1].deviceId : null);
+
+                // Apagar el stream temporal que usamos para forzar los permisos
+                stream.getTracks().forEach(track => track.stop());
+
+                // Orden de prioridad: 1. Elegida por usuario, 2. Trasera detectada, 3. La PRIMERA cámara (evita el sensor infrarrojo final)
+                let selected = camaraManualId || idCamaraTrasera || (devices.length > 0 ? devices[0].deviceId : null);
+                
                 if (selected) {
                     select.value = selected;
-                    codeReader.decodeFromVideoDevice(selected, 'video-preview', (result) => { if (result) procesarResultadoZXing(result); });
+                    codeReader.decodeFromVideoDevice(selected, 'video-preview', (result) => { 
+                        if (result) procesarResultadoZXing(result); 
+                    });
                 }
-            } catch (err) { alert("Error cámara: " + err.message); container.style.display = 'none'; }
+            } catch (err) { 
+                alert("Error cámara: " + err.message); 
+                container.style.display = 'none'; 
+            }
         }
 
         function cambiarCamaraManual() { camaraManualId = document.getElementById('selector-camara').value; localStorage.setItem('camaraPreferida', camaraManualId); cerrarCamara(); setTimeout(iniciarEscanerSegunOS, 300); }
