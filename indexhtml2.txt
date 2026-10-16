@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-title" content="Inventario">
     <link rel="apple-touch-icon" href="icono.png">
 
-    <!-- LIBRERÍAS DE LECTURA (CSV, Escáner y NUEVO EXCEL) -->
+    <!-- LIBRERÍAS (CSV, Escáner y EXCEL) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -20,11 +20,16 @@
     <style>
         * { box-sizing: border-box; }
         html, body { height: 100%; margin: 0; padding: 0; }
+        
+        /* BLOQUEO ESTRICTO DE ALTURA PARA QUE NADA SE SALGA DE LA PANTALLA */
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             padding: 6px; text-align: center; 
-            background-color: #f4f6f8; display: flex; flex-direction: column; 
-            min-height: 100dvh; overflow-y: auto; 
+            background-color: #f4f6f8; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100dvh; 
+            overflow: hidden; 
         }
         
         #aviso-rotacion {
@@ -39,33 +44,45 @@
             #aviso-rotacion { display: flex; }
         }
 
-        .cabecera-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
+        .cabecera-top { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
         h1 { margin: 0; font-size: 18px; font-weight: 900; color: #111; }
         .btn-actualizar { padding: 8px 14px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
         
-        #estado { font-weight: bold; font-size: 11px; color: #28a745; margin-bottom: 8px; }
+        #estado { flex-shrink: 0; font-weight: bold; font-size: 11px; color: #28a745; margin-bottom: 4px; }
         .texto-fecha { font-size: 11px; color: #444444; font-weight: bold; display: block; margin-top: 1px; text-transform: uppercase; }
         
+        /* CONTENEDOR CENTRAL FLEXIBLE (El "muelle") */
+        #espaciador-central {
+            flex: 1; 
+            min-height: 0; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center; 
+        }
+
         .resultado { 
             display: none; 
-            margin-top: auto; margin-bottom: 8px; padding: 10px; border: 2px solid #222222; 
+            width: 98%; margin: 0 auto; padding: 10px; border: 2px solid #222222; 
             border-radius: 12px; background-color: #ffffff; flex-direction: column; gap: 6px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: auto; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            max-height: 100%; 
+            overflow-y: auto; 
         }
-        .titulo-encontrado { color: #28a745; margin: 0; font-size: 15px; font-weight: bold; }
+        
+        .titulo-encontrado { color: #28a745; margin: 0; font-size: 16px; font-weight: bold; }
         .texto-ean { font-size: 13px; color: #555; margin: 0; }
-        .descripcion-producto { font-size: 18px; font-weight: 800; line-height: 1.25; color: #000000; margin: 2px 0; text-transform: uppercase; }
+        .descripcion-producto { font-size: 18px; font-weight: 900; line-height: 1.2; color: #000000; margin: 2px 0; text-transform: uppercase; }
         
         .panel-secundario { display: flex; justify-content: space-around; gap: 4px; margin: 2px 0; background-color: #f8f9fa; padding: 6px; border-radius: 6px; border: 1px solid #e2e8f0; }
-        .item-secundario { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .item-secundario { display: flex; flex-direction: column; align-items: center; flex: 1; text-align: center; }
         .etiqueta-secundaria { font-size: 10px; text-transform: uppercase; color: #555; font-weight: bold; }
-        .valor-secundario { font-size: 16px; font-weight: 800; color: #111111; }
+        .valor-secundario { font-size: 15px; font-weight: 800; color: #111111; }
 
-        .caja-stock { margin-top: 2px; padding: 6px; background-color: #28a745; color: #ffffff; border-radius: 8px; border: none; }
+        .caja-stock { margin-top: 2px; padding: 8px; background-color: #28a745; color: #ffffff; border-radius: 8px; border: none; }
         .etiqueta-stock { font-size: 12px; text-transform: uppercase; margin: 0; font-weight: bold; letter-spacing: 0.5px; opacity: 0.95; }
         .numero-stock { font-size: 46px; font-weight: 900; margin: 0; line-height: 1; color: #ffffff; }
 
-        .panel-acciones { margin-top: 8px; }
+        .panel-acciones { margin-top: 6px; }
         .btn-accion-unica { 
             width: 100%; padding: 14px; background-color: #ff9800; color: white; border: none; 
             border-radius: 8px; font-weight: 900; font-size: 16px; cursor: pointer; text-transform: uppercase;
@@ -73,29 +90,34 @@
         }
         .btn-accion-unica:active { transform: translateY(4px); box-shadow: none; }
         
-        .panel-cantidad { display: none; flex-direction: row; gap: 8px; margin-top: 8px; }
+        .panel-cantidad { display: none; flex-direction: row; gap: 8px; margin-top: 6px; }
         .input-cantidad { 
             flex: 1; padding: 12px; border: 3px solid #ff9800; border-radius: 8px; 
-            font-size: 22px; text-align: center; font-weight: bold; outline: none; background-color: white; color: #111;
+            font-size: 20px; text-align: center; font-weight: bold; outline: none; background-color: white; color: #111;
         }
 
-        .lista-resultados { list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto; text-align: left; border: 1px solid #dee2e6; border-radius: 6px; }
-        .item-resultado { padding: 10px; border-bottom: 1px solid #dee2e6; cursor: pointer; background-color: #fff; }
+        .lista-resultados { list-style: none; padding: 0; margin: 0; text-align: left; border: 1px solid #dee2e6; border-radius: 6px; }
+        .item-resultado { padding: 8px; border-bottom: 1px solid #dee2e6; cursor: pointer; background-color: #fff; }
         .item-resultado:last-child { border-bottom: none; }
         .item-resultado:active { background-color: #e9ecef; }
-        .item-desc { font-weight: bold; font-size: 14px; display: block; color: #111; margin-bottom: 2px; }
-        .item-ean { font-size: 12px; color: #6c757d; font-weight: bold; }
+        .item-desc { font-weight: bold; font-size: 13px; display: block; color: #111; margin-bottom: 2px; }
+        .item-ean { font-size: 11px; color: #6c757d; font-weight: bold; }
 
-        #video-container { width: 100%; max-width: 320px; max-height: 250px; background: #000; margin: 4px auto; border-radius: 6px; overflow: hidden; position: relative; display: none; }
+        #video-container { width: 100%; max-width: 320px; background: #000; margin: 4px auto; border-radius: 6px; overflow: hidden; position: relative; display: none; }
         #controles-video { padding: 6px; background: rgba(0,0,0,0.7); display: flex; justify-content: space-between; align-items: center; }
-        #selector-camara { width: 100%; max-width: 200px; padding: 6px; border-radius: 4px; font-size: 12px; background: white; color: black; border: 1px solid #ccc; }
-        video { width: 100%; height: auto; display: block; object-fit: cover; }
+        #selector-camara { width: 100%; max-width: 200px; padding: 6px; border-radius: 4px; font-size: 12px; background: white; color: black; border: 1px solid #ccc; outline: none; }
+        video { width: 100%; height: auto; max-height: 200px; display: block; object-fit: cover; }
 
-        .caja-interfaz { padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); margin-top: auto; }
+        /* CAJA INFERIOR (Teclado y Modos) - FIJA ABAJO */
+        .caja-interfaz { 
+            flex-shrink: 0; 
+            padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; 
+            width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); 
+        }
         
-        .contenedor-modos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+        .contenedor-modos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; overflow: hidden; }
         .btn-modo {
-            padding: 14px 4px; color: white; border: none; border-radius: 6px; 
+            padding: 12px 4px; color: white; border: none; border-radius: 6px; 
             font-weight: 900; font-size: 13px; text-transform: uppercase; cursor: pointer;
             box-shadow: 0 3px 0 rgba(0,0,0,0.2); transition: all 0.2s; display: flex; align-items: center; justify-content: center;
         }
@@ -113,22 +135,54 @@
         #btn-modo-lista { background-color: #007bff; }
 
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
-        .btn-teclado { flex: 0 0 50px; height: 50px; background-color: #6c757d; color: white; border: none; border-radius: 6px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 16px; text-align: center; border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; }
         #inputCodigo:disabled { background-color: #e9ecef; border-color: #ced4da; opacity: 0.7; }
-        .btn-camara-cuadrado { flex: 0 0 90px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
+        
+        .btn-camara-cuadrado { flex: 0 0 80px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
 
-        #teclado-virtual { display: none; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; background: #f8f9fa; padding: 8px; border-radius: 8px; border: 1px solid #dee2e6; }
-        .tecla-v { height: 55px; font-size: 24px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
+        /* TECLADO VIRTUAL CON SIMETRÍA AJUSTADA Y NÚMEROS MÁS GRANDES */
+        #teclado-virtual { 
+            display: none; 
+            grid-template-columns: repeat(3, 1fr) 80px; 
+            gap: 6px; margin-top: 6px; background: #f8f9fa; padding: 6px; 
+            border-radius: 8px; border: 1px solid #dee2e6; 
+        }
+        .tecla-v { height: 50px; font-size: 28px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
         .tecla-v:active { transform: translateY(2px); box-shadow: none; background: #e9ecef; }
         
-        .tecla-accion { background: #dc3545; color: white; border-color: #b02a37; box-shadow: 0 2px 0 #b02a37; font-size: 18px; grid-column: 4; grid-row: 1; height: 100%; }
+        .tecla-accion { background: #dc3545; color: white; border-color: #b02a37; box-shadow: 0 2px 0 #b02a37; font-size: 16px; grid-column: 4; grid-row: 1; height: 100% !important; }
         .tecla-accion:active { background: #c82333; }
         
-        .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; font-size: 16px; font-weight: 900; grid-column: 4; grid-row: 2 / span 3; height: 100%; letter-spacing: 1px; }
+        .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; font-size: 40px; font-weight: 900; grid-column: 4; grid-row: 2 / span 3; height: 100% !important; }
         .tecla-ok:active { background: #218838; }
 
-        body.modo-teclado .cabecera-top, body.modo-teclado #estado { display: none !important; }
+        /* OCULTAR ELEMENTOS PARA AHORRAR ESPACIO AL ABRIR EL TECLADO */
+        body.modo-teclado .cabecera-top, 
+        body.modo-teclado #estado,
+        body.modo-teclado .contenedor-modos { 
+            display: none !important; 
+        }
+
+        /* ESCALADO INTELIGENTE SI EL MÓVIL ES MÁS PEQUEÑO */
+        @media (max-height: 780px) {
+            .tecla-v { height: 48px; font-size: 26px; }
+            .tecla-accion { font-size: 15px; }
+            .tecla-ok { font-size: 34px; }
+            .btn-modo { padding: 10px 4px; font-size: 13px; }
+            .grupo-input-camara #inputCodigo, .grupo-input-camara .btn-camara-cuadrado { height: 46px; }
+            .resultado { padding: 8px; margin-bottom: 2px; gap: 4px; margin-top: auto; }
+            .descripcion-producto { font-size: 17px; }
+            .numero-stock { font-size: 42px; }
+            .input-cantidad { padding: 10px; font-size: 20px; }
+            .panel-secundario { padding: 4px; margin: 2px 0; }
+            .btn-accion-unica { padding: 12px; font-size: 15px; }
+        }
+        @media (max-height: 680px) {
+            .tecla-v { height: 42px; font-size: 22px; }
+            .tecla-ok { font-size: 28px; }
+            .btn-modo { padding: 8px 4px; font-size: 12px; }
+            .numero-stock { font-size: 34px; }
+        }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .modal-content { background: #f4f6f8; width: 92%; max-height: 85dvh; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
@@ -174,19 +228,21 @@
         <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar BBDD</button>
     </div>
 
-    <div id="estado">Conectando...</div>
+    <div id="estado">Iniciando BBDD Local...</div>
 
-    <div id="video-container">
-        <div id="controles-video">
-            <select id="selector-camara" onchange="cambiarCamaraManual()">
-                <option value="">Detectando cámaras...</option>
-            </select>
-            <button onclick="cerrarCamara()" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">✕ Cerrar</button>
+    <div id="espaciador-central">
+        <div id="video-container">
+            <div id="controles-video">
+                <select id="selector-camara" onchange="cambiarCamaraManual()">
+                    <option value="">Detectando cámaras...</option>
+                </select>
+                <button onclick="cerrarCamara()" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">✕ Cerrar</button>
+            </div>
+            <video id="video-preview" playsinline autoplay muted></video>
         </div>
-        <video id="video-preview" playsinline autoplay muted></video>
-    </div>
 
-    <div id="resultado" class="resultado"></div>
+        <div id="resultado" class="resultado"></div>
+    </div>
 
     <div class="caja-interfaz">
         <div class="contenedor-modos">
@@ -197,7 +253,6 @@
         </div>
         
         <div class="grupo-input-camara">
-            <button class="btn-teclado" onclick="toggleTecladoVirtual()">🔢</button>
             <input type="text" id="inputCodigo" placeholder="Escribe, escanea o EAN..." autocomplete="off">
             <button class="btn-camara-cuadrado" onclick="iniciarEscanerSegunOS()">📷 CÁMARA</button>
         </div>
@@ -219,7 +274,7 @@
             <button class="tecla-v" style="grid-column: 1 / span 2;" onclick="pulsarTecla('0')">0</button>
             <button class="tecla-v" onclick="pulsarTecla('.')">.</button>
             
-            <button id="btn-teclado-ok" class="tecla-v tecla-ok" onclick="pulsarTecla('ENTER')">GUARDAR</button>
+            <button id="btn-teclado-ok" class="tecla-v tecla-ok" onclick="pulsarTecla('ENTER')">↵</button>
         </div>
     </div>
 
@@ -244,9 +299,42 @@
     </div>
 
     <script>
-        const URL_GOOGLE_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyDUMAiEws8GCAHOXiPGn73p7PwmAx5ZpzB--SWloa3MalE2ozGCxNjwDg6MPD9_MT2/exec";
+        const URL_GOOGLE_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyQjxKnxldq7GvDCh5iKpPPRlqpWhcWYkv6986lTFAG1CwHBYkOkocvLSrnzDZT6tn-/exec";
+
+        let dbLocal;
+        function initDB() {
+            return new Promise((resolve) => {
+                let req = indexedDB.open("HiperDB_Files", 1);
+                req.onupgradeneeded = e => {
+                    let db = e.target.result;
+                    if (!db.objectStoreNames.contains("archivos")) db.createObjectStore("archivos", { keyPath: "id" });
+                };
+                req.onsuccess = e => { dbLocal = e.target.result; resolve(); };
+                req.onerror = () => resolve();
+            });
+        }
+        
+        async function guardarArchivoLocal(id, data) {
+            if (!dbLocal) return;
+            return new Promise(resolve => {
+                let tx = dbLocal.transaction("archivos", "readwrite");
+                tx.objectStore("archivos").put({ id: id, data: data });
+                tx.oncomplete = resolve;
+            });
+        }
+        
+        async function leerArchivoLocal(id) {
+            if (!dbLocal) return null;
+            return new Promise(resolve => {
+                let tx = dbLocal.transaction("archivos", "readonly");
+                let req = tx.objectStore("archivos").get(id);
+                req.onsuccess = () => resolve(req.result ? req.result.data : null);
+                req.onerror = () => resolve(null);
+            });
+        }
 
         let inventario = {};
+        let inventarioSinStock = {};
         let codeReader = null;
         let camaraManualId = localStorage.getItem('camaraPreferida') || null; 
         
@@ -254,7 +342,6 @@
         let modoActivo = 'normal';
         
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
-        
         let usuarioGuardado = localStorage.getItem('inventarioUsuario') || '';
         let competenciaGuardada = localStorage.getItem('inventarioCompetencia') || '';
         
@@ -265,7 +352,6 @@
         const resultadoDiv = document.getElementById('resultado');
         const estadoDiv = document.getElementById('estado');
         const tecladoVirtual = document.getElementById('teclado-virtual');
-        const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 
         document.getElementById('nombre-usuario-input').value = usuarioGuardado;
         document.getElementById('nombre-competencia-input').value = competenciaGuardada;
@@ -307,16 +393,15 @@
                 
                 if (modo === 'rapido') {
                     btnRapido.classList.add('activo');
-                    resultadoDiv.innerHTML = "<h3 style='color:#ffc107; margin:0;'>⚡ MODO 1 ACTIVO</h3><p style='font-size:14px; margin-top:4px;'>Se guardarán a tu Lista con cantidad 1 automáticamente.</p>";
+                    resultadoDiv.innerHTML = "<h3 style='color:#ffc107; margin:0;'>⚡ MODO 1 ACTIVO</h3><p style='font-size:15px; margin-top:4px;'>Se guardarán a tu Lista con cantidad 1 automáticamente.</p>";
                 } else if (modo === 'chequeo') {
                     btnChequeo.classList.add('activo');
-                    resultadoDiv.innerHTML = `<h3 style='color:#9c27b0; margin:0;'>🕵️ CHEQUEANDO: ${competenciaGuardada}</h3><p style='font-size:14px; margin-top:4px;'>Escanea el producto para introducir su PVP manualmente.</p>`;
+                    resultadoDiv.innerHTML = `<h3 style='color:#9c27b0; margin:0;'>🕵️ CHEQUEANDO: ${competenciaGuardada}</h3><p style='font-size:15px; margin-top:4px;'>Escanea el producto para introducir su PVP manualmente.</p>`;
                 } else if (modo === 'pedidos') {
                     btnPedidos.classList.add('activo');
-                    resultadoDiv.innerHTML = `<h3 style='color:#17a2b8; margin:0;'>🛒 MODO PEDIDOS</h3><p style='font-size:14px; margin-top:4px;'>Escanea para ver Rayón/Stock y pedir.</p>`;
+                    resultadoDiv.innerHTML = `<h3 style='color:#17a2b8; margin:0;'>🛒 MODO PEDIDOS</h3><p style='font-size:15px; margin-top:4px;'>Escanea para ver Rayón/Stock y pedir.</p>`;
                 }
             }
-            inputCodigo.focus();
         }
 
         function forzarCierreTecladoNativo() {
@@ -325,30 +410,44 @@
             setTimeout(() => { inputCodigo.disabled = false; }, 300);
         }
 
+        function buscarArticuloGlobal(termino) {
+            let termLimpio = termino.replace(/^0+/, '');
+            let ean12 = termLimpio.padStart(12, '0');
+            
+            if (inventario.hasOwnProperty(termino)) return { ean: termino, art: inventario[termino], esSinStock: false };
+            if (inventario.hasOwnProperty(termLimpio)) return { ean: termLimpio, art: inventario[termLimpio], esSinStock: false };
+            if (inventario.hasOwnProperty(ean12)) return { ean: ean12, art: inventario[ean12], esSinStock: false };
+            
+            if (inventarioSinStock.hasOwnProperty(termino)) return { ean: termino, art: inventarioSinStock[termino], esSinStock: true };
+            if (inventarioSinStock.hasOwnProperty(termLimpio)) return { ean: termLimpio, art: inventarioSinStock[termLimpio], esSinStock: true };
+            if (inventarioSinStock.hasOwnProperty(ean12)) return { ean: ean12, art: inventarioSinStock[ean12], esSinStock: true };
+            
+            return null;
+        }
+
         function procesarEscaneoChequeo(termino) {
+            let result = buscarArticuloGlobal(termino);
             let desc = "COMPETENCIA (Sin datos)";
             let eanDetectado = termino;
-
-            if (inventario.hasOwnProperty(termino)) { 
-                eanDetectado = termino; desc = inventario[termino].descripcion;
-            } else if (/^\d+$/.test(termino)) {
-                let termLimpio = termino.replace(/^0+/, '');
-                if (inventario.hasOwnProperty(termLimpio)) { eanDetectado = termLimpio; desc = inventario[termLimpio].descripcion; }
-                else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) { eanDetectado = termLimpio.padStart(12, '0'); desc = inventario[termLimpio.padStart(12, '0')].descripcion; }
+            let pvp_nuestro = "-";
+            let rayon = "-";
+            
+            if (result) {
+                eanDetectado = result.ean;
+                desc = result.art.descripcion;
+                pvp_nuestro = result.art.precio;
+                rayon = result.art.rayon;
             }
 
-            let pvp_nuestro = inventario[eanDetectado] ? inventario[eanDetectado].precio : "-";
-            let rayon = inventario[eanDetectado] ? inventario[eanDetectado].rayon : "-";
-            
             itemActual = { ean: eanDetectado, desc: desc, pvp_nuestro: pvp_nuestro, rayon: rayon };
-            
             let textoPvp = pvp_nuestro === "-" ? "<span style='color:red;'>No tenemos PVP</span>" : `Nuestro PVP: <b>${pvp_nuestro}€</b>`;
 
             resultadoDiv.style.display = 'flex';
+            resultadoDiv.style.borderColor = "#9c27b0";
             resultadoDiv.innerHTML = `
                 <h3 style='color:#9c27b0; margin:0;'>Introduce el Precio PVP</h3>
-                <p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br>${desc}</p>
-                <p style='font-size:13px; color:#555; margin:2px 0;'>${textoPvp}</p>
+                <p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br><strong style="font-size:16px;">${desc}</strong></p>
+                <p style='font-size:14px; color:#555; margin:4px 0;'>${textoPvp}</p>
                 <div class="panel-cantidad" style="display:flex;">
                     <input type="text" id="input-precio-accion" class="input-cantidad" placeholder="PVP Rival €..." readonly onclick="abrirTecladoPrecio()">
                 </div>
@@ -358,7 +457,6 @@
 
         function abrirTecladoPrecio() {
             inputActivoId = 'input-precio-accion'; 
-            document.getElementById('btn-teclado-ok').innerText = 'GUARDAR';
             tecladoVirtual.style.display = 'grid'; 
             document.body.classList.add('modo-teclado');
             forzarCierreTecladoNativo();
@@ -411,8 +509,8 @@
                 resultadoDiv.style.display = 'flex';
                 resultadoDiv.innerHTML = `
                     <p style="margin:0; font-size:14px; color:#666;">Precio guardado:</p>
-                    <h3 style="margin:2px 0; color:#9c27b0;">${precioCompStr}</h3>
-                    <p style="margin:0; font-size:13px;">Diferencia: <b style="color:${colorOpus}">${opusFinal}</b></p>
+                    <h3 style="margin:4px 0; color:#9c27b0; font-size:22px;">${precioCompStr} €</h3>
+                    <p style="margin:0; font-size:14px;">Diferencia: <b style="color:${colorOpus}">${opusFinal}</b></p>
                 `;
             } else {
                 resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = "";
@@ -425,30 +523,30 @@
         }
 
         function procesarEscaneoPedido(termino) {
+            let result = buscarArticuloGlobal(termino);
             let desc = "DESCONOCIDO (Sin datos)";
             let eanDetectado = termino;
-
-            if (inventario.hasOwnProperty(termino)) { 
-                eanDetectado = termino; desc = inventario[termino].descripcion;
-            } else if (/^\d+$/.test(termino)) {
-                let termLimpio = termino.replace(/^0+/, '');
-                if (inventario.hasOwnProperty(termLimpio)) { eanDetectado = termLimpio; desc = inventario[termLimpio].descripcion; }
-                else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) { eanDetectado = termLimpio.padStart(12, '0'); desc = inventario[termLimpio.padStart(12, '0')].descripcion; }
+            let stock = "0";
+            let rayon = "-";
+            
+            if (result) {
+                eanDetectado = result.ean;
+                desc = result.art.descripcion;
+                stock = result.art.stock;
+                rayon = result.art.rayon;
             }
 
-            let stock = inventario[eanDetectado] ? inventario[eanDetectado].stock : "0";
-            let rayon = inventario[eanDetectado] ? inventario[eanDetectado].rayon : "-";
-            
             itemActual = { ean: eanDetectado, desc: desc, stock: stock, rayon: rayon };
             
             resultadoDiv.style.display = 'flex';
+            resultadoDiv.style.borderColor = "#17a2b8";
             resultadoDiv.innerHTML = `
                 <h3 style='color:#17a2b8; margin:0;'>🛒 Cantidad a Pedir</h3>
-                <p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br>${desc}</p>
+                <p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br><strong style="font-size:16px;">${desc}</strong></p>
                 
-                <div style='background:#e8f5e9; padding:8px; border-radius:6px; margin:6px 0; border: 2px solid #28a745;'>
+                <div style='background:#e8f5e9; padding:8px; border-radius:8px; margin:6px 0; border: 3px solid #28a745;'>
                     <span style='font-size:12px; color:#28a745; font-weight:bold; display:block; text-transform:uppercase;'>Stock Actual en ${rayon}</span>
-                    <span style='font-size:36px; color:#28a745; font-weight:900; line-height:1;'>${stock}</span>
+                    <span style='font-size:40px; color:#28a745; font-weight:900; line-height:1;'>${stock}</span>
                 </div>
 
                 <div class="panel-cantidad" style="display:flex;">
@@ -460,7 +558,6 @@
 
         function abrirTecladoPedido() {
             inputActivoId = 'input-pedido-accion'; 
-            document.getElementById('btn-teclado-ok').innerText = 'PEDIR';
             tecladoVirtual.style.display = 'grid'; 
             document.body.classList.add('modo-teclado');
             forzarCierreTecladoNativo();
@@ -483,7 +580,7 @@
                 localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
                 
                 resultadoDiv.style.display = 'flex';
-                resultadoDiv.innerHTML = `<h3 style="color:#17a2b8; margin:0;">✅ Pedidas ${cantidad} uds</h3><p style="margin:0; font-size:13px;">${itemActual.desc}</p>`;
+                resultadoDiv.innerHTML = `<h3 style="color:#17a2b8; margin:0; font-size:20px;">✅ Pedidas ${cantidad} uds</h3><p style="margin:4px 0; font-size:14px;">${itemActual.desc}</p>`;
             } else {
                 resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = "";
             }
@@ -496,15 +593,13 @@
         }
 
         function procesarEscaneoRapido(termino) {
+            let result = buscarArticuloGlobal(termino);
             let desc = "ETIQUETA RÁPIDA (Sin datos)";
             let eanDetectado = termino;
-
-            if (inventario.hasOwnProperty(termino)) { 
-                eanDetectado = termino; desc = inventario[termino].descripcion;
-            } else if (/^\d+$/.test(termino)) {
-                let termLimpio = termino.replace(/^0+/, '');
-                if (inventario.hasOwnProperty(termLimpio)) { eanDetectado = termLimpio; desc = inventario[termLimpio].descripcion; }
-                else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) { eanDetectado = termLimpio.padStart(12, '0'); desc = inventario[termLimpio.padStart(12, '0')].descripcion; }
+            
+            if (result) {
+                eanDetectado = result.ean;
+                desc = result.art.descripcion;
             }
 
             listaTrabajo.push({
@@ -517,20 +612,19 @@
             localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
 
             resultadoDiv.style.display = 'flex';
+            resultadoDiv.style.borderColor = "#ffc107";
             resultadoDiv.innerHTML = `
                 <p style="margin:0; font-size:14px; color:#666;">Añadido a inventario:</p>
-                <h3 style="margin:2px 0; color:#28a745;">${eanDetectado}</h3>
-                <p style="margin:0; font-weight:bold;">${desc}</p>
-                <div style="margin-top:8px; font-size:20px;">📦 x1</div>
+                <h3 style="margin:4px 0; color:#28a745; font-size:20px;">${eanDetectado}</h3>
+                <p style="margin:0; font-weight:bold; font-size:16px;">${desc}</p>
+                <div style="margin-top:8px; font-size:24px;">📦 x1</div>
             `;
             inputCodigo.value = "";
             
             if (ultimoModo === 'camara') {
                 setTimeout(iniciarEscanerSegunOS, 800);
             } else {
-                setTimeout(() => {
-                    inputCodigo.focus();
-                }, 150);
+                setTimeout(() => { inputCodigo.focus(); }, 150);
             }
         }
 
@@ -591,42 +685,48 @@
             if (modoActivo === 'chequeo') { procesarEscaneoChequeo(termino); return; }
             if (modoActivo === 'pedidos') { procesarEscaneoPedido(termino); return; }
 
-            let eanDetectado = null;
-            if (inventario.hasOwnProperty(termino)) { eanDetectado = termino; } 
-            else if (/^\d+$/.test(termino)) {
-                let termLimpio = termino.replace(/^0+/, '');
-                if (inventario.hasOwnProperty(termLimpio)) eanDetectado = termLimpio; 
-                else if (inventario.hasOwnProperty(termLimpio.padStart(12, '0'))) eanDetectado = termLimpio.padStart(12, '0'); 
-            }
+            let result = buscarArticuloGlobal(termino);
 
-            if (eanDetectado) {
-                mostrarArticuloCompleto(eanDetectado);
+            if (result) {
+                mostrarArticuloCompleto(result.ean, result.esSinStock);
             } else {
                 let palabras = termino.split(" ").filter(t => t.length > 0);
                 let coincidencias = [];
+                
                 for (const [ean, articulo] of Object.entries(inventario)) {
                     if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) {
-                        coincidencias.push({ ean: ean, articulo: articulo });
+                        coincidencias.push({ ean: ean, articulo: articulo, esSinStock: false });
+                    }
+                }
+                
+                if (coincidencias.length < 50) {
+                    for (const [ean, articulo] of Object.entries(inventarioSinStock)) {
+                        if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) {
+                            coincidencias.push({ ean: ean, articulo: articulo, esSinStock: true });
+                            if (coincidencias.length >= 50) break;
+                        }
                     }
                 }
 
                 if (coincidencias.length === 0) {
                     mostrarArticuloDesconocido(termino);
                 } else if (coincidencias.length === 1) {
-                    mostrarArticuloCompleto(coincidencias[0].ean);
+                    mostrarArticuloCompleto(coincidencias[0].ean, coincidencias[0].esSinStock);
                 } else {
                     let htmlLista = `<h3 style="margin: 0 0 8px 0; font-size: 14px; color: #007bff;">${coincidencias.length} encontrados:</h3><ul class="lista-resultados">`;
                     coincidencias.slice(0, 50).forEach(c => {
-                        htmlLista += `<li class="item-resultado" onclick="mostrarArticuloCompleto('${c.ean}')">
+                        let etiquetaExtra = c.esSinStock ? `<span style="color:#ff9800; font-size:10px; font-weight:bold;">(SIN STOCK)</span>` : "";
+                        htmlLista += `<li class="item-resultado" onclick="mostrarArticuloCompleto('${c.ean}', ${c.esSinStock})">
                             <span class="item-desc">${c.articulo.descripcion}</span>
-                            <span class="item-ean">EAN: ${c.ean}</span></li>`;
+                            <span class="item-ean">EAN: ${c.ean} ${etiquetaExtra}</span></li>`;
                     });
-                    if (coincidencias.length > 50) {
-                        htmlLista += `<li class="item-resultado" style="text-align:center; color:#666; font-size:12px;">...y ${coincidencias.length - 50} más. Añade más palabras para filtrar.</li>`;
+                    if (coincidencias.length >= 50) {
+                        htmlLista += `<li class="item-resultado" style="text-align:center; color:#666; font-size:12px;">...limitado a 50. Añade más palabras para filtrar.</li>`;
                     }
                     htmlLista += `</ul>`;
                     
                     resultadoDiv.style.display = 'flex';
+                    resultadoDiv.style.borderColor = "#007bff";
                     resultadoDiv.innerHTML = htmlLista;
                 }
             }
@@ -634,22 +734,28 @@
             setTimeout(() => inputCodigo.blur(), 100);
         }
 
-        function mostrarArticuloCompleto(ean) {
-            let art = inventario[ean];
+        function mostrarArticuloCompleto(ean, esSinStock = false) {
+            let art = esSinStock ? inventarioSinStock[ean] : inventario[ean];
+            let colorBorde = esSinStock ? "#ff9800" : "#222222";
+            let titulo = esSinStock ? "📚 Sin Stock (Vendido últ. año)" : "¡Artículo encontrado!";
+            let colorTitulo = esSinStock ? "#ff9800" : "#28a745";
+            let colorStock = esSinStock ? "#dc3545" : "#28a745";
+
             resultadoDiv.style.display = 'flex';
+            resultadoDiv.style.borderColor = colorBorde;
             resultadoDiv.innerHTML = `
                 <div style="display: flex; flex-direction: column; gap: 2px;">
-                    <p class="titulo-encontrado">¡Artículo encontrado!</p>
+                    <p class="titulo-encontrado" style="color: ${colorTitulo};">${titulo}</p>
                     <p class="texto-ean">EAN: ${ean}</p>
                     <div class="descripcion-producto">${art.descripcion}</div>
                 </div>
                 <div class="panel-secundario">
                     <div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${art.rayon}</span></div>
                     <div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${art.precio}</span></div>
-                    <div class="item-secundario"><span class="etiqueta-secundaria">Últ. Recep.</span><span class="valor-secundario">${art.fecha}</span></div>
-                    <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${art.ventas}</span></div>
+                    <div class="item-secundario"><span class="etiqueta-secundaria">Últ. Mov.</span><span class="valor-secundario">${art.fecha}</span></div>
+                    <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${art.ventas || '0'}</span></div>
                 </div>
-                <div class="caja-stock">
+                <div class="caja-stock" style="background-color: ${colorStock};">
                     <p class="etiqueta-stock">STOCK DISPONIBLE</p>
                     <p class="numero-stock">${art.stock}</p>
                 </div>
@@ -665,9 +771,10 @@
 
         function mostrarArticuloDesconocido(termino) {
             resultadoDiv.style.display = 'flex';
+            resultadoDiv.style.borderColor = "#dc3545";
             resultadoDiv.innerHTML = `
-                <h3 style="color: #dc3545; margin: 0 0 4px 0;">No encontrado</h3>
-                <p style="font-size: 15px;">Lectura: <strong>${termino}</strong></p>
+                <h3 style="color: #dc3545; margin: 0 0 4px 0; font-size: 18px;">No encontrado en BD</h3>
+                <p style="font-size: 14px;">Lectura: <strong>${termino}</strong></p>
                 <div id="panel-botones-accion" class="panel-acciones">
                     <button class="btn-accion-unica" style="background-color: #6c757d;" onclick="mostrarInputCantidad('${termino}', true)">Forzar Añadir</button>
                 </div>
@@ -692,7 +799,12 @@
             const cantidad = parseFloat(inputVal.replace(',', '.')) || 0;
             
             if (cantidad > 0) {
-                let desc = esDesconocido ? "DESCONOCIDO/FUERA SURTIDO" : inventario[identificador].descripcion;
+                let desc = "DESCONOCIDO/FUERA SURTIDO";
+                if (!esDesconocido) {
+                    let result = buscarArticuloGlobal(identificador);
+                    if (result) desc = result.art.descripcion;
+                }
+
                 listaTrabajo.push({ 
                     tipo: 'inventario',
                     ean: identificador, 
@@ -703,7 +815,8 @@
                 localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
                 
                 resultadoDiv.style.display = 'flex';
-                resultadoDiv.innerHTML = `<h3 style="color:#28a745; margin:0;">¡Añadidas ${cantidad} uds al inventario!</h3>`;
+                resultadoDiv.style.borderColor = "#28a745";
+                resultadoDiv.innerHTML = `<h3 style="color:#28a745; margin:0; font-size:20px;">¡Añadidas ${cantidad} uds!</h3><p style="margin:4px 0; font-size:14px;">al inventario general</p>`;
             } else {
                 resultadoDiv.style.display = 'none';
                 resultadoDiv.innerHTML = "";
@@ -716,17 +829,8 @@
             else setTimeout(() => { inputCodigo.focus(); }, 150);
         }
 
-        function toggleTecladoVirtual() {
-            if (tecladoVirtual.style.display === 'grid' && inputActivoId === 'inputCodigo') {
-                tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
-            } else {
-                cerrarCamara(); inputActivoId = 'inputCodigo'; document.getElementById('btn-teclado-ok').innerText = 'BUSCAR';
-                inputCodigo.blur(); tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado');
-            }
-        }
-
         function abrirTecladoCantidad() {
-            inputActivoId = 'input-cant-accion'; document.getElementById('btn-teclado-ok').innerText = 'AÑADIR';
+            inputActivoId = 'input-cant-accion'; 
             tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado');
             forzarCierreTecladoNativo();
         }
@@ -761,66 +865,144 @@
 
         async function iniciarCamaraVideo() {
             const container = document.getElementById('video-container');
-            container.style.display = 'block'; tecladoVirtual.style.display = 'none';
-            if (!codeReader) codeReader = new ZXing.BrowserBarcodeReader(new Map().set(ZXing.DecodeHintType.TRY_HARDER, true));
+            container.style.display = 'block'; 
+            tecladoVirtual.style.display = 'none';
+            
+            if (!codeReader) {
+                codeReader = new ZXing.BrowserBarcodeReader(new Map().set(ZXing.DecodeHintType.TRY_HARDER, true));
+            }
+            
             try {
+                // FORZAR PETICIÓN DE PERMISOS PRIMERO (Soluciona el "Video device 1" en iOS)
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                
                 const devices = await codeReader.listVideoInputDevices();
-                let selected = camaraManualId || (devices.length > 0 ? devices[devices.length - 1].deviceId : null);
-                if (selected) codeReader.decodeFromVideoDevice(selected, 'video-preview', (result) => { if (result) procesarResultadoZXing(result); });
-            } catch (err) { alert("Error cámara: " + err.message); container.style.display = 'none'; }
+                const select = document.getElementById('selector-camara');
+                select.innerHTML = '';
+                
+                let idCamaraTrasera = null;
+
+                devices.forEach((device, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = device.deviceId;
+                    // Ahora iOS devolverá nombres reales como "Back Camera"
+                    opt.text = device.label || 'Cámara ' + (idx + 1);
+                    select.appendChild(opt);
+                    
+                    // Intentar detectar la cámara trasera por su nombre
+                    const label = device.label.toLowerCase();
+                    if (label.includes('back') || label.includes('trasera') || label.includes('environment')) {
+                        idCamaraTrasera = device.deviceId;
+                    }
+                });
+
+                // Apagar el stream temporal que usamos para forzar los permisos
+                stream.getTracks().forEach(track => track.stop());
+
+                // Orden de prioridad: 1. Elegida por usuario, 2. Trasera detectada, 3. La PRIMERA cámara (evita el sensor infrarrojo final)
+                let selected = camaraManualId || idCamaraTrasera || (devices.length > 0 ? devices[0].deviceId : null);
+                
+                if (selected) {
+                    select.value = selected;
+                    codeReader.decodeFromVideoDevice(selected, 'video-preview', (result) => { 
+                        if (result) procesarResultadoZXing(result); 
+                    });
+                }
+            } catch (err) { 
+                alert("Error cámara: " + err.message); 
+                container.style.display = 'none'; 
+            }
         }
 
         function cambiarCamaraManual() { camaraManualId = document.getElementById('selector-camara').value; localStorage.setItem('camaraPreferida', camaraManualId); cerrarCamara(); setTimeout(iniciarEscanerSegunOS, 300); }
         function cerrarCamara() { if (codeReader) codeReader.reset(); document.getElementById('video-container').style.display = 'none'; }
 
+        function parsearCSV(texto, options) {
+            return new Promise(resolve => {
+                Papa.parse(texto, { ...options, complete: resolve });
+            });
+        }
+
         async function cargarInventario() {
-            estadoDiv.innerHTML = "Sincronizando..."; estadoDiv.style.color = "blue";
-            let url = 'TIENDA.csv?' + new Date().getTime();
+            estadoDiv.innerHTML = "Iniciando BBDD Local..."; estadoDiv.style.color = "blue";
+            await initDB();
+            
+            let contadorTienda = 0;
+            let fechaFmt = "-";
             
             try {
-                let response = await fetch(url);
-                if (!response.ok || (response.headers.get('content-type') && response.headers.get('content-type').includes('text/html'))) {
-                    url = 'tienda.csv?' + new Date().getTime(); response = await fetch(url);
+                estadoDiv.innerHTML = "Sincronizando Tienda (1/2)...";
+                let urlTienda = 'TIENDA.csv?' + new Date().getTime();
+                let response = await fetch(urlTienda);
+                if (!response.ok) {
+                    urlTienda = 'tienda.csv?' + new Date().getTime(); 
+                    response = await fetch(urlTienda);
                 }
-                const lastModifiedHeader = response.headers.get('Last-Modified');
-                const fechaReal = lastModifiedHeader ? new Date(lastModifiedHeader) : new Date();
-                const texto = await response.text();
                 
-                Papa.parse(texto, {
-                    header: false, delimiter: ";", skipEmptyLines: true,
-                    complete: function(results) {
-                        inventario = {};
-                        let contador = 0;
-                        results.data.forEach(fila => {
-                            if(fila.length >= 3) {
-                                let ean = fila[0] ? fila[0].trim() : "";
-                                let desc = fila[1] ? fila[1].trim() : "";
-                                let stock = fila[2] ? fila[2].trim() : "0";
-                                let val3 = fila[3] ? fila[3].trim() : "-";
-                                let val4 = fila[4] ? fila[4].trim() : "-";
-                                let precio = "-", rayon = "-";
-
-                                if (/[a-zA-Z]/.test(val3) || val3.includes(" ")) { rayon = val3; precio = val4; } 
-                                else { precio = val3; rayon = val4; }
-                                
-                                let fecha = fila[5] ? fila[5].trim() : "-";
-                                let ventas = (fila.length > 6 && fila[6]) ? fila[6].trim() : "0";
-                                
-                                if(ean) { inventario[ean] = { descripcion: desc, stock, precio, rayon, fecha, ventas }; contador++; }
-                            }
-                        });
-                        
-                        const d = fechaReal;
-                        const fechaFmt = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-                        
-                        if (contador < 100) {
-                            estadoDiv.innerHTML = `⚠️ Atención: Solo se cargaron ${contador} items. Comprueba tu archivo CSV.`; estadoDiv.style.color = "red";
-                        } else {
-                            estadoDiv.innerHTML = `Base actualizada: ${contador} items <span class="texto-fecha">Últ. Sinc: ${fechaFmt}</span>`; estadoDiv.style.color = "#28a745";
+                if (response.ok) {
+                    const lastModifiedHeader = response.headers.get('Last-Modified');
+                    const d = lastModifiedHeader ? new Date(lastModifiedHeader) : new Date();
+                    fechaFmt = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+                    
+                    let textoTienda = await response.text();
+                    let results = await parsearCSV(textoTienda, { header: false, delimiter: ";", skipEmptyLines: true });
+                    
+                    inventario = {};
+                    results.data.forEach(fila => {
+                        if(fila.length >= 7) {
+                            let ean = fila[0] ? fila[0].trim() : "";
+                            let desc = fila[1] ? fila[1].trim() : "";
+                            let stock = fila[2] ? fila[2].trim() : "0";
+                            let rayon = fila[3] ? fila[3].trim() : "-";
+                            let precio = fila[4] ? fila[4].trim() : "-";
+                            let fecha = fila[5] ? fila[5].trim() : "-";
+                            let ventas = (fila.length > 6 && fila[6]) ? fila[6].trim() : "0";
+                            
+                            if(ean) { inventario[ean] = { descripcion: desc, stock, precio, rayon, fecha, ventas }; contadorTienda++; }
                         }
-                    }
-                });
-            } catch (error) { estadoDiv.innerText = "Error cargando CSV."; estadoDiv.style.color = "red"; }
+                    });
+                }
+            } catch (error) { console.error("Error cargando TIENDA.csv:", error); }
+
+            try {
+                estadoDiv.innerHTML = "Sincronizando Sin Stock (2/2)...";
+                let urlMaestro = 'SIN_STOCK_FILTRADO.csv?' + new Date().getTime();
+                let responseM = await fetch(urlMaestro);
+                
+                if (responseM.ok) {
+                    let textoMaestro = await responseM.text();
+                    await guardarArchivoLocal('sin_stock_csv', textoMaestro);
+                    await procesarTextoSinStock(textoMaestro);
+                } else {
+                    throw new Error("No red");
+                }
+            } catch (e) {
+                let textoLocal = await leerArchivoLocal('sin_stock_csv');
+                if (textoLocal) {
+                    await procesarTextoSinStock(textoLocal);
+                }
+            }
+            
+            estadoDiv.innerHTML = `Stock: ${contadorTienda} | Sin Stock: ${Object.keys(inventarioSinStock).length} <span class="texto-fecha">Últ. Sinc: ${fechaFmt}</span>`; 
+            estadoDiv.style.color = "#28a745";
+        }
+
+        async function procesarTextoSinStock(texto) {
+            let results = await parsearCSV(texto, { header: true, delimiter: ";", skipEmptyLines: true });
+            inventarioSinStock = {};
+            results.data.forEach(fila => {
+                let ean = fila['EAN'] ? fila['EAN'].trim() : "";
+                if (ean) {
+                    inventarioSinStock[ean] = {
+                        descripcion: fila['DESCRIPCION'] || "",
+                        precio: fila['PVC'] || "-",
+                        fecha: fila['FECHA'] || "-",
+                        stock: fila['STOCK'] || "0",
+                        rayon: fila['RAYON'] || "-",
+                        ventas: fila['VENTAS'] || "0"
+                    };
+                }
+            });
         }
 
         function verListas() { document.getElementById('modalListas').style.display = 'flex'; renderizarLista(); }
@@ -943,7 +1125,6 @@
                 }
             });
 
-            // Prevenir hojas completamente vacías para que el Excel no dé error
             if(dataInventario.length === 0) dataInventario.push({"EAN":"-", "CANTIDAD":"-", "DESCRIPCION":"Sin datos", "FECHA":"-", "USUARIO / TERMINAL":"-"});
             if(dataCompetencia.length === 0) dataCompetencia.push({"RAYON":"-", "EAN":"-", "PVP COMPETENCIA":"-", "PVP LECLERC":"-", "OPUS":"-", "DESCRIPCION":"Sin datos", "COMPETENCIA":"-", "USUARIO / TERMINAL":"-"});
             if(dataPedidos.length === 0) dataPedidos.push({"RAYON":"-", "EAN":"-", "STOCK":"-", "CANTIDAD":"-", "DESCRIPCION":"Sin datos", "FECHA":"-", "USUARIO / TERMINAL":"-"});

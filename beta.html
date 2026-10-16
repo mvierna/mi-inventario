@@ -50,51 +50,20 @@
         #estado { flex-shrink: 0; font-weight: bold; font-size: 11px; color: #28a745; margin-bottom: 4px; }
         .texto-fecha { font-size: 11px; color: #444444; font-weight: bold; display: block; margin-top: 1px; text-transform: uppercase; }
         
-        /* =========================================
-           ESCÁNER EN FLUJO NORMAL (Más arriba y ajustado)
-           ========================================= */
-        #scanner-wrapper {
-            display: none;
-            width: 100%;
-            max-width: 380px;
-            margin: 4px auto 8px auto; /* Reducido el margen superior para subirlo */
-            background: #000;
-            border-radius: 12px;
-            border: 3px solid #17a2b8;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            overflow: hidden;
-            flex-direction: column;
+        /* ESCÁNER ANCLADO AL TECHO PARA iOS */
+        #scanner-container { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; background: #000; z-index: 9999;
+            padding-top: max(10px, env(safe-area-inset-top)); flex-direction: column; border-bottom: 4px solid #17a2b8; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
         #reader { width: 100%; background: #000; }
-        #reader video { object-fit: cover !important; } /* Fuerza a centrar el vídeo sin offsets */
+        #reader video { object-fit: cover; }
         
-        /* Ocultar elementos feos de la librería html5-qrcode */
-        #reader__dashboard_section_csr, #reader__dashboard_section_swaplink { display: none !important; }
-        
-        .btn-cerrar-camara {
-            width: 100%; padding: 12px; background: #dc3545; color: white;
-            border: none; font-weight: bold; font-size: 14px; cursor: pointer; text-transform: uppercase;
-        }
+        .btn-cerrar-camara { margin: 10px auto 15px auto; width: 90%; max-width: 300px; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; text-transform: uppercase; }
         .btn-cerrar-camara:active { background: #c82333; }
 
-        /* CONTENEDOR CENTRAL FLEXIBLE */
-        #espaciador-central {
-            flex: 1; 
-            min-height: 0; 
-            display: flex;
-            flex-direction: column;
-            justify-content: center; 
-        }
+        #espaciador-central { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
 
-        .resultado { 
-            display: none; 
-            width: 98%; margin: 0 auto; padding: 10px; border: 2px solid #222222; 
-            border-radius: 12px; background-color: #ffffff; flex-direction: column; gap: 6px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            max-height: 100%; 
-            overflow-y: auto; 
-        }
-        
+        .resultado { display: none; width: 98%; margin: 0 auto; padding: 10px; border: 2px solid #222222; border-radius: 12px; background-color: #ffffff; flex-direction: column; gap: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-height: 100%; overflow-y: auto; }
         .titulo-encontrado { color: #28a745; margin: 0; font-size: 16px; font-weight: bold; }
         .texto-ean { font-size: 13px; color: #555; margin: 0; }
         .descripcion-producto { font-size: 18px; font-weight: 900; line-height: 1.2; color: #000000; margin: 2px 0; text-transform: uppercase; }
@@ -109,18 +78,11 @@
         .numero-stock { font-size: 46px; font-weight: 900; margin: 0; line-height: 1; color: #ffffff; }
 
         .panel-acciones { margin-top: 6px; }
-        .btn-accion-unica { 
-            width: 100%; padding: 14px; background-color: #ff9800; color: white; border: none; 
-            border-radius: 8px; font-weight: 900; font-size: 16px; cursor: pointer; text-transform: uppercase;
-            box-shadow: 0 4px 0 #e65100; transition: transform 0.1s;
-        }
+        .btn-accion-unica { width: 100%; padding: 14px; background-color: #ff9800; color: white; border: none; border-radius: 8px; font-weight: 900; font-size: 16px; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #e65100; transition: transform 0.1s; }
         .btn-accion-unica:active { transform: translateY(4px); box-shadow: none; }
         
         .panel-cantidad { display: none; flex-direction: row; gap: 8px; margin-top: 6px; }
-        .input-cantidad { 
-            flex: 1; padding: 12px; border: 3px solid #ff9800; border-radius: 8px; 
-            font-size: 20px; text-align: center; font-weight: bold; outline: none; background-color: white; color: #111;
-        }
+        .input-cantidad { flex: 1; padding: 12px; border: 3px solid #ff9800; border-radius: 8px; font-size: 20px; text-align: center; font-weight: bold; outline: none; background-color: white; color: #111; }
 
         .lista-resultados { list-style: none; padding: 0; margin: 0; text-align: left; border: 1px solid #dee2e6; border-radius: 6px; }
         .item-resultado { padding: 8px; border-bottom: 1px solid #dee2e6; cursor: pointer; background-color: #fff; }
@@ -129,72 +91,37 @@
         .item-desc { font-weight: bold; font-size: 13px; display: block; color: #111; margin-bottom: 2px; }
         .item-ean { font-size: 11px; color: #6c757d; font-weight: bold; }
 
-        /* CAJA INFERIOR - FIJA ABAJO */
-        .caja-interfaz { 
-            flex-shrink: 0; 
-            padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; 
-            width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); 
-        }
+        .caja-interfaz { flex-shrink: 0; padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
         
         .contenedor-modos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; overflow: hidden; }
-        .btn-modo {
-            padding: 12px 4px; color: white; border: none; border-radius: 6px; 
-            font-weight: 900; font-size: 13px; text-transform: uppercase; cursor: pointer;
-            box-shadow: 0 3px 0 rgba(0,0,0,0.2); transition: all 0.2s; display: flex; align-items: center; justify-content: center;
-        }
+        .btn-modo { padding: 12px 4px; color: white; border: none; border-radius: 6px; font-weight: 900; font-size: 13px; text-transform: uppercase; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,0.2); transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
         .btn-modo:active { transform: translateY(3px); box-shadow: none !important; }
-        
-        #btn-modo-rapido { background-color: #6c757d; }
-        #btn-modo-rapido.activo { background-color: #ffc107; color: #000; box-shadow: 0 3px 0 #d39e00; }
-        
-        #btn-modo-pedidos { background-color: #6c757d; }
-        #btn-modo-pedidos.activo { background-color: #17a2b8; color: #fff; box-shadow: 0 3px 0 #117a8b; }
-
-        #btn-modo-chequeo { background-color: #6c757d; }
-        #btn-modo-chequeo.activo { background-color: #9c27b0; color: #fff; box-shadow: 0 3px 0 #6a1b9a; }
-        
+        #btn-modo-rapido { background-color: #6c757d; } #btn-modo-rapido.activo { background-color: #ffc107; color: #000; box-shadow: 0 3px 0 #d39e00; }
+        #btn-modo-pedidos { background-color: #6c757d; } #btn-modo-pedidos.activo { background-color: #17a2b8; color: #fff; box-shadow: 0 3px 0 #117a8b; }
+        #btn-modo-chequeo { background-color: #6c757d; } #btn-modo-chequeo.activo { background-color: #9c27b0; color: #fff; box-shadow: 0 3px 0 #6a1b9a; }
         #btn-modo-lista { background-color: #007bff; }
 
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
-        
         .btn-teclado { flex: 0 0 50px; height: 50px; background-color: #6c757d; color: white; border: none; border-radius: 6px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        
         #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 18px; text-align: center; border: 3px solid #007bff; border-radius: 8px; outline: none; font-weight: bold; background: #fff; color: #111; }
         #inputCodigo:disabled { background-color: #e9ecef; border-color: #ced4da; opacity: 0.7; }
-        
         .btn-camara-cuadrado { flex: 0 0 80px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
 
-        /* TECLADO VIRTUAL GIGANTE */
-        #teclado-virtual { 
-            display: none; 
-            grid-template-columns: repeat(3, 1fr) 80px; 
-            gap: 6px; margin-top: 6px; background: #f8f9fa; padding: 6px; 
-            border-radius: 8px; border: 1px solid #dee2e6; 
-        }
+        #teclado-virtual { display: none; grid-template-columns: repeat(3, 1fr) 80px; gap: 6px; margin-top: 6px; background: #f8f9fa; padding: 6px; border-radius: 8px; border: 1px solid #dee2e6; }
         .tecla-v { height: 50px; font-size: 28px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
         .tecla-v:active { transform: translateY(2px); box-shadow: none; background: #e9ecef; }
-        
         .tecla-accion { background: #dc3545; color: white; border-color: #b02a37; box-shadow: 0 2px 0 #b02a37; font-size: 16px; grid-column: 4; grid-row: 1; height: 100% !important; }
         .tecla-accion:active { background: #c82333; }
-        
         .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; font-size: 40px; font-weight: 900; grid-column: 4; grid-row: 2 / span 3; height: 100% !important; }
         .tecla-ok:active { background: #218838; }
 
-        body.modo-teclado .cabecera-top, 
-        body.modo-teclado #estado,
-        body.modo-teclado .contenedor-modos { 
-            display: none !important; 
-        }
+        body.modo-teclado .cabecera-top, body.modo-teclado #estado, body.modo-teclado .contenedor-modos { display: none !important; }
 
         @media (max-height: 780px) {
-            .tecla-v { height: 48px; font-size: 26px; }
-            .tecla-ok { font-size: 34px; }
-            .btn-modo { padding: 10px 4px; font-size: 13px; }
+            .tecla-v { height: 48px; font-size: 26px; } .tecla-ok { font-size: 34px; } .btn-modo { padding: 10px 4px; font-size: 13px; }
             .grupo-input-camara .btn-teclado, .grupo-input-camara #inputCodigo, .grupo-input-camara .btn-camara-cuadrado { height: 46px; }
-            .resultado { padding: 8px; margin-bottom: 2px; gap: 4px; margin-top: auto; }
-            .descripcion-producto { font-size: 17px; }
-            .numero-stock { font-size: 42px; }
-            .input-cantidad { padding: 10px; font-size: 20px; }
+            .resultado { padding: 8px; margin-bottom: 2px; gap: 4px; margin-top: auto; } .descripcion-producto { font-size: 17px; }
+            .numero-stock { font-size: 42px; } .input-cantidad { padding: 10px; font-size: 20px; }
         }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
@@ -204,7 +131,7 @@
         .btn-cerrar-modal { background: #e2e8f0; border: none; border-radius: 50%; width: 32px; height: 32px; font-weight: bold; font-size: 16px; cursor: pointer; }
         
         .input-email-config { width: 100%; padding: 12px; border: 2px solid #007bff; border-radius: 6px; margin-bottom: 8px; font-size: 16px; font-weight: bold; outline: none; text-align: center; }
-        .input-competencia { border-color: #9c27b0; color: #9c27b0; margin-bottom: 12px; }
+        .input-competencia { border-color: #9c27b0; color: #9c27b0; margin-bottom: 8px; }
         
         .modal-body { overflow-y: auto; flex: 1; background: white; border-radius: 8px; border: 1px solid #dee2e6; margin-bottom: 10px; }
         .item-lista-guardada { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #dee2e6; align-items: center; }
@@ -214,9 +141,7 @@
         .item-detalle-modal { font-size: 13px; color: #666; margin-top: 2px; }
         
         .etiqueta-tipo-lista { font-size: 10px; font-weight: 900; padding: 2px 6px; border-radius: 4px; color: white; margin-bottom: 4px; display: inline-block; text-transform: uppercase; }
-        .bg-inventario { background-color: #6c757d; }
-        .bg-competencia { background-color: #9c27b0; }
-        .bg-pedido { background-color: #17a2b8; }
+        .bg-inventario { background-color: #6c757d; } .bg-competencia { background-color: #9c27b0; } .bg-pedido { background-color: #17a2b8; }
 
         .item-cant-modal { font-size: 20px; font-weight: 900; color: #111; margin-right: 8px; }
         .btn-editar-item { background: #ffc107; color: #000; border: none; border-radius: 8px; padding: 10px 14px; font-weight: bold; font-size: 16px; cursor: pointer; margin-right: 4px; }
@@ -224,7 +149,6 @@
         
         .modal-footer { display: flex; gap: 6px; justify-content: space-between; }
         .btn-footer { flex: 1; padding: 14px 6px; border: none; border-radius: 8px; font-weight: 900; font-size: 14px; color: white; cursor: pointer; text-transform: uppercase; }
-        
         .btn-sync-drive { background: #007bff; transition: background 0.3s; }
         .btn-sync-drive.loading { background: #6c757d; pointer-events: none; opacity: 0.8; }
     </style>
@@ -236,15 +160,18 @@
         <p>La interfaz solo funciona correctamente en modo vertical.</p>
     </div>
 
-    <div class="cabecera-top">
-        <h1>MOVILEC</h1>
-        <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar BBDD</button>
-    </div>
-
-    <!-- NUEVO CONTENEDOR DEL ESCÁNER (Restaurado a la versión V4 pero ajustado hacia arriba) -->
-    <div id="scanner-wrapper">
+    <div id="scanner-container">
         <div id="reader"></div>
         <button class="btn-cerrar-camara" onclick="cerrarEscaner()">✕ Cerrar Cámara</button>
+    </div>
+
+    <!-- BOTONES DE ALTERNANCIA EN CABECERA -->
+    <div class="cabecera-top">
+        <h1>MOVILEC</h1>
+        <div>
+            <button class="btn-actualizar" style="background-color: #28a745; margin-right: 4px;" onclick="window.location.href='index.html'">🤖 ANDROID</button>
+            <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar</button>
+        </div>
     </div>
 
     <div id="estado">Iniciando BBDD Local...</div>
@@ -297,19 +224,21 @@
             
             <input type="text" id="nombre-usuario-input" class="input-email-config" placeholder="👤 Tu nombre o Nº Terminal..." onchange="guardarConfiguracion()">
             <input type="text" id="nombre-competencia-input" class="input-email-config input-competencia" placeholder="🏪 Nombre Competencia (Ej: Mercadona)..." onchange="guardarConfiguracion()">
+            <input type="email" id="email-destino-input" class="input-email-config" style="border-color: #28a745;" placeholder="📧 Email Destino (Ej: jefe@tienda.com)..." onchange="guardarConfiguracion()">
             
             <div id="modal-body-listas" class="modal-body"></div>
             
             <div class="modal-footer">
                 <button class="btn-footer" style="background: #dc3545; flex: 0.3;" onclick="borrarListaActual()">🗑</button>
-                <button id="btn-drive" class="btn-footer btn-sync-drive" onclick="enviarADrive()">☁️ A Drive</button>
-                <button class="btn-footer" style="background: #28a745; flex: 0.8;" onclick="exportarListaExcel()">📥 EXCEL</button>
+                <button id="btn-drive" class="btn-footer btn-sync-drive" onclick="enviarADrive()">☁️ Drive + ✉️ Email</button>
+                <button class="btn-footer" style="background: #28a745; flex: 0.8;" onclick="exportarListaExcel()">📥 EXCEL FÍSICO</button>
             </div>
         </div>
     </div>
 
     <script>
-        const URL_GOOGLE_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyQjxKnxldq7GvDCh5iKpPPRlqpWhcWYkv6986lTFAG1CwHBYkOkocvLSrnzDZT6tn-/exec";
+        // NUEVA URL DE APPS SCRIPT APLICADA
+        const URL_GOOGLE_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbz5YZc8Tj-BHNZpSNsremj_DAIywaXEKKRTtVX-0eOWo0jGNmDPKypgvB-Ap4-CJsqD/exec";
 
         let dbLocal;
         function initDB() {
@@ -343,12 +272,36 @@
             });
         }
 
+        let audioCtx = null;
+        let ultimoEscaneoFueCamara = false; 
+
+        function initAudio() {
+            if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        }
+
+        function reproducirBeep() {
+            try {
+                initAudio();
+                if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.15); 
+            } catch(e) { console.log("Audio no soportado"); }
+        }
+
         let inventario = {};
         let inventarioSinStock = {};
         let modoActivo = 'normal';
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
         let usuarioGuardado = localStorage.getItem('inventarioUsuario') || '';
         let competenciaGuardada = localStorage.getItem('inventarioCompetencia') || '';
+        let emailGuardado = localStorage.getItem('inventarioEmail') || '';
         let itemActual = { ean: null, desc: null, esDesconocido: false, rayon: null, stock: null, pvp_nuestro: null };
 
         const inputCodigo = document.getElementById('inputCodigo');
@@ -359,12 +312,15 @@
 
         document.getElementById('nombre-usuario-input').value = usuarioGuardado;
         document.getElementById('nombre-competencia-input').value = competenciaGuardada;
+        document.getElementById('email-destino-input').value = emailGuardado;
 
         function guardarConfiguracion() {
             usuarioGuardado = document.getElementById('nombre-usuario-input').value.trim();
             competenciaGuardada = document.getElementById('nombre-competencia-input').value.trim();
+            emailGuardado = document.getElementById('email-destino-input').value.trim();
             localStorage.setItem('inventarioUsuario', usuarioGuardado);
             localStorage.setItem('inventarioCompetencia', competenciaGuardada);
+            localStorage.setItem('inventarioEmail', emailGuardado);
         }
 
         function activarModo(modo) {
@@ -374,19 +330,14 @@
             
             if (modoActivo === modo) {
                 modoActivo = 'normal';
-                btnRapido.classList.remove('activo');
-                btnChequeo.classList.remove('activo');
-                btnPedidos.classList.remove('activo');
-                resultadoDiv.style.display = 'none'; 
-                resultadoDiv.innerHTML = "";
+                btnRapido.classList.remove('activo'); btnChequeo.classList.remove('activo'); btnPedidos.classList.remove('activo');
+                resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = "";
             } else {
-                if (!usuarioGuardado) { alert("¡Atención! Para usar modos especiales debes ir a 📋 Lista y guardar tu Nombre/Terminal."); return; }
-                if (modo === 'chequeo' && !competenciaGuardada) { alert("¡Atención! Para chequear precios debes ir a 📋 Lista y escribir el nombre de la Competencia (Ej: Mercadona)."); return; }
+                if (!usuarioGuardado) { alert("¡Atención! Para usar modos especiales debes guardar tu Nombre/Terminal en Ajustes."); return; }
+                if (modo === 'chequeo' && !competenciaGuardada) { alert("¡Atención! Para chequear precios escribe el nombre de la Competencia en Ajustes."); return; }
 
                 modoActivo = modo;
-                btnRapido.classList.remove('activo');
-                btnChequeo.classList.remove('activo');
-                btnPedidos.classList.remove('activo');
+                btnRapido.classList.remove('activo'); btnChequeo.classList.remove('activo'); btnPedidos.classList.remove('activo');
                 resultadoDiv.style.display = 'flex';
                 
                 if (modo === 'rapido') {
@@ -404,16 +355,10 @@
 
         function toggleTecladoVirtual() {
             if (tecladoVirtual.style.display === 'grid') {
-                tecladoVirtual.style.display = 'none';
-                document.body.classList.remove('modo-teclado');
-                inputCodigo.readOnly = false; 
+                tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); inputCodigo.readOnly = false; 
             } else {
-                cerrarEscaner();
-                inputActivoId = 'inputCodigo';
-                inputCodigo.readOnly = true; 
-                inputCodigo.blur();
-                tecladoVirtual.style.display = 'grid';
-                document.body.classList.add('modo-teclado');
+                cerrarEscaner(); inputActivoId = 'inputCodigo'; inputCodigo.readOnly = true; inputCodigo.blur();
+                tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado');
             }
         }
 
@@ -424,9 +369,7 @@
             } else if (valor === 'ENTER') {
                 if (inputActivoId === 'inputCodigo') { 
                     procesarBusqueda(inputDestino.value.trim()); 
-                    tecladoVirtual.style.display = 'none'; 
-                    document.body.classList.remove('modo-teclado');
-                    inputCodigo.readOnly = false;
+                    tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); inputCodigo.readOnly = false;
                 } 
                 else if (inputActivoId === 'input-cant-accion') guardarEnLista(itemActual.ean, itemActual.esDesconocido);
                 else if (inputActivoId === 'input-precio-accion') guardarPrecioCompetencia();
@@ -453,15 +396,13 @@
 
         function procesarEscaneoChequeo(termino) {
             let result = buscarArticuloGlobal(termino);
-            let desc = "COMPETENCIA (Sin datos)";
-            let eanDetectado = termino; let pvp_nuestro = "-"; let rayon = "-";
+            let desc = "COMPETENCIA (Sin datos)"; let eanDetectado = termino; let pvp_nuestro = "-"; let rayon = "-";
             if (result) { eanDetectado = result.ean; desc = result.art.descripcion; pvp_nuestro = result.art.precio; rayon = result.art.rayon; }
 
             itemActual = { ean: eanDetectado, desc: desc, pvp_nuestro: pvp_nuestro, rayon: rayon };
             let textoPvp = pvp_nuestro === "-" ? "<span style='color:red;'>No tenemos PVP</span>" : `Nuestro PVP: <b>${pvp_nuestro}€</b>`;
 
-            resultadoDiv.style.display = 'flex';
-            resultadoDiv.style.borderColor = "#9c27b0";
+            resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#9c27b0";
             resultadoDiv.innerHTML = `
                 <h3 style='color:#9c27b0; margin:0;'>Introduce el Precio PVP</h3>
                 <p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br><strong style="font-size:16px;">${desc}</strong></p>
@@ -470,9 +411,7 @@
                     <input type="text" id="input-precio-accion" class="input-cantidad" placeholder="PVP Rival €..." readonly onclick="inputActivoId='input-precio-accion'; tecladoVirtual.style.display='grid'; document.body.classList.add('modo-teclado');">
                 </div>
             `;
-            inputActivoId = 'input-precio-accion'; 
-            tecladoVirtual.style.display = 'grid'; 
-            document.body.classList.add('modo-teclado');
+            inputActivoId = 'input-precio-accion'; tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado');
         }
 
         function guardarPrecioCompetencia() {
@@ -480,8 +419,7 @@
             if (existe !== -1) {
                 alert("⚠️ ¡CUIDADO! Ya has chequeado este producto.\nVe a la Lista si necesitas editar su precio.");
                 tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
-                inputCodigo.readOnly = false;
-                inputActivoId = 'inputCodigo'; inputCodigo.value = "";
+                inputCodigo.readOnly = false; inputActivoId = 'inputCodigo'; inputCodigo.value = "";
                 return;
             }
 
@@ -489,8 +427,7 @@
             const precioCompStr = inputPrecio ? inputPrecio.value.trim().replace(/,/g, '.') : "";
             
             if (precioCompStr !== "") {
-                let opusFinal = "FALTA PVP";
-                let pvpCompNum = parseFloat(precioCompStr); let pvpNuestroStr = itemActual.pvp_nuestro;
+                let opusFinal = "FALTA PVP"; let pvpCompNum = parseFloat(precioCompStr); let pvpNuestroStr = itemActual.pvp_nuestro;
                 if (pvpNuestroStr !== "-" && pvpNuestroStr !== "") {
                     let pvpNuesNum = parseFloat(pvpNuestroStr.replace(',', '.'));
                     if (!isNaN(pvpNuesNum) && !isNaN(pvpCompNum) && pvpCompNum > 0) { let diff = ((pvpNuesNum - pvpCompNum) / pvpCompNum) * 100; opusFinal = (diff > 0 ? "+" : "") + diff.toFixed(2) + "%"; }
@@ -505,8 +442,9 @@
             } else { resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = ""; }
             
             tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
-            inputCodigo.readOnly = false;
-            inputActivoId = 'inputCodigo'; inputCodigo.value = "";
+            inputCodigo.readOnly = false; inputActivoId = 'inputCodigo'; inputCodigo.value = "";
+
+            if (ultimoEscaneoFueCamara) { setTimeout(() => { abrirEscaner(); }, 1500); }
         }
 
         function procesarEscaneoPedido(termino) {
@@ -515,8 +453,7 @@
             if (result) { eanDetectado = result.ean; desc = result.art.descripcion; stock = result.art.stock; rayon = result.art.rayon; }
 
             itemActual = { ean: eanDetectado, desc: desc, stock: stock, rayon: rayon };
-            resultadoDiv.style.display = 'flex';
-            resultadoDiv.style.borderColor = "#17a2b8";
+            resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#17a2b8";
             resultadoDiv.innerHTML = `
                 <h3 style='color:#17a2b8; margin:0;'>🛒 Cantidad a Pedir</h3>
                 <p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br><strong style="font-size:16px;">${desc}</strong></p>
@@ -528,9 +465,7 @@
                     <input type="text" id="input-pedido-accion" class="input-cantidad" placeholder="Pedir Uds..." readonly onclick="inputActivoId='input-pedido-accion'; tecladoVirtual.style.display='grid'; document.body.classList.add('modo-teclado');">
                 </div>
             `;
-            inputActivoId = 'input-pedido-accion'; 
-            tecladoVirtual.style.display = 'grid'; 
-            document.body.classList.add('modo-teclado');
+            inputActivoId = 'input-pedido-accion'; tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado');
         }
 
         function guardarCantidadPedido() {
@@ -544,8 +479,9 @@
             } else { resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = ""; }
 
             tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
-            inputCodigo.readOnly = false;
-            inputActivoId = 'inputCodigo'; inputCodigo.value = "";
+            inputCodigo.readOnly = false; inputActivoId = 'inputCodigo'; inputCodigo.value = "";
+
+            if (ultimoEscaneoFueCamara) { setTimeout(() => { abrirEscaner(); }, 1500); }
         }
 
         function procesarEscaneoRapido(termino) {
@@ -556,8 +492,7 @@
             listaTrabajo.push({ tipo: 'inventario', ean: eanDetectado, descripcion: desc, cantidad: 1, fecha: new Date().toLocaleString('es-ES').replace(', ', ' ') });
             localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
 
-            resultadoDiv.style.display = 'flex';
-            resultadoDiv.style.borderColor = "#ffc107";
+            resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#ffc107";
             resultadoDiv.innerHTML = `<p style="margin:0; font-size:14px; color:#666;">Añadido a inventario:</p><h3 style="margin:4px 0; color:#28a745; font-size:20px;">${eanDetectado}</h3><p style="margin:0; font-weight:bold; font-size:16px;">${desc}</p><div style="margin-top:8px; font-size:24px;">📦 x1</div>`;
             inputCodigo.value = "";
         }
@@ -569,31 +504,28 @@
             const btnDrive = document.getElementById('btn-drive');
             btnDrive.classList.add('loading'); btnDrive.innerText = "⏳ Enviando...";
 
-            const datosAEnviar = listaTrabajo.map(item => { return { tipo: item.tipo || 'inventario', ean: item.ean, cantidad: item.cantidad, descripcion: item.descripcion, fecha: item.fecha, usuario: usuarioGuardado, competencia: item.competencia || "", pvp_competencia: item.pvp_competencia || "", pvp_nuestro: item.pvp_nuestro || "", opus: item.opus || "", rayon: item.rayon || "", stock: item.stock || "" }; });
+            const datosAEnviar = listaTrabajo.map(item => { return { tipo: item.tipo || 'inventario', ean: item.ean, cantidad: item.cantidad, stock: item.stock || "", descripcion: item.descripcion, fecha: item.fecha, usuario: usuarioGuardado, competencia: item.competencia || "", pvp_competencia: item.pvp_competencia || "", pvp_nuestro: item.pvp_nuestro || "", opus: item.opus || "", rayon: item.rayon || "", email: emailGuardado }; });
 
             try {
                 const response = await fetch(URL_GOOGLE_APPS_SCRIPT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(datosAEnviar) });
                 const result = await response.json();
                 if (result.status === "success") {
-                    alert("¡Sincronizado con Google Drive correctamente!");
+                    alert("¡Sincronizado con Google Drive (y Email enviado) correctamente!");
                     if(confirm("¿Quieres vaciar la lista de trabajo?")) { listaTrabajo = []; localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo)); renderizarLista(); }
                 } else alert("Error Drive: " + result.message);
             } catch (error) { alert("Error conexión: " + error); } 
-            finally { btnDrive.classList.remove('loading'); btnDrive.innerText = "☁️ A Drive"; }
+            finally { btnDrive.classList.remove('loading'); btnDrive.innerText = "☁️ Drive + ✉️ Email"; }
         }
 
-        // Modificamos procesarBusqueda para recibir si el escaneo viene de la cámara
         function procesarBusqueda(terminoBusqueda, fromCamera = false) {
+            ultimoEscaneoFueCamara = fromCamera; 
             inputCodigo.value = ""; 
             let termino = terminoBusqueda.trim().toUpperCase();
             if (!termino) return;
 
             if (modoActivo === 'rapido') { 
                 procesarEscaneoRapido(termino); 
-                // AUTO-APERTURA EN MODO RÁPIDO DESPUÉS DE 1.5s SI VIENE DE LA CÁMARA
-                if (fromCamera) {
-                    setTimeout(() => { abrirEscaner(); }, 1500);
-                }
+                if (ultimoEscaneoFueCamara) { setTimeout(() => { abrirEscaner(); }, 1500); }
                 return; 
             }
             
@@ -716,46 +648,36 @@
             document.body.classList.remove('modo-teclado');
             inputCodigo.readOnly = false;
             inputActivoId = 'inputCodigo';
+
+            if (ultimoEscaneoFueCamara) { setTimeout(() => { abrirEscaner(); }, 1500); }
         }
 
-        // EVENT LISTENER PARA EL TECLADO NATIVO / APP EXTERNA
         inputCodigo.addEventListener('keypress', function(e) { 
             if (e.key === 'Enter') { e.preventDefault(); procesarBusqueda(inputCodigo.value.trim()); } 
         });
 
-        // ==========================================
-        // NUEVO ESCÁNER HTML5-QRCODE NATIVO
-        // ==========================================
         let html5QrcodeScanner;
 
         function abrirEscaner() {
-            const container = document.getElementById('scanner-wrapper');
+            initAudio(); 
+            const container = document.getElementById('scanner-container');
             container.style.display = 'flex';
             document.getElementById('resultado').style.display = 'none';
             if (tecladoVirtual.style.display === 'grid') { toggleTecladoVirtual(); }
 
-            // Configuramos html5qrcode si no estaba creado
             if (!html5QrcodeScanner) {
                 html5QrcodeScanner = new Html5QrcodeScanner(
                     "reader", 
-                    { 
-                        fps: 10, 
-                        qrbox: {width: 250, height: 150},
-                        aspectRatio: 1.333334,
-                        showTorchButtonIfSupported: true
-                    },
-                    /* verbose= */ false
+                    { fps: 10, qrbox: {width: 250, height: 150}, aspectRatio: 1.333334, showTorchButtonIfSupported: true },
+                    false
                 );
                 
                 html5QrcodeScanner.render((decodedText) => {
-                    // CÓDIGO LEÍDO CON ÉXITO
                     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                    reproducirBeep();
                     cerrarEscaner();
-                    // Pasamos 'true' para indicar que viene de la cámara
-                    procesarBusqueda(decodedText, true);
-                }, (errorMessage) => {
-                    // Ignorar errores de lectura continua
-                });
+                    procesarBusqueda(decodedText, true); 
+                }, (errorMessage) => {});
             }
         }
 
@@ -763,13 +685,9 @@
             if (html5QrcodeScanner) {
                 html5QrcodeScanner.clear().then(() => {
                     html5QrcodeScanner = null;
-                    document.getElementById('scanner-wrapper').style.display = 'none';
-                }).catch(error => {
-                    document.getElementById('scanner-wrapper').style.display = 'none';
-                });
-            } else {
-                document.getElementById('scanner-wrapper').style.display = 'none';
-            }
+                    document.getElementById('scanner-container').style.display = 'none';
+                }).catch(error => { document.getElementById('scanner-container').style.display = 'none'; });
+            } else { document.getElementById('scanner-container').style.display = 'none'; }
         }
 
         function parsearCSV(texto, options) {
@@ -882,7 +800,7 @@
             listaInvertida.forEach(item => {
                 let descLimpia = item.descripcion || ""; let eanLimpio = item.ean ? String(item.ean) : ""; 
                 if (item.tipo === 'competencia') { dataCompetencia.push({"RAYON": item.rayon || "", "EAN": eanLimpio, "PVP COMPETENCIA": item.pvp_competencia || "", "PVP LECLERC": item.pvp_nuestro || "", "OPUS": item.opus || "", "DESCRIPCION": descLimpia, "COMPETENCIA": item.competencia || "", "USUARIO / TERMINAL": usuarioGuardado }); } 
-                else if (item.tipo === 'pedido') { dataPedidos.push({"RAYON": item.rayon || "", "EAN": eanLimpio, "STOCK": item.stock || "", "CANTIDAD": item.cantidad || "", "DESCRIPCION": descLimpia, "FECHA": item.fecha || "", "USUARIO / TERMINAL": usuarioGuardado }); } 
+                else if (item.tipo === 'pedido') { dataPedidos.push({"RAYON": item.rayon || "", "EAN": eanLimpio, "CANTIDAD": item.cantidad || "", "STOCK": item.stock || "", "DESCRIPCION": descLimpia, "FECHA": item.fecha || "", "USUARIO / TERMINAL": usuarioGuardado }); } 
                 else { dataInventario.push({"EAN": eanLimpio, "CANTIDAD": item.cantidad || "", "DESCRIPCION": descLimpia, "FECHA": item.fecha || "", "USUARIO / TERMINAL": usuarioGuardado }); }
             });
 
