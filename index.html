@@ -12,14 +12,14 @@
     <meta name="apple-mobile-web-app-title" content="MOVILEC">
     <link rel="apple-touch-icon" href="icono.png">
 
-    <!-- LIBRERÍAS: Solo mantenemos la de cámara de iOS (html5-qrcode), PapaParse y Excel -->
+    <!-- LIBRERÍAS (CSV, Cámara rápida iOS HTML5-QRCode y EXCEL) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         * { box-sizing: border-box; }
-        /* Bloqueo absoluto del viewport para proteger la interfaz */
+        /* Bloqueo absoluto del viewport */
         html, body { height: 100%; width: 100%; position: fixed; top: 0; left: 0; margin: 0; padding: 0; overflow: hidden; }
         
         body { 
@@ -36,13 +36,13 @@
         @media screen and (orientation: landscape) { body > *:not(#aviso-rotacion) { display: none !important; } #aviso-rotacion { display: flex; } }
 
         .cabecera-top { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
-        h1 { margin: 0; font-size: 20px; font-weight: 900; color: #ff9800; letter-spacing: 1px;}
+        h1 { margin: 0; font-size: 20px; font-weight: 900; color: #111; letter-spacing: 1px;}
         .btn-actualizar { padding: 8px 16px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; }
         
         #estado { flex-shrink: 0; font-weight: bold; font-size: 11px; color: #28a745; margin-bottom: 4px; }
         .texto-fecha { font-size: 11px; color: #444444; font-weight: bold; display: block; margin-top: 1px; text-transform: uppercase; }
         
-        /* CÁMARA DE iOS (Flotante arriba, comprobada y rápida) */
+        /* CÁMARA DE iOS (Flotante arriba) */
         #scanner-container { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; background: #000; z-index: 9999;
             padding-top: max(10px, env(safe-area-inset-top)); flex-direction: column; border-bottom: 4px solid #17a2b8; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
@@ -92,9 +92,9 @@
         #btn-modo-chequeo { background-color: #6c757d; } #btn-modo-chequeo.activo { background-color: #9c27b0; color: #fff; box-shadow: 0 3px 0 #6a1b9a; }
         #btn-modo-lista { background-color: #007bff; }
 
+        /* INPUT PRINCIPAL SIN BOTÓN EXTRA (ESTILO ANDROID) */
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
-        .btn-teclado { flex: 0 0 50px; height: 50px; background-color: #6c757d; color: white; border: none; border-radius: 6px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 18px; text-align: center; border: 3px solid #007bff; border-radius: 8px; outline: none; font-weight: bold; background: #fff; color: #111; }
+        #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 16px; text-align: center; border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; }
         #inputCodigo:disabled { background-color: #e9ecef; border-color: #ced4da; opacity: 0.7; }
         .btn-camara-cuadrado { flex: 0 0 80px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
 
@@ -110,7 +110,7 @@
 
         @media (max-height: 780px) {
             .tecla-v { height: 48px; font-size: 26px; } .tecla-ok { font-size: 34px; } .btn-modo { padding: 10px 4px; font-size: 13px; }
-            .grupo-input-camara .btn-teclado, .grupo-input-camara #inputCodigo, .grupo-input-camara .btn-camara-cuadrado { height: 46px; }
+            .grupo-input-camara #inputCodigo, .grupo-input-camara .btn-camara-cuadrado { height: 46px; }
             .resultado { padding: 8px; margin-bottom: 2px; gap: 4px; margin-top: auto; } .descripcion-producto { font-size: 17px; }
             .numero-stock { font-size: 42px; } .input-cantidad { padding: 10px; font-size: 20px; }
         }
@@ -157,6 +157,7 @@
         <button class="btn-cerrar-camara" onclick="cerrarEscaner()">✕ Cerrar Cámara</button>
     </div>
 
+    <!-- CABECERA LIMPIA -->
     <div class="cabecera-top">
         <h1>MOVILEC</h1>
         <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar BBDD</button>
@@ -176,10 +177,10 @@
             <button id="btn-modo-lista" class="btn-modo" onclick="verListas()">📋 LISTA</button>
         </div>
         
+        <!-- INPUT TIPO ANDROID LIMPIO -->
         <div class="grupo-input-camara">
-            <button class="btn-teclado" onclick="toggleTecladoVirtual()">🔢</button>
             <input type="text" id="inputCodigo" placeholder="Escribe, escanea o EAN..." autocomplete="off">
-            <button class="btn-camara-cuadrado" onclick="abrirEscaner()">📷 CÁMARA</button>
+            <button class="btn-camara-cuadrado" onclick="iniciarEscanerSegunOS()">📷 CÁMARA</button>
         </div>
 
         <div id="teclado-virtual">
@@ -342,23 +343,16 @@
         }
 
         // CIERRE DEL TECLADO AL TOCAR EL FONDO
-        document.getElementById('espaciador-central').addEventListener('click', function() {
+        document.getElementById('espaciador-central').addEventListener('click', function(e) {
             if (tecladoVirtual.style.display === 'grid') {
-                tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); 
-                inputActivoId = 'inputCodigo'; inputCodigo.readOnly = false;
-                if (ultimoEscaneoFueCamara) { abrirEscaner(); } else { inputCodigo.focus(); }
+                tecladoVirtual.style.display = 'none';
+                document.body.classList.remove('modo-teclado');
+                inputActivoId = 'inputCodigo';
+                if (ultimoEscaneoFueCamara) { iniciarEscanerSegunOS(); } else { inputCodigo.focus(); }
             }
         });
 
-        function toggleTecladoVirtual() {
-            if (tecladoVirtual.style.display === 'grid') {
-                tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); inputCodigo.readOnly = false; inputCodigo.focus();
-            } else {
-                cerrarEscaner(); inputActivoId = 'inputCodigo'; inputCodigo.readOnly = true; inputCodigo.blur();
-                tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado');
-            }
-        }
-
+        // LÓGICA DE TECLADO VIRTUAL
         function pulsarTecla(valor) {
             const inputDestino = document.getElementById(inputActivoId);
             if (!inputDestino) return;
@@ -373,22 +367,51 @@
             const inputDestino = document.getElementById(inputActivoId);
             if (!inputDestino) return;
             if (inputActivoId === 'inputCodigo') { 
+                ultimoEscaneoFueCamara = false;
                 procesarBusqueda(inputDestino.value.trim(), false); 
-                tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); inputCodigo.readOnly = false;
+                tecladoVirtual.style.display = 'none'; 
+                document.body.classList.remove('modo-teclado'); 
             } 
             else if (inputActivoId === 'input-cant-accion') guardarEnLista(itemActual.ean, itemActual.esDesconocido);
             else if (inputActivoId === 'input-precio-accion') guardarPrecioCompetencia();
             else if (inputActivoId === 'input-pedido-accion') guardarCantidadPedido();
         }
 
-        // CONTROL DEL ESCÁNER FÍSICO NATIVO
-        inputCodigo.addEventListener('keypress', function(e) { 
-            if (e.key === 'Enter') { e.preventDefault(); procesarBusqueda(inputCodigo.value.trim(), false); } 
+        // GESTIÓN DE FOCO Y TECLADOS PARA LA BARRA PRINCIPAL (ESCÁNER ANDROID)
+        inputCodigo.addEventListener('focus', (e) => { 
+            if (inputActivoId !== 'inputCodigo') { 
+                e.preventDefault(); 
+                inputCodigo.blur(); 
+                return; 
+            } 
+            document.body.classList.add('modo-teclado'); 
+            tecladoVirtual.style.display = 'none'; 
+            cerrarEscaner(); 
         });
 
-        document.body.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && inputActivoId !== 'inputCodigo' && document.getElementById(inputActivoId)) {
-                e.preventDefault(); pulsarEnter();
+        inputCodigo.addEventListener('blur', () => { 
+            if (tecladoVirtual.style.display !== 'grid') document.body.classList.remove('modo-teclado'); 
+        });
+
+        // Eventos 'keyup' y 'keypress' robustos para cazar el Enter del teclado nativo y del escáner físico
+        inputCodigo.addEventListener('keyup', function(e) { 
+            if (e.key === 'Enter' || e.keyCode === 13) { 
+                e.preventDefault(); 
+                procesarBusqueda(inputCodigo.value.trim(), false); 
+            } 
+        });
+        
+        inputCodigo.addEventListener('keypress', function(e) { 
+            if (e.key === 'Enter' || e.keyCode === 13) { 
+                e.preventDefault(); 
+            } 
+        });
+
+        // Enter global cuando el teclado virtual numérico está abierto (para hardware scanners)
+        document.body.addEventListener('keyup', function(e) {
+            if ((e.key === 'Enter' || e.keyCode === 13) && inputActivoId !== 'inputCodigo' && document.getElementById(inputActivoId)) {
+                e.preventDefault(); 
+                pulsarEnter();
             }
         });
 
@@ -417,13 +440,13 @@
 
             resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#9c27b0";
             
-            /* Casillas READONLY para que el teclado nativo no salte */
+            /* Casillas READONLY estrictas para evitar el teclado nativo */
             resultadoDiv.innerHTML = `
                 <h3 style='color:#9c27b0; margin:0;'>Introduce el Precio PVP</h3>
                 <p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br><strong style="font-size:16px;">${desc}</strong></p>
                 <p style='font-size:14px; color:#555; margin:4px 0;'>${textoPvp}</p>
                 <div class="panel-cantidad" style="display:flex;">
-                    <input type="text" id="input-precio-accion" class="input-cantidad" placeholder="PVP Rival €..." readonly onclick="abrirTecladoPrecio()">
+                    <input type="text" id="input-precio-accion" class="input-cantidad" placeholder="PVP Rival €..." readonly="readonly" onclick="abrirTecladoPrecio()">
                 </div>
             `;
             abrirTecladoPrecio();
@@ -441,7 +464,7 @@
             if (existe !== -1) {
                 alert("⚠️ ¡CUIDADO! Ya has chequeado este producto.\nVe a la Lista si necesitas editar su precio.");
                 tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
-                inputCodigo.readOnly = false; inputActivoId = 'inputCodigo'; inputCodigo.value = "";
+                inputActivoId = 'inputCodigo'; inputCodigo.value = "";
                 if (!ultimoEscaneoFueCamara) inputCodigo.focus();
                 return;
             }
@@ -465,9 +488,9 @@
             } else { resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = ""; }
             
             tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
-            inputCodigo.readOnly = false; inputActivoId = 'inputCodigo'; inputCodigo.value = "";
+            inputActivoId = 'inputCodigo'; inputCodigo.value = "";
 
-            if (ultimoEscaneoFueCamara) { setTimeout(() => { abrirEscaner(); }, 500); } else { setTimeout(() => { inputCodigo.focus(); }, 150); }
+            if (ultimoEscaneoFueCamara) { setTimeout(() => { iniciarEscanerSegunOS(); }, 1000); } else { setTimeout(() => { inputCodigo.focus(); }, 150); }
         }
 
         function procesarEscaneoPedido(termino) {
@@ -478,7 +501,6 @@
             itemActual = { ean: eanDetectado, desc: desc, stock: stock, rayon: rayon };
             resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#17a2b8";
             
-            /* Casillas READONLY para el teclado nativo de iOS */
             resultadoDiv.innerHTML = `
                 <h3 style='color:#17a2b8; margin:0;'>🛒 Cantidad a Pedir</h3>
                 <p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br><strong style="font-size:16px;">${desc}</strong></p>
@@ -487,7 +509,7 @@
                     <span style='font-size:40px; color:#28a745; font-weight:900; line-height:1;'>${stock}</span>
                 </div>
                 <div class="panel-cantidad" style="display:flex;">
-                    <input type="text" id="input-pedido-accion" class="input-cantidad" placeholder="Pedir Uds..." readonly onclick="abrirTecladoPedido()">
+                    <input type="text" id="input-pedido-accion" class="input-cantidad" placeholder="Pedir Uds..." readonly="readonly" onclick="abrirTecladoPedido()">
                 </div>
             `;
             abrirTecladoPedido();
@@ -511,9 +533,9 @@
             } else { resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = ""; }
 
             tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
-            inputCodigo.readOnly = false; inputActivoId = 'inputCodigo'; inputCodigo.value = "";
+            inputActivoId = 'inputCodigo'; inputCodigo.value = "";
 
-            if (ultimoEscaneoFueCamara) { setTimeout(() => { abrirEscaner(); }, 500); } else { setTimeout(() => { inputCodigo.focus(); }, 150); }
+            if (ultimoEscaneoFueCamara) { setTimeout(() => { iniciarEscanerSegunOS(); }, 1000); } else { setTimeout(() => { inputCodigo.focus(); }, 150); }
         }
 
         function procesarEscaneoRapido(termino) {
@@ -528,7 +550,7 @@
             resultadoDiv.innerHTML = `<p style="margin:0; font-size:14px; color:#666;">Añadido a inventario:</p><h3 style="margin:4px 0; color:#28a745; font-size:20px;">${eanDetectado}</h3><p style="margin:0; font-weight:bold; font-size:16px;">${desc}</p><div style="margin-top:8px; font-size:24px;">📦 x1</div>`;
             inputCodigo.value = "";
             
-            if (!ultimoEscaneoFueCamara) setTimeout(() => { inputCodigo.focus(); }, 150);
+            if (ultimoEscaneoFueCamara) { setTimeout(() => { iniciarEscanerSegunOS(); }, 1000); } else { setTimeout(() => { inputCodigo.focus(); }, 150); }
         }
 
         async function enviarADrive() {
@@ -553,19 +575,17 @@
         }
 
         function procesarBusqueda(terminoBusqueda, fromCamera = false) {
+            if (inputActivoId !== 'inputCodigo') { inputCodigo.value = ""; return; }
             ultimoEscaneoFueCamara = fromCamera; 
-            inputCodigo.value = ""; 
+            
             let termino = terminoBusqueda.trim().toUpperCase();
+            inputCodigo.value = ""; 
             if (!termino) return;
 
-            inputCodigo.blur(); // FUERA TECLADO NATIVO AUTOMÁTICAMENTE AL LEER
+            // EXPULSIÓN FORZOSA DEL TECLADO NATIVO AL LEER
+            inputCodigo.blur();
 
-            if (modoActivo === 'rapido') { 
-                procesarEscaneoRapido(termino); 
-                if (ultimoEscaneoFueCamara) { setTimeout(() => { abrirEscaner(); }, 500); }
-                return; 
-            }
-            
+            if (modoActivo === 'rapido') { procesarEscaneoRapido(termino); return; }
             if (modoActivo === 'chequeo') { procesarEscaneoChequeo(termino); return; }
             if (modoActivo === 'pedidos') { procesarEscaneoPedido(termino); return; }
 
@@ -625,7 +645,7 @@
                     <button class="btn-accion-unica" onclick="mostrarInputCantidad('${ean}', false)">+ Añadir Inventario</button>
                 </div>
                 <div id="panel-cantidad-accion" class="panel-cantidad">
-                    <input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly onclick="abrirTecladoCantidad()">
+                    <input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly="readonly" onclick="abrirTecladoCantidad()">
                 </div>
             `;
             inputCodigo.value = ""; 
@@ -641,7 +661,7 @@
                     <button class="btn-accion-unica" style="background-color: #6c757d;" onclick="mostrarInputCantidad('${termino}', true)">Forzar Añadir</button>
                 </div>
                 <div id="panel-cantidad-accion" class="panel-cantidad">
-                    <input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly onclick="abrirTecladoCantidad()">
+                    <input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly="readonly" onclick="abrirTecladoCantidad()">
                 </div>
             `;
             inputCodigo.value = ""; 
@@ -682,10 +702,9 @@
             inputCodigo.value = "";
             tecladoVirtual.style.display = 'none'; 
             document.body.classList.remove('modo-teclado');
-            inputCodigo.readOnly = false;
             inputActivoId = 'inputCodigo';
 
-            if (ultimoEscaneoFueCamara) { setTimeout(() => { abrirEscaner(); }, 500); } else { setTimeout(() => { inputCodigo.focus(); }, 150); }
+            if (ultimoEscaneoFueCamara) { setTimeout(() => { iniciarEscanerSegunOS(); }, 1000); } else { setTimeout(() => { inputCodigo.focus(); }, 150); }
         }
 
         function abrirTecladoCantidad() { 
@@ -695,14 +714,19 @@
             inputCodigo.blur();
         }
 
+        // ==========================================
+        // CÁMARA HTML5-QRCODE (LA BUENA DE iOS, FLOTANTE)
+        // ==========================================
         let html5QrcodeScanner;
 
-        function abrirEscaner() {
+        function iniciarEscanerSegunOS() {
             initAudio(); 
+            document.getElementById('resultado').style.display = 'none';
             const container = document.getElementById('scanner-container');
             container.style.display = 'flex';
-            document.getElementById('resultado').style.display = 'none';
-            if (tecladoVirtual.style.display === 'grid') { toggleTecladoVirtual(); }
+            tecladoVirtual.style.display = 'none';
+            document.body.classList.remove('modo-teclado');
+            inputActivoId = 'inputCodigo';
 
             if (!html5QrcodeScanner) {
                 html5QrcodeScanner = new Html5QrcodeScanner(
@@ -729,6 +753,7 @@
             } else { document.getElementById('scanner-container').style.display = 'none'; }
         }
 
+        // ==========================================
         function parsearCSV(texto, options) {
             return new Promise(resolve => { Papa.parse(texto, { ...options, complete: resolve }); });
         }
@@ -789,7 +814,7 @@
         }
 
         function verListas() { document.getElementById('modalListas').style.display = 'flex'; renderizarLista(); }
-        function cerrarModalListas() { document.getElementById('modalListas').style.display = 'none'; }
+        function cerrarModalListas() { document.getElementById('modalListas').style.display = 'none'; if (inputActivoId === 'inputCodigo') inputCodigo.focus(); }
 
         function renderizarLista() {
             const contenedor = document.getElementById('modal-body-listas');
