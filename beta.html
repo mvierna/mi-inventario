@@ -145,10 +145,25 @@
 </head>
 <body>
 
-    <div id="aviso-rotacion">
-        <h2>⚠️ Gira el dispositivo</h2>
-        <p>La interfaz solo funciona correctamente en modo vertical.</p>
-    </div>
+<div id="aviso-rotacion">
+<h2>⚠️ Gira el dispositivo</h2>
+<p>La interfaz solo funciona correctamente en modo vertical.</p>
+</div>
+
+<div id="scanner-container">
+<div id="reader"></div>
+<button class="btn-cerrar-camara" onclick="cerrarEscaner()">✕ Cerrar Cámara</button>
+</div>
+
+<div class="cabecera-top">
+<h1>MOVILEC <span style="font-size: 13px; color: #007bff; vertical-align: middle;">🍎 iOS</span></h1>
+<div style="display: flex; gap: 4px;">
+    <button class="btn-actualizar" style="background-color: #28a745;" onclick="window.location.href='index.html'">Ir a 🤖 Android</button>
+    <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sync</button>
+</div>
+</div>
+
+<div id="estado">Iniciando BBDD Local...</div>
 
     <div id="scanner-container">
         <div id="reader"></div>
