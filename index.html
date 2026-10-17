@@ -13,7 +13,7 @@
     <link rel="apple-touch-icon" href="icono.png">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
@@ -34,13 +34,13 @@
         @media screen and (orientation: landscape) { body > *:not(#aviso-rotacion) { display: none !important; } #aviso-rotacion { display: flex; } }
 
         .cabecera-top { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
-        h1 { margin: 0; font-size: 20px; font-weight: 900; color: #111; letter-spacing: 1px;}
-        .btn-actualizar { padding: 8px 16px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        h1 { margin: 0; font-size: 18px; font-weight: 900; color: #111; }
+        .btn-actualizar { padding: 8px 14px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
         
         #estado { flex-shrink: 0; font-weight: bold; font-size: 11px; color: #28a745; margin-bottom: 4px; }
         .texto-fecha { font-size: 11px; color: #444444; font-weight: bold; display: block; margin-top: 1px; text-transform: uppercase; }
         
-        #espaciador-central { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #espaciador-central { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
 
         .resultado { display: none; width: 98%; margin: 0 auto; padding: 10px; border: 2px solid #222222; border-radius: 12px; background-color: #ffffff; flex-direction: column; gap: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-height: 100%; overflow-y: auto; }
         .titulo-encontrado { color: #28a745; margin: 0; font-size: 16px; font-weight: bold; }
@@ -70,9 +70,10 @@
         .item-desc { font-weight: bold; font-size: 13px; display: block; color: #111; margin-bottom: 2px; }
         .item-ean { font-size: 11px; color: #6c757d; font-weight: bold; }
 
-        #video-container { width: 100%; max-width: 350px; background: #000; margin: 4px auto; border-radius: 8px; overflow: hidden; display: none; flex-direction: column; border: 2px solid #17a2b8; box-shadow: 0 4px 10px rgba(0,0,0,0.2);}
-        #reader { width: 100%; background: #000; }
-        .btn-cerrar-camara { padding: 10px; background: #dc3545; color: white; border: none; font-weight: bold; font-size: 15px; cursor: pointer; text-transform: uppercase; width: 100%; }
+        #video-container { width: 100%; max-width: 320px; background: #000; margin: 4px auto; border-radius: 6px; overflow: hidden; position: relative; display: none; }
+        #controles-video { padding: 6px; background: rgba(0,0,0,0.7); display: flex; justify-content: space-between; align-items: center; }
+        #selector-camara { width: 100%; max-width: 200px; padding: 6px; border-radius: 4px; font-size: 12px; background: white; color: black; border: 1px solid #ccc; outline: none; }
+        video { width: 100%; height: auto; max-height: 200px; display: block; object-fit: cover; }
 
         .caja-interfaz { flex-shrink: 0; padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
         
@@ -146,20 +147,29 @@
 
     <div id="aviso-rotacion">
         <h2>⚠️ Gira el dispositivo</h2>
-        <p>La interfaz solo funciona correctamente en modo vertical.</p>
+        <p>El escáner de códigos y la interfaz solo funcionan correctamente en modo vertical.</p>
     </div>
 
+    <!-- CABECERA LIMPIA ANDROID -->
     <div class="cabecera-top">
-        <h1>MOVILEC</h1>
-        <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar BBDD</button>
+        <h1>MOVILEC <span style="font-size: 13px; color: #28a745; vertical-align: middle;">🤖 ANDROID</span></h1>
+        <div style="display: flex; gap: 4px;">
+            <button class="btn-actualizar" style="background-color: #007bff;" onclick="window.location.href='beta.html'">Ir a 🍎 iOS</button>
+            <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sync</button>
+        </div>
     </div>
 
     <div id="estado">Iniciando BBDD Local...</div>
 
     <div id="espaciador-central">
         <div id="video-container">
-            <div id="reader"></div>
-            <button class="btn-cerrar-camara" onclick="cerrarCamara()">✕ Cerrar Cámara</button>
+            <div id="controles-video">
+                <select id="selector-camara" onchange="cambiarCamaraManual()">
+                    <option value="">Detectando cámaras...</option>
+                </select>
+                <button onclick="cerrarCamara()" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">✕ Cerrar</button>
+            </div>
+            <video id="video-preview" playsinline autoplay muted></video>
         </div>
 
         <div id="resultado" class="resultado"></div>
@@ -214,7 +224,7 @@
             
             <div class="modal-footer">
                 <button class="btn-footer" style="background: #dc3545; flex: 0.3;" onclick="borrarListaActual()">🗑</button>
-                <button id="btn-drive" class="btn-footer btn-sync-drive" onclick="enviarADrive()">☁️ A Drive</button>
+                <button id="btn-drive" class="btn-footer btn-sync-drive" onclick="enviarADrive()">☁️ Guardar en Drive</button>
                 <button class="btn-footer" style="background: #28a745; flex: 0.8;" onclick="exportarListaExcel()">📥 EXCEL Y CORREO</button>
             </div>
         </div>
@@ -269,13 +279,14 @@
             } catch(e) { console.log("Audio no soportado"); }
         }
 
-        let inventario = {}; let inventarioSinStock = {}; 
+        let inventario = {}; let inventarioSinStock = {}; let codeReader = null; let camaraManualId = localStorage.getItem('camaraPreferida') || null; 
         let ultimoModo = 'teclado'; let modoActivo = 'normal';
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
         let usuarioGuardado = localStorage.getItem('inventarioUsuario') || '';
         let competenciaGuardada = localStorage.getItem('inventarioCompetencia') || '';
         let emailGuardado = localStorage.getItem('inventarioEmail') || '';
         
+        // MODIFICACIÓN CLAVE: ID DE INPUT ACTIVO CORREGIDO
         let inputActivoId = 'inputCodigo';
         let itemActual = { ean: null, desc: null, esDesconocido: false, rayon: null, stock: null, pvp_nuestro: null };
 
@@ -288,7 +299,7 @@
             localStorage.setItem('inventarioUsuario', usuarioGuardado); localStorage.setItem('inventarioCompetencia', competenciaGuardada); localStorage.setItem('inventarioEmail', emailGuardado);
         }
 
-        // CERRAR TECLADO AL TOCAR EL FONDO Y RECUPERAR FOCO
+        // CERRAR TECLADO AL TOCAR FUERA
         document.getElementById('espaciador-central').addEventListener('click', function(e) {
             if (tecladoVirtual.style.display === 'grid') {
                 tecladoVirtual.style.display = 'none';
@@ -310,8 +321,9 @@
                 else if (modo === 'chequeo') { btnChequeo.classList.add('activo'); resultadoDiv.innerHTML = `<h3 style='color:#9c27b0; margin:0;'>🕵️ CHEQUEANDO: ${competenciaGuardada}</h3><p style='font-size:15px; margin-top:4px;'>Escanea el producto para introducir su PVP.</p>`; } 
                 else if (modo === 'pedidos') { btnPedidos.classList.add('activo'); resultadoDiv.innerHTML = `<h3 style='color:#17a2b8; margin:0;'>🛒 MODO PEDIDOS</h3><p style='font-size:15px; margin-top:4px;'>Escanea para ver Rayón/Stock y pedir.</p>`; }
             }
-            inputCodigo.focus();
         }
+
+        function forzarCierreTecladoNativo() { inputCodigo.disabled = true; document.activeElement.blur(); setTimeout(() => { inputCodigo.disabled = false; }, 300); }
 
         function buscarArticuloGlobal(termino) {
             let termLimpio = termino.replace(/^0+/, ''); let ean12 = termLimpio.padStart(12, '0');
@@ -331,7 +343,7 @@
             let textoPvp = pvp_nuestro === "-" ? "<span style='color:red;'>No tenemos PVP</span>" : `Nuestro PVP: <b>${pvp_nuestro}€</b>`;
             resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#9c27b0";
             
-            /* USAMOS READONLY PARA QUE EL TECLADO NATIVO NO VUELVA LOCO AL NAVEGADOR */
+            /* MODIFICACIÓN: READONLY DE VUELTA PARA EVITAR CONFLICTOS CON TECLADO NATIVO */
             resultadoDiv.innerHTML = `<h3 style='color:#9c27b0; margin:0;'>Introduce el Precio PVP</h3><p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br><strong style="font-size:16px;">${desc}</strong></p><p style='font-size:14px; color:#555; margin:4px 0;'>${textoPvp}</p><div class="panel-cantidad" style="display:flex;"><input type="text" id="input-precio-accion" class="input-cantidad" placeholder="PVP Rival €..." readonly onclick="abrirTecladoPrecio()"></div>`;
             abrirTecladoPrecio();
         }
@@ -345,13 +357,7 @@
 
         function guardarPrecioCompetencia() {
             let existe = listaTrabajo.findIndex(i => i.tipo === 'competencia' && i.ean === itemActual.ean);
-            if (existe !== -1) { 
-                alert("⚠️ ¡CUIDADO! Ya has chequeado este producto.\nVe a la Lista si necesitas editar su precio."); 
-                tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); inputActivoId = 'inputCodigo'; inputCodigo.value = ""; 
-                if (ultimoModo === 'camara') { setTimeout(iniciarEscanerSegunOS, 1000); } else { inputCodigo.focus(); } 
-                return; 
-            }
-            
+            if (existe !== -1) { alert("⚠️ ¡CUIDADO! Ya has chequeado este producto.\nVe a la Lista si necesitas editar su precio."); tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); inputActivoId = 'inputCodigo'; inputCodigo.value = ""; if (ultimoModo === 'camara') setTimeout(iniciarEscanerSegunOS, 800); else setTimeout(() => { inputCodigo.focus(); }, 150); return; }
             const inputPrecio = document.getElementById('input-precio-accion'); const precioCompStr = inputPrecio ? inputPrecio.value.trim().replace(/,/g, '.') : "";
             if (precioCompStr !== "") {
                 let opusFinal = "FALTA PVP"; let pvpCompNum = parseFloat(precioCompStr); let pvpNuestroStr = itemActual.pvp_nuestro;
@@ -361,11 +367,8 @@
                 let colorOpus = opusFinal.includes("+") ? "red" : (opusFinal.includes("-") ? "#28a745" : "#555");
                 resultadoDiv.style.display = 'flex'; resultadoDiv.innerHTML = `<p style="margin:0; font-size:14px; color:#666;">Precio guardado:</p><h3 style="margin:4px 0; color:#9c27b0; font-size:22px;">${precioCompStr} €</h3><p style="margin:0; font-size:14px;">Diferencia: <b style="color:${colorOpus}">${opusFinal}</b></p>`;
             } else { resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = ""; }
-            
             tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); inputActivoId = 'inputCodigo'; inputCodigo.value = "";
-            
-            /* ENFOQUE SINCRONICO GARANTIZADO PARA ESCÁNER FÍSICO */
-            if (ultimoModo === 'camara') { setTimeout(iniciarEscanerSegunOS, 1000); } else { inputCodigo.focus(); } 
+            if (ultimoModo === 'camara') setTimeout(iniciarEscanerSegunOS, 800); else setTimeout(() => { inputCodigo.focus(); }, 150); 
         }
 
         function procesarEscaneoPedido(termino) {
@@ -373,6 +376,8 @@
             if (result) { eanDetectado = result.ean; desc = result.art.descripcion; stock = result.art.stock; rayon = result.art.rayon; }
             itemActual = { ean: eanDetectado, desc: desc, stock: stock, rayon: rayon };
             resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#17a2b8";
+            
+            /* MODIFICACIÓN: READONLY DE VUELTA PARA EVITAR CONFLICTOS CON TECLADO NATIVO */
             resultadoDiv.innerHTML = `<h3 style='color:#17a2b8; margin:0;'>🛒 Cantidad a Pedir</h3><p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br><strong style="font-size:16px;">${desc}</strong></p><div style='background:#e8f5e9; padding:8px; border-radius:8px; margin:6px 0; border: 3px solid #28a745;'><span style='font-size:12px; color:#28a745; font-weight:bold; display:block; text-transform:uppercase;'>Stock Actual en ${rayon}</span><span style='font-size:40px; color:#28a745; font-weight:900; line-height:1;'>${stock}</span></div><div class="panel-cantidad" style="display:flex;"><input type="text" id="input-pedido-accion" class="input-cantidad" placeholder="Pedir Uds..." readonly onclick="abrirTecladoPedido()"></div>`;
             abrirTecladoPedido();
         }
@@ -391,10 +396,8 @@
                 localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
                 resultadoDiv.style.display = 'flex'; resultadoDiv.innerHTML = `<h3 style="color:#17a2b8; margin:0; font-size:20px;">✅ Pedidas ${cantidad} uds</h3><p style="margin:4px 0; font-size:14px;">${itemActual.desc}</p>`;
             } else { resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = ""; }
-            
             tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); inputActivoId = 'inputCodigo'; inputCodigo.value = "";
-            
-            if (ultimoModo === 'camara') { setTimeout(iniciarEscanerSegunOS, 1000); } else { inputCodigo.focus(); }
+            if (ultimoModo === 'camara') setTimeout(iniciarEscanerSegunOS, 800); else setTimeout(() => { inputCodigo.focus(); }, 150);
         }
 
         function procesarEscaneoRapido(termino) {
@@ -405,15 +408,14 @@
             resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#ffc107";
             resultadoDiv.innerHTML = `<p style="margin:0; font-size:14px; color:#666;">Añadido a inventario:</p><h3 style="margin:4px 0; color:#28a745; font-size:20px;">${eanDetectado}</h3><p style="margin:0; font-weight:bold; font-size:16px;">${desc}</p><div style="margin-top:8px; font-size:24px;">📦 x1</div>`;
             inputCodigo.value = "";
-            
-            if (ultimoModo === 'camara') { setTimeout(iniciarEscanerSegunOS, 1000); } else { inputCodigo.focus(); }
+            if (ultimoModo === 'camara') { setTimeout(iniciarEscanerSegunOS, 800); } else { setTimeout(() => { inputCodigo.focus(); }, 150); }
         }
 
         async function enviarADrive() {
             if (listaTrabajo.length === 0) { alert("La lista está vacía."); return; }
             const btnDrive = document.getElementById('btn-drive');
             btnDrive.classList.add('loading'); btnDrive.innerText = "⏳ Guardando...";
-            const datosAEnviar = listaTrabajo.map(item => { return { tipo: item.tipo || 'inventario', ean: item.ean, cantidad: item.cantidad, stock: item.stock || "", descripcion: item.descripcion, fecha: item.fecha, usuario: usuarioGuardado, competencia: item.competencia || "", pvp_competencia: item.pvp_competencia || "", pvp_nuestro: item.pvp_nuestro || "", opus: item.opus || "", rayon: item.rayon || "", email: emailGuardado }; });
+            const datosAEnviar = listaTrabajo.map(item => { return { tipo: item.tipo || 'inventario', ean: item.ean, cantidad: item.cantidad, stock: item.stock || "", descripcion: item.descripcion, fecha: item.fecha, usuario: usuarioGuardado, competencia: item.competencia || "", pvp_competencia: item.pvp_competencia || "", pvp_nuestro: item.pvp_nuestro || "", opus: item.opus || "", rayon: item.rayon || "" }; });
             try {
                 const payload = { action: "sync", data: datosAEnviar };
                 const response = await fetch(URL_GOOGLE_APPS_SCRIPT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
@@ -446,18 +448,23 @@
                     htmlLista += `</ul>`; resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#007bff"; resultadoDiv.innerHTML = htmlLista;
                 }
             }
+            setTimeout(() => inputCodigo.blur(), 100);
         }
 
         function mostrarArticuloCompleto(ean, esSinStock = false) {
             let art = esSinStock ? inventarioSinStock[ean] : inventario[ean];
             let colorBorde = esSinStock ? "#ff9800" : "#222222"; let titulo = esSinStock ? "📚 Sin Stock (Vendido últ. año)" : "¡Artículo encontrado!"; let colorTitulo = esSinStock ? "#ff9800" : "#28a745"; let colorStock = esSinStock ? "#dc3545" : "#28a745";
             resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = colorBorde;
+            
+            /* MODIFICACIÓN: READONLY DE VUELTA */
             resultadoDiv.innerHTML = `<div style="display: flex; flex-direction: column; gap: 2px;"><p class="titulo-encontrado" style="color: ${colorTitulo};">${titulo}</p><p class="texto-ean">EAN: ${ean}</p><div class="descripcion-producto">${art.descripcion}</div></div><div class="panel-secundario"><div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${art.rayon}</span></div><div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${art.precio}</span></div><div class="item-secundario"><span class="etiqueta-secundaria">Últ. Mov.</span><span class="valor-secundario">${art.fecha}</span></div><div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${art.ventas || '0'}</span></div></div><div class="caja-stock" style="background-color: ${colorStock};"><p class="etiqueta-stock">STOCK DISPONIBLE</p><p class="numero-stock">${art.stock}</p></div><div id="panel-botones-accion" class="panel-acciones"><button class="btn-accion-unica" onclick="mostrarInputCantidad('${ean}', false)">+ Añadir Inventario</button></div><div id="panel-cantidad-accion" class="panel-cantidad"><input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly onclick="abrirTecladoCantidad()"></div>`;
             inputCodigo.value = ""; 
         }
 
         function mostrarArticuloDesconocido(termino) {
             resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#dc3545";
+            
+            /* MODIFICACIÓN: READONLY DE VUELTA */
             resultadoDiv.innerHTML = `<h3 style="color: #dc3545; margin: 0 0 4px 0; font-size: 18px;">No encontrado en BD</h3><p style="font-size: 14px;">Lectura: <strong>${termino}</strong></p><div id="panel-botones-accion" class="panel-acciones"><button class="btn-accion-unica" style="background-color: #6c757d;" onclick="mostrarInputCantidad('${termino}', true)">Forzar Añadir</button></div><div id="panel-cantidad-accion" class="panel-cantidad"><input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly onclick="abrirTecladoCantidad()"></div>`;
             inputCodigo.value = ""; 
         }
@@ -477,10 +484,8 @@
                 resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#28a745";
                 resultadoDiv.innerHTML = `<h3 style="color:#28a745; margin:0; font-size:20px;">¡Añadidas ${cantidad} uds!</h3><p style="margin:4px 0; font-size:14px;">al inventario general</p>`;
             } else { resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = ""; }
-            
             tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); inputActivoId = 'inputCodigo'; inputCodigo.value = "";
-            
-            if (ultimoModo === 'camara') { setTimeout(iniciarEscanerSegunOS, 1000); } else { inputCodigo.focus(); }
+            if (ultimoModo === 'camara') iniciarEscanerSegunOS(); else setTimeout(() => { inputCodigo.focus(); }, 150);
         }
 
         function abrirTecladoCantidad() { 
@@ -490,6 +495,7 @@
             inputCodigo.blur(); 
         }
 
+        // LÓGICA DE TECLADO REPARADA
         function pulsarTecla(valor) {
             const inputDestino = document.getElementById(inputActivoId);
             if (!inputDestino) return;
@@ -500,7 +506,7 @@
         function pulsarEnter() {
             const inputDestino = document.getElementById(inputActivoId);
             if (!inputDestino) return;
-            if (inputActivoId === 'inputCodigo') { ultimoModo = 'teclado'; procesarBusqueda(inputDestino.value.trim()); tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); inputCodigo.focus(); } 
+            if (inputActivoId === 'inputCodigo') { ultimoModo = 'teclado'; procesarBusqueda(inputDestino.value.trim()); tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); } 
             else if (inputActivoId === 'input-cant-accion') guardarEnLista(itemActual.ean, itemActual.esDesconocido);
             else if (inputActivoId === 'input-precio-accion') guardarPrecioCompetencia();
             else if (inputActivoId === 'input-pedido-accion') guardarCantidadPedido();
@@ -510,47 +516,34 @@
         inputCodigo.addEventListener('blur', () => { if (tecladoVirtual.style.display !== 'grid') document.body.classList.remove('modo-teclado'); });
         inputCodigo.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); ultimoModo = 'teclado'; procesarBusqueda(inputCodigo.value.trim()); } });
 
-        // CAPTURAR EL "ENTER" DEL ESCÁNER FÍSICO CUANDO EL TECLADO VIRTUAL ESTÁ ABIERTO
         document.body.addEventListener('keypress', function(e) {
             if (e.key === 'Enter' && inputActivoId !== 'inputCodigo' && document.getElementById(inputActivoId)) {
                 e.preventDefault(); pulsarEnter();
             }
         });
 
-        // NUEVO MOTOR HTML5-QRCODE INTEGRADO
-        let html5QrcodeScanner;
+        // MOTOR ZXING ORIGINAL
+        function procesarResultadoZXing(result) { if (result) { ultimoModo = 'camara'; if (navigator.vibrate) navigator.vibrate([100, 50, 100]); reproducirBeep(); procesarBusqueda(result.text.trim()); cerrarCamara(); } }
+        function iniciarEscanerSegunOS() { ultimoModo = 'camara'; iniciarCamaraVideo(); }
 
-        function iniciarEscanerSegunOS() {
-            ultimoModo = 'camara';
-            initAudio();
-            document.getElementById('resultado').style.display = 'none';
-            document.getElementById('video-container').style.display = 'flex';
-            tecladoVirtual.style.display = 'none';
-
-            if (!html5QrcodeScanner) {
-                html5QrcodeScanner = new Html5QrcodeScanner(
-                    "reader",
-                    { fps: 10, qrbox: {width: 250, height: 150}, aspectRatio: 1.333334, showTorchButtonIfSupported: true },
-                    false
-                );
-                
-                html5QrcodeScanner.render((decodedText) => {
-                    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-                    reproducirBeep();
-                    cerrarCamara();
-                    procesarBusqueda(decodedText, true); 
-                }, (errorMessage) => {});
-            }
+        async function iniciarCamaraVideo() {
+            initAudio(); const container = document.getElementById('video-container'); container.style.display = 'block'; tecladoVirtual.style.display = 'none';
+            if (!codeReader) { codeReader = new ZXing.BrowserBarcodeReader(new Map().set(ZXing.DecodeHintType.TRY_HARDER, true)); }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                const devices = await codeReader.listVideoInputDevices(); const select = document.getElementById('selector-camara'); select.innerHTML = ''; let idCamaraTrasera = null;
+                devices.forEach((device, idx) => {
+                    const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = device.label || 'Cámara ' + (idx + 1); select.appendChild(opt);
+                    const label = device.label.toLowerCase(); if (label.includes('back') || label.includes('trasera') || label.includes('environment')) { idCamaraTrasera = device.deviceId; }
+                });
+                stream.getTracks().forEach(track => track.stop());
+                let selected = camaraManualId || idCamaraTrasera || (devices.length > 0 ? devices[0].deviceId : null);
+                if (selected) { select.value = selected; codeReader.decodeFromVideoDevice(selected, 'video-preview', (result) => { if (result) procesarResultadoZXing(result); }); }
+            } catch (err) { alert("Error cámara: " + err.message); container.style.display = 'none'; }
         }
 
-        function cerrarCamara() {
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.clear().then(() => {
-                    html5QrcodeScanner = null;
-                    document.getElementById('video-container').style.display = 'none';
-                }).catch(error => { document.getElementById('video-container').style.display = 'none'; });
-            } else { document.getElementById('video-container').style.display = 'none'; }
-        }
+        function cambiarCamaraManual() { camaraManualId = document.getElementById('selector-camara').value; localStorage.setItem('camaraPreferida', camaraManualId); cerrarCamara(); setTimeout(iniciarEscanerSegunOS, 300); }
+        function cerrarCamara() { if (codeReader) codeReader.reset(); document.getElementById('video-container').style.display = 'none'; }
 
         function parsearCSV(texto, options) { return new Promise(resolve => { Papa.parse(texto, { ...options, complete: resolve }); }); }
 
