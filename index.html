@@ -147,41 +147,17 @@
 </head>
 <body>
 
-<div id="aviso-rotacion">
-<h2>⚠️ Gira el dispositivo</h2>
-<p>El escáner de códigos y la interfaz solo funcionan correctamente en modo vertical.</p>
-</div>
-
-<div class="cabecera-top">
-<h1>MOVILEC <span style="font-size: 13px; color: #28a745; vertical-align: middle;">🤖 ANDROID</span></h1>
-<div style="display: flex; gap: 4px;">
-    <button class="btn-actualizar" style="background-color: #007bff;" onclick="window.location.href='beta.html'">Ir a 🍎 iOS</button>
-    <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sync</button>
-</div>
-</div>
-
-<div id="estado">Iniciando BBDD Local...</div>
-
-<div class="cabecera-top">
-<h1>MOVILEC <span style="font-size: 13px; color: #28a745; vertical-align: middle;">🤖 ANDROID</span></h1>
-<div style="display: flex; gap: 4px;">
-    <button class="btn-actualizar" style="background-color: #007bff;" onclick="window.location.href='beta.html'">Ir a 🍎 iOS</button>
-    <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sync</button>
-</div>
-</div>
-
-<div id="estado">Iniciando BBDD Local...</div>
-
-    <!-- BOTONES DE ALTERNANCIA EN CABECERA -->
-    <div class="cabecera-top">
-    <h1>MOVILEC <span style="font-size: 13px; color: #28a745; vertical-align: middle;">🤖 ANDROID</span></h1>
-    <div>
-        <button class="btn-actualizar" style="background-color: #007bff; margin-right: 4px;" onclick="window.location.href='beta.html'">Ir a 🍎 iOS</button>
-        <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sync</button>
+    <div id="aviso-rotacion">
+        <h2>⚠️ Gira el dispositivo</h2>
+        <p>El escáner de códigos y la interfaz solo funcionan correctamente en modo vertical.</p>
     </div>
-</div>
-            <button class="btn-actualizar" style="background-color: #007bff; margin-right: 4px;" onclick="window.location.href='beta.html'">🍎 iOS</button>
-            <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar</button>
+
+    <!-- CABECERA LIMPIA ANDROID -->
+    <div class="cabecera-top">
+        <h1>MOVILEC <span style="font-size: 13px; color: #28a745; vertical-align: middle;">🤖 ANDROID</span></h1>
+        <div style="display: flex; gap: 4px;">
+            <button class="btn-actualizar" style="background-color: #007bff;" onclick="window.location.href='beta.html'">Ir a 🍎 iOS</button>
+            <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sync</button>
         </div>
     </div>
 
@@ -487,17 +463,6 @@
 
         function abrirTecladoCantidad() { inputActivoId = 'input-cant-accion'; tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado'); forzarCierreTecladoNativo(); }
 
-        function pulsarTecla(valor) {
-            const inputDestino = document.getElementById(inputActivoId);
-            if (valor === 'DEL') { inputDestino.value = inputDestino.value.slice(0, -1);
-            } else if (valor === 'ENTER') {
-                if (inputActivoId === 'inputCodigo') { ultimoModo = 'teclado'; procesarBusqueda(inputDestino.value.trim()); tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); } 
-                else if (inputActivoId === 'input-cant-accion') guardarEnLista(itemActual.ean, itemActual.esDesconocido);
-                else if (inputActivoId === 'input-precio-accion') guardarPrecioCompetencia();
-                else if (inputActivoId === 'input-pedido-accion') guardarCantidadPedido();
-            } else { inputDestino.value += valor; }
-        }
-
         inputCodigo.addEventListener('focus', (e) => { if (inputActivoId !== 'inputCodigo') { e.preventDefault(); inputCodigo.blur(); return; } document.body.classList.add('modo-teclado'); tecladoVirtual.style.display = 'none'; cerrarCamara(); });
         inputCodigo.addEventListener('blur', () => { if (tecladoVirtual.style.display !== 'grid') document.body.classList.remove('modo-teclado'); });
         inputCodigo.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); ultimoModo = 'teclado'; procesarBusqueda(inputCodigo.value.trim()); } });
@@ -608,7 +573,6 @@
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataCompetencia), "SEGUIMIENTO PRECIOS");
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataPedidos), "PEDIDOS");
 
-            // 1. Preguntar si quiere enviar por correo (SI HAY EMAIL CONFIGURADO)
             let emailDestino = document.getElementById('email-destino-input').value.trim();
             if (emailDestino !== "") {
                 if (confirm(`¿Quieres enviar también una copia de este Excel por correo a ${emailDestino}?`)) {
@@ -628,7 +592,6 @@
                 }
             }
 
-            // 2. Descarga normal en el móvil
             var wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
             var blob = new Blob([wbout], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
             var file = new File([blob], 'Trabajo.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });

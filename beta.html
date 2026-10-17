@@ -145,55 +145,22 @@
 </head>
 <body>
 
-<div id="aviso-rotacion">
-<h2>⚠️ Gira el dispositivo</h2>
-<p>La interfaz solo funciona correctamente en modo vertical.</p>
-</div>
-
-<div id="scanner-container">
-<div id="reader"></div>
-<button class="btn-cerrar-camara" onclick="cerrarEscaner()">✕ Cerrar Cámara</button>
-</div>
-
-<div class="cabecera-top">
-<h1>MOVILEC <span style="font-size: 13px; color: #007bff; vertical-align: middle;">🍎 iOS</span></h1>
-<div style="display: flex; gap: 4px;">
-    <button class="btn-actualizar" style="background-color: #28a745;" onclick="window.location.href='index.html'">Ir a 🤖 Android</button>
-    <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sync</button>
-</div>
-</div>
-
-<div id="estado">Iniciando BBDD Local...</div>
-
-<div id="scanner-container">
-<div id="reader"></div>
-<button class="btn-cerrar-camara" onclick="cerrarEscaner()">✕ Cerrar Cámara</button>
-</div>
-
-<div class="cabecera-top">
-<h1>MOVILEC <span style="font-size: 13px; color: #007bff; vertical-align: middle;">🍎 iOS</span></h1>
-<div style="display: flex; gap: 4px;">
-    <button class="btn-actualizar" style="background-color: #28a745;" onclick="window.location.href='index.html'">Ir a 🤖 Android</button>
-    <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sync</button>
-</div>
-</div>
-
-<div id="estado">Iniciando BBDD Local...</div>
+    <div id="aviso-rotacion">
+        <h2>⚠️ Gira el dispositivo</h2>
+        <p>La interfaz solo funciona correctamente en modo vertical.</p>
+    </div>
 
     <div id="scanner-container">
         <div id="reader"></div>
         <button class="btn-cerrar-camara" onclick="cerrarEscaner()">✕ Cerrar Cámara</button>
     </div>
 
-   <div class="cabecera-top">
-    <h1>MOVILEC <span style="font-size: 13px; color: #007bff; vertical-align: middle;">🍎 iOS</span></h1>
-    <div>
-        <button class="btn-actualizar" style="background-color: #28a745; margin-right: 4px;" onclick="window.location.href='index.html'">Ir a 🤖 Android</button>
-        <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sync</button>
-    </div>
-</div>
-            <button class="btn-actualizar" style="background-color: #28a745; margin-right: 4px;" onclick="window.location.href='index.html'">🤖 ANDROID</button>
-            <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sincronizar</button>
+    <!-- CABECERA LIMPIA iOS -->
+    <div class="cabecera-top">
+        <h1>MOVILEC <span style="font-size: 13px; color: #007bff; vertical-align: middle;">🍎 iOS</span></h1>
+        <div style="display: flex; gap: 4px;">
+            <button class="btn-actualizar" style="background-color: #28a745;" onclick="window.location.href='index.html'">Ir a 🤖 Android</button>
+            <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sync</button>
         </div>
     </div>
 
@@ -521,10 +488,12 @@
 
         async function enviarADrive() {
             if (listaTrabajo.length === 0) { alert("La lista está vacía."); return; }
+            if (!usuarioGuardado) { alert("Pon tu nombre en la casilla de arriba primero."); return; }
+
             const btnDrive = document.getElementById('btn-drive');
             btnDrive.classList.add('loading'); btnDrive.innerText = "⏳ Guardando...";
 
-            const datosAEnviar = listaTrabajo.map(item => { return { tipo: item.tipo || 'inventario', ean: item.ean, cantidad: item.cantidad, stock: item.stock || "", descripcion: item.descripcion, fecha: item.fecha, usuario: usuarioGuardado, competencia: item.competencia || "", pvp_competencia: item.pvp_competencia || "", pvp_nuestro: item.pvp_nuestro || "", opus: item.opus || "", rayon: item.rayon || "" }; });
+            const datosAEnviar = listaTrabajo.map(item => { return { tipo: item.tipo || 'inventario', ean: item.ean, cantidad: item.cantidad, stock: item.stock || "", descripcion: item.descripcion, fecha: item.fecha, usuario: usuarioGuardado, competencia: item.competencia || "", pvp_competencia: item.pvp_competencia || "", pvp_nuestro: item.pvp_nuestro || "", opus: item.opus || "", rayon: item.rayon || "", email: emailGuardado }; });
 
             try {
                 const payload = { action: "sync", data: datosAEnviar };
@@ -581,9 +550,13 @@
 
         function mostrarArticuloCompleto(ean, esSinStock = false) {
             let art = esSinStock ? inventarioSinStock[ean] : inventario[ean];
-            let colorBorde = esSinStock ? "#ff9800" : "#222222"; let titulo = esSinStock ? "📚 Sin Stock (Vendido últ. año)" : "¡Artículo encontrado!"; let colorTitulo = esSinStock ? "#ff9800" : "#28a745"; let colorStock = esSinStock ? "#dc3545" : "#28a745";
+            let colorBorde = esSinStock ? "#ff9800" : "#222222";
+            let titulo = esSinStock ? "📚 Sin Stock (Vendido últ. año)" : "¡Artículo encontrado!";
+            let colorTitulo = esSinStock ? "#ff9800" : "#28a745";
+            let colorStock = esSinStock ? "#dc3545" : "#28a745";
 
-            resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = colorBorde;
+            resultadoDiv.style.display = 'flex';
+            resultadoDiv.style.borderColor = colorBorde;
             resultadoDiv.innerHTML = `
                 <div style="display: flex; flex-direction: column; gap: 2px;">
                     <p class="titulo-encontrado" style="color: ${colorTitulo};">${titulo}</p>
@@ -611,7 +584,8 @@
         }
 
         function mostrarArticuloDesconocido(termino) {
-            resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#dc3545";
+            resultadoDiv.style.display = 'flex';
+            resultadoDiv.style.borderColor = "#dc3545";
             resultadoDiv.innerHTML = `
                 <h3 style="color: #dc3545; margin: 0 0 4px 0; font-size: 18px;">No encontrado en BD</h3>
                 <p style="font-size: 14px;">Lectura: <strong>${termino}</strong></p>
@@ -629,26 +603,41 @@
             itemActual = { ean: identificador, esDesconocido: esDesconocido };
             document.getElementById('panel-botones-accion').style.display = 'none';
             const panelCant = document.getElementById('panel-cantidad-accion');
-            panelCant.style.display = 'flex'; document.getElementById('input-cant-accion').value = ""; 
-            inputActivoId = 'input-cant-accion'; tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado');
+            panelCant.style.display = 'flex';
+            document.getElementById('input-cant-accion').value = ""; 
+            
+            inputActivoId = 'input-cant-accion'; 
+            tecladoVirtual.style.display = 'grid'; 
+            document.body.classList.add('modo-teclado');
         }
 
         function guardarEnLista(identificador, esDesconocido) {
             let inputVal = document.getElementById('input-cant-accion').value;
             const cantidad = parseFloat(inputVal.replace(',', '.')) || 0;
+            
             if (cantidad > 0) {
                 let desc = "DESCONOCIDO/FUERA SURTIDO";
-                if (!esDesconocido) { let result = buscarArticuloGlobal(identificador); if (result) desc = result.art.descripcion; }
+                if (!esDesconocido) {
+                    let result = buscarArticuloGlobal(identificador);
+                    if (result) desc = result.art.descripcion;
+                }
 
                 listaTrabajo.push({ tipo: 'inventario', ean: identificador, descripcion: desc, cantidad: cantidad, fecha: new Date().toLocaleString('es-ES').replace(', ', ' ') });
                 localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo));
                 
-                resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#28a745";
+                resultadoDiv.style.display = 'flex';
+                resultadoDiv.style.borderColor = "#28a745";
                 resultadoDiv.innerHTML = `<h3 style="color:#28a745; margin:0; font-size:20px;">¡Añadidas ${cantidad} uds!</h3><p style="margin:4px 0; font-size:14px;">al inventario general</p>`;
-            } else { resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = ""; }
+            } else {
+                resultadoDiv.style.display = 'none';
+                resultadoDiv.innerHTML = "";
+            }
 
-            inputCodigo.value = ""; tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado');
-            inputCodigo.readOnly = false; inputActivoId = 'inputCodigo';
+            inputCodigo.value = "";
+            tecladoVirtual.style.display = 'none'; 
+            document.body.classList.remove('modo-teclado');
+            inputCodigo.readOnly = false;
+            inputActivoId = 'inputCodigo';
 
             if (ultimoEscaneoFueCamara) { setTimeout(() => { abrirEscaner(); }, 1500); }
         }
@@ -662,7 +651,8 @@
         function abrirEscaner() {
             initAudio(); 
             const container = document.getElementById('scanner-container');
-            container.style.display = 'flex'; document.getElementById('resultado').style.display = 'none';
+            container.style.display = 'flex';
+            document.getElementById('resultado').style.display = 'none';
             if (tecladoVirtual.style.display === 'grid') { toggleTecladoVirtual(); }
 
             if (!html5QrcodeScanner) {
@@ -674,29 +664,45 @@
                 
                 html5QrcodeScanner.render((decodedText) => {
                     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-                    reproducirBeep(); cerrarEscaner(); procesarBusqueda(decodedText, true); 
+                    reproducirBeep();
+                    cerrarEscaner();
+                    procesarBusqueda(decodedText, true); 
                 }, (errorMessage) => {});
             }
         }
 
         function cerrarEscaner() {
-            if (html5QrcodeScanner) { html5QrcodeScanner.clear().then(() => { html5QrcodeScanner = null; document.getElementById('scanner-container').style.display = 'none'; }).catch(error => { document.getElementById('scanner-container').style.display = 'none'; });
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear().then(() => {
+                    html5QrcodeScanner = null;
+                    document.getElementById('scanner-container').style.display = 'none';
+                }).catch(error => { document.getElementById('scanner-container').style.display = 'none'; });
             } else { document.getElementById('scanner-container').style.display = 'none'; }
         }
 
-        function parsearCSV(texto, options) { return new Promise(resolve => { Papa.parse(texto, { ...options, complete: resolve }); }); }
+        function parsearCSV(texto, options) {
+            return new Promise(resolve => { Papa.parse(texto, { ...options, complete: resolve }); });
+        }
 
         async function cargarInventario() {
             estadoDiv.innerHTML = "Iniciando BBDD Local..."; estadoDiv.style.color = "blue";
-            await initDB(); let contadorTienda = 0; let fechaFmt = "-";
+            await initDB();
+            let contadorTienda = 0; let fechaFmt = "-";
+            
             try {
                 estadoDiv.innerHTML = "Sincronizando Tienda (1/2)...";
-                let urlTienda = 'TIENDA.csv?' + new Date().getTime(); let response = await fetch(urlTienda);
+                let urlTienda = 'TIENDA.csv?' + new Date().getTime();
+                let response = await fetch(urlTienda);
                 if (!response.ok) { urlTienda = 'tienda.csv?' + new Date().getTime(); response = await fetch(urlTienda); }
+                
                 if (response.ok) {
-                    const lastModifiedHeader = response.headers.get('Last-Modified'); const d = lastModifiedHeader ? new Date(lastModifiedHeader) : new Date();
+                    const lastModifiedHeader = response.headers.get('Last-Modified');
+                    const d = lastModifiedHeader ? new Date(lastModifiedHeader) : new Date();
                     fechaFmt = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-                    let textoTienda = await response.text(); let results = await parsearCSV(textoTienda, { header: false, delimiter: ";", skipEmptyLines: true });
+                    
+                    let textoTienda = await response.text();
+                    let results = await parsearCSV(textoTienda, { header: false, delimiter: ";", skipEmptyLines: true });
+                    
                     inventario = {};
                     results.data.forEach(fila => {
                         if(fila.length >= 7) {
@@ -711,16 +717,26 @@
             try {
                 estadoDiv.innerHTML = "Sincronizando Sin Stock (2/2)...";
                 let urlMaestro = 'SIN_STOCK_FILTRADO.csv?' + new Date().getTime(); let responseM = await fetch(urlMaestro);
-                if (responseM.ok) { let textoMaestro = await responseM.text(); await guardarArchivoLocal('sin_stock_csv', textoMaestro); await procesarTextoSinStock(textoMaestro);
+                if (responseM.ok) {
+                    let textoMaestro = await responseM.text();
+                    await guardarArchivoLocal('sin_stock_csv', textoMaestro); await procesarTextoSinStock(textoMaestro);
                 } else { throw new Error("No red"); }
-            } catch (e) { let textoLocal = await leerArchivoLocal('sin_stock_csv'); if (textoLocal) { await procesarTextoSinStock(textoLocal); } }
+            } catch (e) {
+                let textoLocal = await leerArchivoLocal('sin_stock_csv');
+                if (textoLocal) { await procesarTextoSinStock(textoLocal); }
+            }
             
-            estadoDiv.innerHTML = `Stock: ${contadorTienda} | Sin Stock: ${Object.keys(inventarioSinStock).length} <span class="texto-fecha">Últ. Sinc: ${fechaFmt}</span>`; estadoDiv.style.color = "#28a745";
+            estadoDiv.innerHTML = `Stock: ${contadorTienda} | Sin Stock: ${Object.keys(inventarioSinStock).length} <span class="texto-fecha">Últ. Sinc: ${fechaFmt}</span>`; 
+            estadoDiv.style.color = "#28a745";
         }
 
         async function procesarTextoSinStock(texto) {
-            let results = await parsearCSV(texto, { header: true, delimiter: ";", skipEmptyLines: true }); inventarioSinStock = {};
-            results.data.forEach(fila => { let ean = fila['EAN'] ? fila['EAN'].trim() : ""; if (ean) { inventarioSinStock[ean] = { descripcion: fila['DESCRIPCION'] || "", precio: fila['PVC'] || "-", fecha: fila['FECHA'] || "-", stock: fila['STOCK'] || "0", rayon: fila['RAYON'] || "-", ventas: fila['VENTAS'] || "0" }; } });
+            let results = await parsearCSV(texto, { header: true, delimiter: ";", skipEmptyLines: true });
+            inventarioSinStock = {};
+            results.data.forEach(fila => {
+                let ean = fila['EAN'] ? fila['EAN'].trim() : "";
+                if (ean) { inventarioSinStock[ean] = { descripcion: fila['DESCRIPCION'] || "", precio: fila['PVC'] || "-", fecha: fila['FECHA'] || "-", stock: fila['STOCK'] || "0", rayon: fila['RAYON'] || "-", ventas: fila['VENTAS'] || "0" }; }
+            });
         }
 
         function verListas() { document.getElementById('modalListas').style.display = 'flex'; renderizarLista(); }
@@ -735,6 +751,7 @@
                 if (item.tipo === 'competencia') { badge = `<span class="etiqueta-tipo-lista bg-competencia">Chequeo</span>`; detalleEx = `<br><span style="color:#9c27b0; font-weight:bold;">${item.competencia}: ${item.pvp_competencia}€ (Dif: ${item.opus})</span>`; } 
                 else if (item.tipo === 'pedido') { badge = `<span class="etiqueta-tipo-lista bg-pedido">Pedido</span>`; detalleEx = `<br><span style="color:#17a2b8; font-weight:bold;">Stock actual: ${item.stock}</span>`; } 
                 else { badge = `<span class="etiqueta-tipo-lista bg-inventario">Inventario</span>`; }
+
                 html += `<div class="item-lista-guardada"><div class="item-lista-info">${badge}<span class="item-desc-modal">${item.descripcion}</span><span class="item-detalle-modal">EAN: ${item.ean}${detalleEx}</span></div><div style="display:flex; align-items:center;"><span class="item-cant-modal">x${item.cantidad}</span><button class="btn-editar-item" onclick="editarItemLista(${listaTrabajo.length - 1 - idx})">✏️</button><button class="btn-borrar-item" onclick="eliminarItemLista(${listaTrabajo.length - 1 - idx})">✕</button></div></div>`;
             });
             contenedor.innerHTML = html;
@@ -745,13 +762,20 @@
             if (item.tipo === 'competencia') {
                 let nuevo = prompt(`Editar precio de la competencia para:\n${item.descripcion}`, item.pvp_competencia);
                 if (nuevo !== null && nuevo.trim() !== "") {
-                    let precioCompStr = nuevo.trim().replace(/,/g, '.'); item.pvp_competencia = precioCompStr; let opusFinal = "FALTA PVP"; let pvpCompNum = parseFloat(precioCompStr); let pvpNuestroStr = item.pvp_nuestro;
-                    if (pvpNuestroStr !== "-" && pvpNuestroStr !== "") { let pvpNuesNum = parseFloat(pvpNuestroStr.replace(',', '.')); if (!isNaN(pvpNuesNum) && !isNaN(pvpCompNum) && pvpCompNum > 0) { let diff = ((pvpNuesNum - pvpCompNum) / pvpCompNum) * 100; opusFinal = (diff > 0 ? "+" : "") + diff.toFixed(2) + "%"; } }
+                    let precioCompStr = nuevo.trim().replace(/,/g, '.'); item.pvp_competencia = precioCompStr;
+                    let opusFinal = "FALTA PVP"; let pvpCompNum = parseFloat(precioCompStr); let pvpNuestroStr = item.pvp_nuestro;
+                    if (pvpNuestroStr !== "-" && pvpNuestroStr !== "") {
+                        let pvpNuesNum = parseFloat(pvpNuestroStr.replace(',', '.'));
+                        if (!isNaN(pvpNuesNum) && !isNaN(pvpCompNum) && pvpCompNum > 0) { let diff = ((pvpNuesNum - pvpCompNum) / pvpCompNum) * 100; opusFinal = (diff > 0 ? "+" : "") + diff.toFixed(2) + "%"; }
+                    }
                     item.opus = opusFinal; localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo)); renderizarLista();
                 }
             } else {
                 let nuevo = prompt(`Editar cantidad para:\n${item.descripcion}`, item.cantidad);
-                if (nuevo !== null && nuevo.trim() !== "") { let cantNum = parseFloat(nuevo.trim().replace(',', '.')); if (!isNaN(cantNum) && cantNum > 0) { item.cantidad = cantNum; localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo)); renderizarLista(); } }
+                if (nuevo !== null && nuevo.trim() !== "") {
+                    let cantNum = parseFloat(nuevo.trim().replace(',', '.'));
+                    if (!isNaN(cantNum) && cantNum > 0) { item.cantidad = cantNum; localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo)); renderizarLista(); }
+                }
             }
         }
 
@@ -760,7 +784,8 @@
         
         async function exportarListaExcel() {
             if(listaTrabajo.length === 0) return;
-            let listaInvertida = [...listaTrabajo].reverse(); let dataInventario = []; let dataCompetencia = []; let dataPedidos = [];
+            let listaInvertida = [...listaTrabajo].reverse();
+            let dataInventario = []; let dataCompetencia = []; let dataPedidos = [];
 
             listaInvertida.forEach(item => {
                 let descLimpia = item.descripcion || ""; let eanLimpio = item.ean ? String(item.ean) : ""; 
@@ -778,7 +803,6 @@
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataCompetencia), "SEGUIMIENTO PRECIOS");
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataPedidos), "PEDIDOS");
 
-            // 1. Preguntar si quiere enviar por correo (SI HAY EMAIL CONFIGURADO)
             let emailDestino = document.getElementById('email-destino-input').value.trim();
             if (emailDestino !== "") {
                 if (confirm(`¿Quieres enviar también una copia de este Excel por correo a ${emailDestino}?`)) {
@@ -798,7 +822,6 @@
                 }
             }
 
-            // 2. Descarga normal en el móvil
             var wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
             var blob = new Blob([wbout], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
             var file = new File([blob], 'Trabajo.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
