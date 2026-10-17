@@ -18,6 +18,7 @@
 
     <style>
         * { box-sizing: border-box; }
+        /* FIX DE PANTALLA CORTADA: Bloqueo absoluto del viewport */
         html, body { height: 100%; width: 100%; position: fixed; top: 0; left: 0; margin: 0; padding: 0; overflow: hidden; }
         
         body { 
@@ -40,6 +41,7 @@
         #estado { flex-shrink: 0; font-weight: bold; font-size: 11px; color: #28a745; margin-bottom: 4px; }
         .texto-fecha { font-size: 11px; color: #444444; font-weight: bold; display: block; margin-top: 1px; text-transform: uppercase; }
         
+        /* MUELLE FLEXIBLE PROTEGIDO */
         #espaciador-central { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
 
         .resultado { display: none; width: 98%; margin: 0 auto; padding: 10px; border: 2px solid #222222; border-radius: 12px; background-color: #ffffff; flex-direction: column; gap: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-height: 100%; overflow-y: auto; }
@@ -150,6 +152,7 @@
         <p>El escáner de códigos y la interfaz solo funcionan correctamente en modo vertical.</p>
     </div>
 
+    <!-- CABECERA LIMPIA ANDROID -->
     <div class="cabecera-top">
         <h1>MOVILEC <span style="font-size: 13px; color: #28a745; vertical-align: middle;">🤖 ANDROID</span></h1>
         <div style="display: flex; gap: 4px;">
@@ -319,7 +322,6 @@
                 else if (modo === 'chequeo') { btnChequeo.classList.add('activo'); resultadoDiv.innerHTML = `<h3 style='color:#9c27b0; margin:0;'>🕵️ CHEQUEANDO: ${competenciaGuardada}</h3><p style='font-size:15px; margin-top:4px;'>Escanea el producto para introducir su PVP.</p>`; } 
                 else if (modo === 'pedidos') { btnPedidos.classList.add('activo'); resultadoDiv.innerHTML = `<h3 style='color:#17a2b8; margin:0;'>🛒 MODO PEDIDOS</h3><p style='font-size:15px; margin-top:4px;'>Escanea para ver Rayón/Stock y pedir.</p>`; }
             }
-            inputCodigo.focus();
         }
 
         function forzarCierreTecladoNativo() { inputCodigo.disabled = true; document.activeElement.blur(); setTimeout(() => { inputCodigo.disabled = false; }, 300); }
@@ -341,17 +343,11 @@
             itemActual = { ean: eanDetectado, desc: desc, pvp_nuestro: pvp_nuestro, rayon: rayon };
             let textoPvp = pvp_nuestro === "-" ? "<span style='color:red;'>No tenemos PVP</span>" : `Nuestro PVP: <b>${pvp_nuestro}€</b>`;
             resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#9c27b0";
-            
-            resultadoDiv.innerHTML = `<h3 style='color:#9c27b0; margin:0;'>Introduce el Precio PVP</h3><p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br><strong style="font-size:16px;">${desc}</strong></p><p style='font-size:14px; color:#555; margin:4px 0;'>${textoPvp}</p><div class="panel-cantidad" style="display:flex;"><input type="text" id="input-precio-accion" class="input-cantidad" placeholder="PVP Rival €..." readonly="readonly" onclick="abrirTecladoPrecio()"></div>`;
+            resultadoDiv.innerHTML = `<h3 style='color:#9c27b0; margin:0;'>Introduce el Precio PVP</h3><p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br><strong style="font-size:16px;">${desc}</strong></p><p style='font-size:14px; color:#555; margin:4px 0;'>${textoPvp}</p><div class="panel-cantidad" style="display:flex;"><input type="number" id="input-precio-accion" class="input-cantidad" placeholder="PVP Rival €..." onclick="abrirTecladoPrecio()"></div>`;
             abrirTecladoPrecio();
         }
 
-        function abrirTecladoPrecio() { 
-            inputActivoId = 'input-precio-accion'; 
-            tecladoVirtual.style.display = 'grid'; 
-            document.body.classList.add('modo-teclado'); 
-            inputCodigo.blur(); 
-        }
+        function abrirTecladoPrecio() { inputActivoId = 'input-precio-accion'; tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado'); }
 
         function guardarPrecioCompetencia() {
             let existe = listaTrabajo.findIndex(i => i.tipo === 'competencia' && i.ean === itemActual.ean);
@@ -374,17 +370,11 @@
             if (result) { eanDetectado = result.ean; desc = result.art.descripcion; stock = result.art.stock; rayon = result.art.rayon; }
             itemActual = { ean: eanDetectado, desc: desc, stock: stock, rayon: rayon };
             resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#17a2b8";
-            
-            resultadoDiv.innerHTML = `<h3 style='color:#17a2b8; margin:0;'>🛒 Cantidad a Pedir</h3><p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br><strong style="font-size:16px;">${desc}</strong></p><div style='background:#e8f5e9; padding:8px; border-radius:8px; margin:6px 0; border: 3px solid #28a745;'><span style='font-size:12px; color:#28a745; font-weight:bold; display:block; text-transform:uppercase;'>Stock Actual en ${rayon}</span><span style='font-size:40px; color:#28a745; font-weight:900; line-height:1;'>${stock}</span></div><div class="panel-cantidad" style="display:flex;"><input type="text" id="input-pedido-accion" class="input-cantidad" placeholder="Pedir Uds..." readonly="readonly" onclick="abrirTecladoPedido()"></div>`;
+            resultadoDiv.innerHTML = `<h3 style='color:#17a2b8; margin:0;'>🛒 Cantidad a Pedir</h3><p style='font-size:14px; margin:2px 0;'>EAN: <b>${eanDetectado}</b><br><strong style="font-size:16px;">${desc}</strong></p><div style='background:#e8f5e9; padding:8px; border-radius:8px; margin:6px 0; border: 3px solid #28a745;'><span style='font-size:12px; color:#28a745; font-weight:bold; display:block; text-transform:uppercase;'>Stock Actual en ${rayon}</span><span style='font-size:40px; color:#28a745; font-weight:900; line-height:1;'>${stock}</span></div><div class="panel-cantidad" style="display:flex;"><input type="number" id="input-pedido-accion" class="input-cantidad" placeholder="Pedir Uds..." onclick="abrirTecladoPedido()"></div>`;
             abrirTecladoPedido();
         }
 
-        function abrirTecladoPedido() { 
-            inputActivoId = 'input-pedido-accion'; 
-            tecladoVirtual.style.display = 'grid'; 
-            document.body.classList.add('modo-teclado'); 
-            inputCodigo.blur(); 
-        }
+        function abrirTecladoPedido() { inputActivoId = 'input-pedido-accion'; tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado'); }
 
         function guardarCantidadPedido() {
             let inputVal = document.getElementById('input-pedido-accion').value; const cantidad = parseFloat(inputVal.replace(',', '.')) || 0;
@@ -412,7 +402,7 @@
             if (listaTrabajo.length === 0) { alert("La lista está vacía."); return; }
             const btnDrive = document.getElementById('btn-drive');
             btnDrive.classList.add('loading'); btnDrive.innerText = "⏳ Guardando...";
-            const datosAEnviar = listaTrabajo.map(item => { return { tipo: item.tipo || 'inventario', ean: item.ean, cantidad: item.cantidad, stock: item.stock || "", descripcion: item.descripcion, fecha: item.fecha, usuario: usuarioGuardado, competencia: item.competencia || "", pvp_competencia: item.pvp_competencia || "", pvp_nuestro: item.pvp_nuestro || "", opus: item.opus || "", rayon: item.rayon || "", email: emailGuardado }; });
+            const datosAEnviar = listaTrabajo.map(item => { return { tipo: item.tipo || 'inventario', ean: item.ean, cantidad: item.cantidad, stock: item.stock || "", descripcion: item.descripcion, fecha: item.fecha, usuario: usuarioGuardado, competencia: item.competencia || "", pvp_competencia: item.pvp_competencia || "", pvp_nuestro: item.pvp_nuestro || "", opus: item.opus || "", rayon: item.rayon || "" }; });
             try {
                 const payload = { action: "sync", data: datosAEnviar };
                 const response = await fetch(URL_GOOGLE_APPS_SCRIPT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
@@ -424,12 +414,7 @@
         }
 
         function procesarBusqueda(terminoBusqueda) {
-            if (inputActivoId !== 'inputCodigo') { inputCodigo.value = ""; return; }
             let termino = terminoBusqueda.trim().toUpperCase(); inputCodigo.value = ""; if (!termino) return;
-            
-            // CIERRE DE TECLADO NATIVO AL SCANEAR
-            inputCodigo.blur();
-
             if (modoActivo === 'rapido') { procesarEscaneoRapido(termino); return; }
             if (modoActivo === 'chequeo') { procesarEscaneoChequeo(termino); return; }
             if (modoActivo === 'pedidos') { procesarEscaneoPedido(termino); return; }
@@ -449,19 +434,20 @@
                     htmlLista += `</ul>`; resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#007bff"; resultadoDiv.innerHTML = htmlLista;
                 }
             }
+            setTimeout(() => inputCodigo.blur(), 100);
         }
 
         function mostrarArticuloCompleto(ean, esSinStock = false) {
             let art = esSinStock ? inventarioSinStock[ean] : inventario[ean];
             let colorBorde = esSinStock ? "#ff9800" : "#222222"; let titulo = esSinStock ? "📚 Sin Stock (Vendido últ. año)" : "¡Artículo encontrado!"; let colorTitulo = esSinStock ? "#ff9800" : "#28a745"; let colorStock = esSinStock ? "#dc3545" : "#28a745";
             resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = colorBorde;
-            resultadoDiv.innerHTML = `<div style="display: flex; flex-direction: column; gap: 2px;"><p class="titulo-encontrado" style="color: ${colorTitulo};">${titulo}</p><p class="texto-ean">EAN: ${ean}</p><div class="descripcion-producto">${art.descripcion}</div></div><div class="panel-secundario"><div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${art.rayon}</span></div><div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${art.precio}</span></div><div class="item-secundario"><span class="etiqueta-secundaria">Últ. Mov.</span><span class="valor-secundario">${art.fecha}</span></div><div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${art.ventas || '0'}</span></div></div><div class="caja-stock" style="background-color: ${colorStock};"><p class="etiqueta-stock">STOCK DISPONIBLE</p><p class="numero-stock">${art.stock}</p></div><div id="panel-botones-accion" class="panel-acciones"><button class="btn-accion-unica" onclick="mostrarInputCantidad('${ean}', false)">+ Añadir Inventario</button></div><div id="panel-cantidad-accion" class="panel-cantidad"><input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly="readonly" onclick="abrirTecladoCantidad()"></div>`;
+            resultadoDiv.innerHTML = `<div style="display: flex; flex-direction: column; gap: 2px;"><p class="titulo-encontrado" style="color: ${colorTitulo};">${titulo}</p><p class="texto-ean">EAN: ${ean}</p><div class="descripcion-producto">${art.descripcion}</div></div><div class="panel-secundario"><div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${art.rayon}</span></div><div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${art.precio}</span></div><div class="item-secundario"><span class="etiqueta-secundaria">Últ. Mov.</span><span class="valor-secundario">${art.fecha}</span></div><div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${art.ventas || '0'}</span></div></div><div class="caja-stock" style="background-color: ${colorStock};"><p class="etiqueta-stock">STOCK DISPONIBLE</p><p class="numero-stock">${art.stock}</p></div><div id="panel-botones-accion" class="panel-acciones"><button class="btn-accion-unica" onclick="mostrarInputCantidad('${ean}', false)">+ Añadir Inventario</button></div><div id="panel-cantidad-accion" class="panel-cantidad"><input type="number" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." onclick="abrirTecladoCantidad()"></div>`;
             inputCodigo.value = ""; 
         }
 
         function mostrarArticuloDesconocido(termino) {
             resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#dc3545";
-            resultadoDiv.innerHTML = `<h3 style="color: #dc3545; margin: 0 0 4px 0; font-size: 18px;">No encontrado en BD</h3><p style="font-size: 14px;">Lectura: <strong>${termino}</strong></p><div id="panel-botones-accion" class="panel-acciones"><button class="btn-accion-unica" style="background-color: #6c757d;" onclick="mostrarInputCantidad('${termino}', true)">Forzar Añadir</button></div><div id="panel-cantidad-accion" class="panel-cantidad"><input type="text" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." readonly="readonly" onclick="abrirTecladoCantidad()"></div>`;
+            resultadoDiv.innerHTML = `<h3 style="color: #dc3545; margin: 0 0 4px 0; font-size: 18px;">No encontrado en BD</h3><p style="font-size: 14px;">Lectura: <strong>${termino}</strong></p><div id="panel-botones-accion" class="panel-acciones"><button class="btn-accion-unica" style="background-color: #6c757d;" onclick="mostrarInputCantidad('${termino}', true)">Forzar Añadir</button></div><div id="panel-cantidad-accion" class="panel-cantidad"><input type="number" id="input-cant-accion" class="input-cantidad" placeholder="Uds..." onclick="abrirTecladoCantidad()"></div>`;
             inputCodigo.value = ""; 
         }
 
@@ -484,12 +470,7 @@
             if (ultimoModo === 'camara') iniciarEscanerSegunOS(); else setTimeout(() => { inputCodigo.focus(); }, 150);
         }
 
-        function abrirTecladoCantidad() { 
-            inputActivoId = 'input-cant-accion'; 
-            tecladoVirtual.style.display = 'grid'; 
-            document.body.classList.add('modo-teclado'); 
-            inputCodigo.blur(); 
-        }
+        function abrirTecladoCantidad() { inputActivoId = 'input-cant-accion'; tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado'); }
 
         function pulsarTecla(valor) {
             const inputDestino = document.getElementById(inputActivoId);
@@ -509,15 +490,14 @@
 
         inputCodigo.addEventListener('focus', (e) => { if (inputActivoId !== 'inputCodigo') { e.preventDefault(); inputCodigo.blur(); return; } document.body.classList.add('modo-teclado'); tecladoVirtual.style.display = 'none'; cerrarCamara(); });
         inputCodigo.addEventListener('blur', () => { if (tecladoVirtual.style.display !== 'grid') document.body.classList.remove('modo-teclado'); });
-        inputCodigo.addEventListener('keyup', function(e) { if (e.key === 'Enter') { e.preventDefault(); ultimoModo = 'teclado'; procesarBusqueda(inputCodigo.value.trim()); } });
+        inputCodigo.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); ultimoModo = 'teclado'; procesarBusqueda(inputCodigo.value.trim()); } });
 
-        document.body.addEventListener('keyup', function(e) {
+        document.body.addEventListener('keypress', function(e) {
             if (e.key === 'Enter' && inputActivoId !== 'inputCodigo' && document.getElementById(inputActivoId)) {
                 e.preventDefault(); pulsarEnter();
             }
         });
 
-        // MOTOR ZXING ORIGINAL
         function procesarResultadoZXing(result) { if (result) { ultimoModo = 'camara'; if (navigator.vibrate) navigator.vibrate([100, 50, 100]); reproducirBeep(); procesarBusqueda(result.text.trim()); cerrarCamara(); } }
         function iniciarEscanerSegunOS() { ultimoModo = 'camara'; iniciarCamaraVideo(); }
 
