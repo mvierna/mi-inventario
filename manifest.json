@@ -1,7 +1,7 @@
 {
-  "name": "MOVILTEC",
-  "short_name": "MOVILTEC",
-  "start_url": "./index.html",
+  "name": "MOVILEC",
+  "short_name": "MOVILEC",
+  "start_url": "./movilec.html",
   "display": "standalone",
   "background_color": "#f4f6f8",
   "theme_color": "#28a745",
