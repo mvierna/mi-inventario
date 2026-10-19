@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-title" content="MOVILEC">
     <link rel="apple-touch-icon" href="icono.png">
 
-    <!-- Librerías de Datos y Lectores (ZXing para Cámara A y Html5-Qrcode para Cámara B) -->
+    <!-- Librerías requeridas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -29,7 +29,7 @@
         
         #aviso-rotacion {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #f4f6f8; color: #111; z-index: 9999; flex-direction: column; 
+            background: #f4f6f8; color: #111; z-index: 10000; flex-direction: column; 
             justify-content: center; align-items: center; text-align: center; padding: 20px;
         }
         #aviso-rotacion h2 { color: #dc3545; font-size: 22px; margin-bottom: 8px; }
@@ -43,6 +43,22 @@
         .texto-fecha { font-size: 11px; color: #444444; font-weight: bold; display: block; margin-top: 1px; text-transform: uppercase; }
         
         #espaciador-central { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
+
+        /* VISOR CÁMARA A (ZXing integrado) */
+        #video-container-zxing { width: 100%; max-width: 320px; background: #000; margin: 4px auto; border-radius: 6px; overflow: hidden; position: relative; display: none; }
+        #controles-video-zxing { padding: 6px; background: rgba(0,0,0,0.7); display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+        #selector-subcamara-zxing { width: 100%; max-width: 200px; padding: 6px; border-radius: 4px; font-size: 12px; background: white; color: black; border: 1px solid #ccc; outline: none; }
+        #video-preview { width: 100%; height: auto; max-height: 200px; display: block; object-fit: cover; }
+
+        /* VISOR CÁMARA B (html5-qrcode exacto de beta.html) */
+        #scanner-container { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; background: #000; z-index: 9999;
+            padding-top: max(10px, env(safe-area-inset-top)); flex-direction: column; border-bottom: 4px solid #17a2b8; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        #reader { width: 100%; background: #000; }
+        #reader video { object-fit: cover; }
+        .btn-cerrar-camara-b { margin: 10px auto 15px auto; width: 90%; max-width: 300px; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; text-transform: uppercase; }
+        .btn-cerrar-camara-b:active { background: #c82333; }
 
         .resultado { display: none; width: 98%; margin: 0 auto; padding: 10px; border: 2px solid #222222; border-radius: 12px; background-color: #ffffff; flex-direction: column; gap: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-height: 100%; overflow-y: auto; }
         .titulo-encontrado { color: #28a745; margin: 0; font-size: 16px; font-weight: bold; }
@@ -72,22 +88,6 @@
         .item-desc { font-weight: bold; font-size: 13px; display: block; color: #111; margin-bottom: 2px; }
         .item-ean { font-size: 11px; color: #6c757d; font-weight: bold; }
 
-        /* VISTA CÁMARA A (ZXing integrado) */
-        #video-container { width: 100%; max-width: 320px; background: #000; margin: 4px auto; border-radius: 6px; overflow: hidden; position: relative; display: none; }
-        #controles-video { padding: 6px; background: rgba(0,0,0,0.7); display: flex; justify-content: space-between; align-items: center; gap: 4px; }
-        .select-selector-cam { padding: 6px; border-radius: 4px; font-size: 12px; background: white; color: black; border: 1px solid #ccc; outline: none; font-weight: bold; }
-        video { width: 100%; height: auto; max-height: 200px; display: block; object-fit: cover; }
-
-        /* VISTA CÁMARA B (html5-qrcode superpuesto) */
-        #scanner-container { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999;
-            padding-top: max(10px, env(safe-area-inset-top)); flex-direction: column; justify-content: flex-start;
-        }
-        .barra-control-camara-b { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #222; }
-        #reader { width: 100%; max-width: 450px; margin: 0 auto; background: #000; }
-        #reader video { object-fit: cover; }
-        .btn-cerrar-camara-b { padding: 8px 14px; background: #dc3545; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; }
-
         .caja-interfaz { flex-shrink: 0; padding: 6px; background-color: #ffffff; border-top: 1px solid #dee2e6; width: 100%; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
         
         .contenedor-modos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; overflow: hidden; }
@@ -100,10 +100,10 @@
         #btn-modo-lista { background-color: #007bff; }
 
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
-        .selector-tipo-camara { flex: 0 0 72px; height: 50px; border-radius: 6px; border: 2px solid #17a2b8; background: #fff; font-weight: bold; font-size: 13px; color: #111; outline: none; text-align: center; }
+        .select-selector-cam-engine { flex: 0 0 68px; height: 50px; border-radius: 6px; border: 2px solid #17a2b8; background: #fff; font-weight: 900; font-size: 12px; color: #111; outline: none; text-align: center; }
         #inputCodigo { flex: 1; min-width: 0; height: 50px; padding: 8px; font-size: 16px; text-align: center; border: 2px solid #007bff; border-radius: 6px; outline: none; font-weight: bold; }
         #inputCodigo:disabled { background-color: #e9ecef; border-color: #ced4da; opacity: 0.7; }
-        .btn-camara-cuadrado { flex: 0 0 75px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: bold; }
+        .btn-camara-cuadrado { flex: 0 0 78px; height: 50px; background-color: #17a2b8; color: white; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: bold; }
 
         #teclado-virtual { display: none; grid-template-columns: repeat(3, 1fr) 80px; gap: 6px; margin-top: 6px; background: #f8f9fa; padding: 6px; border-radius: 8px; border: 1px solid #dee2e6; }
         .tecla-v { height: 50px; font-size: 28px; font-weight: bold; background: white; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #ccc; color: #111; flex-direction: column; line-height: 1; }
@@ -118,13 +118,11 @@
 
         @media (max-height: 780px) {
             .tecla-v { height: 48px; font-size: 26px; } .tecla-accion { font-size: 15px; } .tecla-ok { font-size: 34px; }
-            .btn-modo { padding: 10px 4px; font-size: 13px; } .grupo-input-camara #inputCodigo, .grupo-input-camara .btn-camara-cuadrado, .grupo-input-camara .selector-tipo-camara { height: 46px; }
+            .btn-modo { padding: 10px 4px; font-size: 13px; } 
+            .grupo-input-camara #inputCodigo, .grupo-input-camara .btn-camara-cuadrado, .grupo-input-camara .select-selector-cam-engine { height: 46px; }
             .resultado { padding: 8px; margin-bottom: 2px; gap: 4px; margin-top: auto; } .descripcion-producto { font-size: 17px; }
             .numero-stock { font-size: 42px; } .input-cantidad { padding: 10px; font-size: 20px; } .panel-secundario { padding: 4px; margin: 2px 0; }
             .btn-accion-unica { padding: 12px; font-size: 15px; }
-        }
-        @media (max-height: 680px) {
-            .tecla-v { height: 42px; font-size: 22px; } .tecla-ok { font-size: 28px; } .btn-modo { padding: 8px 4px; font-size: 12px; } .numero-stock { font-size: 34px; }
         }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
@@ -163,7 +161,12 @@
         <p>El escáner de códigos y la interfaz funcionan correctamente en modo vertical.</p>
     </div>
 
-    <!-- CABECERA LIMPIA MOVILEC -->
+    <!-- CÁMARA B: Contenedor Html5Qrcode idéntico a beta.html -->
+    <div id="scanner-container">
+        <div id="reader"></div>
+        <button class="btn-cerrar-camara-b" onclick="cerrarCualquierCamara()">✕ Cerrar Cámara</button>
+    </div>
+
     <div class="cabecera-top">
         <h1>MOVILEC</h1>
         <div style="display: flex; gap: 4px;">
@@ -174,15 +177,11 @@
     <div id="estado">Iniciando BBDD Local...</div>
 
     <div id="espaciador-central">
-        <!-- CONTENEDOR CÁMARA A (ZXing) -->
-        <div id="video-container">
-            <div id="controles-video">
-                <select id="selector-camara-zxing" class="select-selector-cam" onchange="cambiarSubCamaraZXing()">
+        <!-- CÁMARA A: Contenedor ZXing idéntico a index.html -->
+        <div id="video-container-zxing">
+            <div id="controles-video-zxing">
+                <select id="selector-subcamara-zxing" onchange="cambiarSubCamaraZXing()">
                     <option value="">Detectando...</option>
-                </select>
-                <select class="select-selector-cam" onchange="cambiarMotorGlobal(this.value)">
-                    <option value="A" selected>Modo A</option>
-                    <option value="B">Modo B</option>
                 </select>
                 <button onclick="cerrarCualquierCamara()" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">✕</button>
             </div>
@@ -190,18 +189,6 @@
         </div>
 
         <div id="resultado" class="resultado"></div>
-    </div>
-
-    <!-- CONTENEDOR CÁMARA B (html5-qrcode) -->
-    <div id="scanner-container">
-        <div class="barra-control-camara-b">
-            <select class="select-selector-cam" onchange="cambiarMotorGlobal(this.value)">
-                <option value="A">Cambiar a Cám A</option>
-                <option value="B" selected>Usando Cám B</option>
-            </select>
-            <button class="btn-cerrar-camara-b" onclick="cerrarCualquierCamara()">✕ Cerrar</button>
-        </div>
-        <div id="reader"></div>
     </div>
 
     <div class="caja-interfaz">
@@ -213,9 +200,9 @@
         </div>
         
         <div class="grupo-input-camara">
-            <select id="selector-motor-main" class="selector-tipo-camara" onchange="cambiarMotorGlobal(this.value)">
-                <option value="A">Cám A</option>
-                <option value="B">Cám B</option>
+            <select id="selector-motor-camara" class="select-selector-cam-engine" onchange="seleccionarMotorCamara(this.value)">
+                <option value="A">CÁM A</option>
+                <option value="B">CÁM B</option>
             </select>
             <input type="text" id="inputCodigo" placeholder="Escribe, escanea o EAN..." autocomplete="off">
             <button class="btn-camara-cuadrado" onclick="abrirCamaraSegunPreferencia()">📷 VER</button>
@@ -321,12 +308,11 @@
         let competenciaGuardada = localStorage.getItem('inventarioCompetencia') || '';
         let emailGuardado = localStorage.getItem('inventarioEmail') || '';
         
-        // GESTIÓN DE CÁMARAS A (ZXing) Y B (Html5Qrcode)
-        let motorCamaraActual = localStorage.getItem('movilec_motor_camara') || 'A';
+        // CONFIGURACIÓN DE CÁMARAS A (ZXing) / B (Html5Qrcode)
+        let motorCamaraPreferido = localStorage.getItem('movilec_camara_tipo') || 'B';
         let codeReader = null; 
         let html5QrcodeScanner = null;
         let camaraManualIdZXing = localStorage.getItem('camaraPreferidaZXing') || null; 
-        let camaraActivaAbierta = false;
 
         let inputActivoId = 'inputCodigo';
         let itemActual = { ean: null, desc: null, esDesconocido: false, rayon: null, stock: null, pvp_nuestro: null };
@@ -339,7 +325,7 @@
         document.getElementById('nombre-usuario-input').value = usuarioGuardado; 
         document.getElementById('nombre-competencia-input').value = competenciaGuardada; 
         document.getElementById('email-destino-input').value = emailGuardado;
-        document.getElementById('selector-motor-main').value = motorCamaraActual;
+        document.getElementById('selector-motor-camara').value = motorCamaraPreferido;
 
         function guardarConfiguracion() {
             usuarioGuardado = document.getElementById('nombre-usuario-input').value.trim(); 
@@ -452,7 +438,7 @@
             resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#ffc107";
             resultadoDiv.innerHTML = `<p style="margin:0; font-size:14px; color:#666;">Añadido a inventario:</p><h3 style="margin:4px 0; color:#28a745; font-size:20px;">${eanDetectado}</h3><p style="margin:0; font-weight:bold; font-size:16px;">${desc}</p><div style="margin-top:8px; font-size:24px;">📦 x1</div>`;
             inputCodigo.value = "";
-            if (ultimoModo === 'camara') { setTimeout(abrirCamaraSegunPreferencia, 800); } else { setTimeout(() => { inputCodigo.focus(); }, 150); }
+            if (ultimoModo === 'camara') { setTimeout(abrirCamaraSegunPreferencia, 1200); } else { setTimeout(() => { inputCodigo.focus(); }, 150); }
         }
 
         async function enviarADrive() {
@@ -548,48 +534,47 @@
         inputCodigo.addEventListener('blur', () => { if (tecladoVirtual.style.display !== 'grid') document.body.classList.remove('modo-teclado'); });
         inputCodigo.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); ultimoModo = 'teclado'; procesarBusqueda(inputCodigo.value.trim()); } });
 
-        // SISTEMA DE CONTROL DE CÁMARA (A vs B)
-        function cambiarMotorGlobal(nuevoMotor) {
-            motorCamaraActual = nuevoMotor;
-            localStorage.setItem('movilec_motor_camara', nuevoMotor);
-            document.getElementById('selector-motor-main').value = nuevoMotor;
-            if (camaraActivaAbierta) {
+        // CONTROL DUAL: CÁMARA A (ZXing) vs CÁMARA B (Html5Qrcode)
+        function seleccionarMotorCamara(nuevoMotor) {
+            motorCamaraPreferido = nuevoMotor;
+            localStorage.setItem('movilec_camara_tipo', nuevoMotor);
+            const containerA = document.getElementById('video-container-zxing');
+            const containerB = document.getElementById('scanner-container');
+            const estaAbierta = (containerA.style.display === 'block' || containerB.style.display === 'flex');
+            if (estaAbierta) {
                 cerrarCualquierCamara();
-                setTimeout(abrirCamaraSegunPreferencia, 300);
+                setTimeout(abrirCamaraSegunPreferencia, 250);
             }
         }
 
         function abrirCamaraSegunPreferencia() {
             ultimoModo = 'camara';
             initAudio();
-            if (motorCamaraActual === 'B') {
+            if (motorCamaraPreferido === 'B') {
                 iniciarCamaraB();
             } else {
                 iniciarCamaraA();
             }
         }
 
-        // MOTOR A: ZXing (Código original de index.html)
+        // MOTOR CÁMARA A (ZXing)
         async function iniciarCamaraA() {
             cerrarCualquierCamara();
-            camaraActivaAbierta = true;
-            const container = document.getElementById('video-container');
+            const container = document.getElementById('video-container-zxing');
             container.style.display = 'block';
             tecladoVirtual.style.display = 'none';
             if (!codeReader) { codeReader = new ZXing.BrowserBarcodeReader(new Map().set(ZXing.DecodeHintType.TRY_HARDER, true)); }
-            
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
                 const devices = await codeReader.listVideoInputDevices();
-                const select = document.getElementById('selector-camara-zxing');
+                const select = document.getElementById('selector-subcamara-zxing');
                 select.innerHTML = '';
                 let idCamaraTrasera = null;
                 devices.forEach((device, idx) => {
-                    const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = device.label || 'Cám ' + (idx + 1); select.appendChild(opt);
+                    const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = device.label || 'Cámara ' + (idx + 1); select.appendChild(opt);
                     const label = device.label.toLowerCase(); if (label.includes('back') || label.includes('trasera') || label.includes('environment')) { idCamaraTrasera = device.deviceId; }
                 });
                 stream.getTracks().forEach(track => track.stop());
-                
                 let selected = camaraManualIdZXing || idCamaraTrasera || (devices.length > 0 ? devices[0].deviceId : null);
                 if (selected) {
                     select.value = selected;
@@ -602,24 +587,27 @@
                         }
                     });
                 }
-            } catch (err) { alert("Error Cámara A: " + err.message); container.style.display = 'none'; camaraActivaAbierta = false; }
+            } catch (err) { alert("Error Cámara A: " + err.message); container.style.display = 'none'; }
         }
 
         function cambiarSubCamaraZXing() {
-            camaraManualIdZXing = document.getElementById('selector-camara-zxing').value;
+            camaraManualIdZXing = document.getElementById('selector-subcamara-zxing').value;
             localStorage.setItem('camaraPreferidaZXing', camaraManualIdZXing);
             cerrarCualquierCamara();
             setTimeout(iniciarCamaraA, 300);
         }
 
-        // MOTOR B: html5-qrcode (Código original de beta.html)
+        // MOTOR CÁMARA B (Html5Qrcode idéntico al motor beta)
         function iniciarCamaraB() {
             cerrarCualquierCamara();
-            camaraActivaAbierta = true;
             const container = document.getElementById('scanner-container');
             container.style.display = 'flex';
             document.getElementById('resultado').style.display = 'none';
-            if (tecladoVirtual.style.display === 'grid') { tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); }
+            if (tecladoVirtual.style.display === 'grid') { 
+                tecladoVirtual.style.display = 'none'; 
+                document.body.classList.remove('modo-teclado'); 
+                inputCodigo.readOnly = false;
+            }
 
             if (!html5QrcodeScanner) {
                 html5QrcodeScanner = new Html5QrcodeScanner(
@@ -638,19 +626,18 @@
         }
 
         function cerrarCualquierCamara() {
-            camaraActivaAbierta = false;
-            // Detener A
-            if (codeReader) { try { codeReader.reset(); } catch(e){} }
-            document.getElementById('video-container').style.display = 'none';
+            if (codeReader) {
+                try { codeReader.reset(); } catch(e){}
+            }
+            document.getElementById('video-container-zxing').style.display = 'none';
 
-            // Detener B
             if (html5QrcodeScanner) {
                 html5QrcodeScanner.clear().then(() => {
                     html5QrcodeScanner = null;
                     document.getElementById('scanner-container').style.display = 'none';
-                }).catch(() => { 
+                }).catch(() => {
                     html5QrcodeScanner = null;
-                    document.getElementById('scanner-container').style.display = 'none'; 
+                    document.getElementById('scanner-container').style.display = 'none';
                 });
             } else {
                 document.getElementById('scanner-container').style.display = 'none';
