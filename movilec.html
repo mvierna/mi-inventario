@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-title" content="MOVILEC">
     <link rel="apple-touch-icon" href="icono.png">
 
-    <!-- LIBRERÍAS (CSV, Escáner Dual: ZXing para iOS y Html5Qrcode para Android, Excel) -->
+    <!-- LIBRERÍAS (CSV, ZXing para iOS, Html5-QRCode para Android y EXCEL) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -22,6 +22,7 @@
         * { box-sizing: border-box; }
         html, body { height: 100%; margin: 0; padding: 0; }
         
+        /* BLOQUEO ESTRICTO DE PANTALLA */
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             padding: 6px; text-align: center; 
@@ -103,7 +104,7 @@
         .item-desc { font-weight: bold; font-size: 13px; display: block; color: #111; margin-bottom: 2px; }
         .item-ean { font-size: 11px; color: #6c757d; font-weight: bold; }
 
-        /* CONTENEDORES DE CÁMARA */
+        /* CONTENEDORES CÁMARA (ZXING PARA iOS Y HTML5 PARA ANDROID) */
         #video-container-zxing { width: 100%; max-width: 320px; background: #000; margin: 2px auto; border-radius: 6px; overflow: hidden; position: relative; display: none; }
         video { width: 100%; height: auto; max-height: 200px; display: block; object-fit: cover; }
         
@@ -138,7 +139,7 @@
         
         #btn-modo-lista { background-color: #007bff; }
 
-        /* BARRA INFERIOR [CÁM A/B] [INPUT] [VER] */
+        /* FILA [CÁM A/B] [INPUT] [VER] */
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
         
         #selector-camara-motor {
@@ -167,7 +168,7 @@
         .tecla-ok { background: #28a745; color: white; border-color: #198754; box-shadow: 0 2px 0 #198754; font-size: 36px; font-weight: 900; grid-column: 4; grid-row: 2 / span 3; height: 100% !important; }
         .tecla-ok:active { background: #218838; }
 
-        /* AJUSTES PARA IPHONE Y BLOQUEO DE TECLA VER AL PEDIR CANTIDAD */
+        /* REGLAS CLAVE: OCULTAR ELEMENTOS AL ABRIR TECLADO PARA QUE QUEPA EN IPHONE Y NO SE PULSE 'VER' EN ANDROID */
         body.modo-teclado .cabecera-top, 
         body.modo-teclado #estado,
         body.modo-teclado .contenedor-modos { 
@@ -236,13 +237,13 @@
     <div id="estado">Iniciando BBDD Local...</div>
 
     <div id="espaciador-central">
-        <!-- CONTENEDOR CÁMARA A (ZXING - OPTIMIZADO iOS) -->
+        <!-- CÁMARA A (ZXING - iPhone 12 Pro) -->
         <div id="video-container-zxing">
             <video id="video-preview-zxing" playsinline autoplay muted></video>
             <button class="btn-cerrar-camara-general" onclick="cerrarCamara()">✕ Cerrar Cámara</button>
         </div>
 
-        <!-- CONTENEDOR CÁMARA B (HTML5-QRCODE - OPTIMIZADO ANDROID) -->
+        <!-- CÁMARA B (HTML5-QRCODE - Android) -->
         <div id="video-container-html5">
             <div id="reader-html5"></div>
             <button class="btn-cerrar-camara-general" onclick="cerrarCamara()">✕ Cerrar Cámara</button>
@@ -981,7 +982,6 @@
             document.getElementById('video-container-zxing').style.display = 'none'; 
             document.getElementById('video-container-html5').style.display = 'none'; 
 
-            // RESTAURAR ESTADO EXACTO SEGÚN CORRESPONDA
             if (inputActivoId === 'input-cant-accion' || inputActivoId === 'input-pedido-accion' || inputActivoId === 'input-precio-accion') {
                 tecladoVirtual.style.display = 'grid';
                 document.body.classList.add('modo-teclado', 'modo-teclado-accion');
@@ -1230,7 +1230,6 @@
                 } catch(e) {}
             }
 
-            // FALLBACK A MAILTO SI EL NAVEGADOR NO SOPORTA COMPARTIR ARCHIVO
             let asunto = encodeURIComponent(`Inventario MOVILEC - ${usuarioGuardado}`);
             let cuerpo = encodeURIComponent(`Hola,\n\nSe ha generado el archivo de trabajo de ${usuarioGuardado}.\nTotal líneas: ${listaTrabajo.length}.\n\n(Descarga el archivo mediante el botón EXCEL de la app).`);
             window.location.href = `mailto:?subject=${asunto}&body=${cuerpo}`;
