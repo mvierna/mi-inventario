@@ -722,18 +722,86 @@
         function verListas() { document.getElementById('modalListas').style.display = 'flex'; renderizarLista(); }
         function cerrarModalListas() { document.getElementById('modalListas').style.display = 'none'; if (ultimoModo === 'teclado') inputCodigo.focus(); }
 
-        function renderizarLista() {
-            const contenedor = document.getElementById('modal-body-listas'); if (listaTrabajo.length === 0) { contenedor.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">Lista vacía</div>'; return; }
-            let html = '';
-            [...listaTrabajo].reverse().forEach((item, idx) => {
-                let badge = ""; let detalleEx = "";
-                if (item.tipo === 'competencia') { badge = `<span class="etiqueta-tipo-lista bg-competencia">Chequeo</span>`; detalleEx = `<br><span style="color:#9c27b0; font-weight:bold;">${item.competencia}: ${item.pvp_competencia}€ (Dif: ${item.opus})</span>`; } 
-                else if (item.tipo === 'pedido') { badge = `<span class="etiqueta-tipo-lista bg-pedido">Pedido</span>`; detalleEx = `<br><span style="color:#17a2b8; font-weight:bold;">Stock actual: ${item.stock}</span>`; } 
-                else { badge = `<span class="etiqueta-tipo-lista bg-inventario">Inventario</span>`; }
-                html += `<div class="item-lista-guardada"><div class="item-lista-info">${badge}<span class="item-desc-modal">${item.descripcion}</span><span class="item-detalle-modal">EAN: ${item.ean}${detalleEx}</span></div><div style="display:flex; align-items:center;"><span class="item-cant-modal">x${item.cantidad}</span><button class="btn-editar-item" onclick="editarItemLista(${listaTrabajo.length - 1 - idx})">✏️</button><button class="btn-borrar-item" onclick="eliminarItemLista(${listaTrabajo.length - 1 - idx})">✕</button></div></div>`;
-            });
-            contenedor.innerHTML = html;
+function renderizarLista() {
+    const contenedor = document.getElementById('modal-body-listas');
+    if (listaTrabajo.length === 0) { 
+        contenedor.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">Lista vacía</div>'; 
+        return; 
+    }
+
+    let html = '';
+    const listaInvertida = [...listaTrabajo].reverse();
+
+    listaInvertida.forEach((item, idx) => {
+        let badge = ""; 
+        let detalleEx = "";
+        let barcodeContenedor = "";
+
+        if (item.tipo === 'competencia') { 
+            badge = `<span class="etiqueta-tipo-lista bg-competencia">Chequeo</span>`; 
+            detalleEx = `<br><span style="color:#9c27b0; font-weight:bold;">${item.competencia}: ${item.pvp_competencia}€ (Dif: ${item.opus})</span>`; 
+        } else if (item.tipo === 'pedido') { 
+            badge = `<span class="etiqueta-tipo-lista bg-pedido">Pedido</span>`; 
+            detalleEx = `<br><span style="color:#17a2b8; font-weight:bold;">Stock actual: ${item.stock}</span>`; 
+            
+            // Contenedor visual del código de barras
+            barcodeContenedor = `
+                <div style="background: #ffffff; padding: 4px; border: 1px dashed #ccc; border-radius: 6px; margin-top: 6px; width: fit-content;">
+                    <svg id="barcode-pedido-${idx}" style="display: block; max-width: 100%; height: 38px;"></svg>
+                </div>
+            `;
+        } else { 
+            badge = `<span class="etiqueta-tipo-lista bg-inventario">Inventario</span>`; 
         }
+
+        html += `
+            <div class="item-lista-guardada">
+                <div class="item-lista-info">
+                    ${badge}
+                    <span class="item-desc-modal">${item.descripcion}</span>
+                    <span class="item-detalle-modal">EAN: ${item.ean}${detalleEx}</span>
+                    ${barcodeContenedor}
+                </div>
+                <div style="display:flex; align-items:center;">
+                    <span class="item-cant-modal">x${item.cantidad}</span>
+                    <button class="btn-editar-item" onclick="editarItemLista(${listaTrabajo.length - 1 - idx})">✏️</button>
+                    <button class="btn-borrar-item" onclick="eliminarItemLista(${listaTrabajo.length - 1 - idx})">✕</button>
+                </div>
+            </div>
+        `;
+    });
+
+    contenedor.innerHTML = html;
+
+    // Dibujado vectorial inmediato de las barras para cada pedido
+    listaInvertida.forEach((item, idx) => {
+        if (item.tipo === 'pedido' && item.ean && item.ean !== "-") {
+            try {
+                const formato = (/^\d{13}$/.test(item.ean)) ? "EAN13" : "CODE128";
+                JsBarcode(`#barcode-pedido-${idx}`, item.ean, {
+                    format: formato,
+                    lineColor: "#000000",
+                    width: 1.5,
+                    height: 38,
+                    displayValue: false,
+                    margin: 0
+                });
+            } catch (e) {
+                try {
+                    JsBarcode(`#barcode-pedido-${idx}`, item.ean, {
+                        format: "CODE128",
+                        width: 1.5,
+                        height: 38,
+                        displayValue: false,
+                        margin: 0
+                    });
+                } catch (err) {
+                    console.warn(`No se pudo generar código para: ${item.ean}`, err);
+                }
+            }
+        }
+    });
+}
 
         function editarItemLista(index) {
             let item = listaTrabajo[index];
