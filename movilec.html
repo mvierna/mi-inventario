@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-title" content="MOVILEC">
     <link rel="apple-touch-icon" href="icono.png">
 
-    <!-- Librerías: Parseo, Motores Barcode (A y B), Excel, Barcode visual y OCR -->
+    <!-- Librerías requeridas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -62,16 +62,16 @@
         .btn-cerrar-camara-b { margin: 10px auto 15px auto; width: 90%; max-width: 300px; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; text-transform: uppercase; }
         .btn-cerrar-camara-b:active { background: #c82333; }
 
-        /* VISOR CÁMARA OCR (RECONOCIMIENTO DE PVP) */
+        /* VISOR OCR (CAPTURA DE PVP) */
         #ocr-container {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95); z-index: 99999; flex-direction: column;
             justify-content: space-between; align-items: center; padding: max(15px, env(safe-area-inset-top)) 10px max(20px, env(safe-area-inset-bottom)) 10px;
         }
-        .visor-ocr-wrapper { position: relative; width: 100%; max-width: 360px; height: 360px; border-radius: 12px; overflow: hidden; background: #000; display: flex; justify-content: center; align-items: center; }
+        .visor-ocr-wrapper { position: relative; width: 100%; max-width: 360px; height: 340px; border-radius: 12px; overflow: hidden; background: #000; display: flex; justify-content: center; align-items: center; }
         #video-ocr { width: 100%; height: 100%; object-fit: cover; }
         .mira-ocr {
-            position: absolute; width: 75%; height: 70px; border: 3px solid #ff9800;
+            position: absolute; width: 75%; height: 75px; border: 3px solid #ff9800;
             border-radius: 10px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
             display: flex; justify-content: center; align-items: center; pointer-events: none;
         }
@@ -82,7 +82,7 @@
         .btn-ocr-disparo:active { transform: translateY(3px); box-shadow: none; }
         .btn-ocr-cancelar { flex: 1; padding: 16px; background-color: #dc3545; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
 
-        /* TARJETA DE RESULTADO */
+        /* RESULTADO PRODUCTO */
         .resultado { display: none; width: 98%; margin: 0 auto; padding: 10px; border: 2px solid #222222; border-radius: 12px; background-color: #ffffff; flex-direction: column; gap: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-height: 100%; overflow-y: auto; }
         .titulo-encontrado { color: #28a745; margin: 0; font-size: 15px; font-weight: bold; }
         .texto-ean { font-size: 13px; color: #555; margin: 0; font-weight: 800; }
@@ -194,7 +194,7 @@
 
     <!-- VISOR OCR: ENCUADRE DE PRECIO -->
     <div id="ocr-container">
-        <div class="ocr-instruccion">Aprieta el precio dentro de la mira naranja</div>
+        <div class="ocr-instruccion">Encuadra el precio dentro de la mira naranja</div>
         <div class="visor-ocr-wrapper">
             <video id="video-ocr" playsinline autoplay muted></video>
             <div class="mira-ocr"></div>
@@ -413,7 +413,7 @@
             return null;
         }
 
-        // MODO CHEQUEO CON OPCIÓN DE CAPTURA OCR
+        // MODO CHEQUEO CON APERTURA AUTOMÁTICA DEL VISOR OCR
         function procesarEscaneoChequeo(termino) {
             let result = buscarArticuloGlobal(termino); 
             let desc = "COMPETENCIA (Sin datos)"; 
@@ -437,39 +437,62 @@
                 </div>
             `;
             dibujarCodigoBarras(eanDetectado);
-            abrirTecladoPrecio();
+
+            // Transición automática al visor OCR tras liberar la cámara anterior
+            setTimeout(() => {
+                iniciarOcrCamara();
+            }, 450);
         }
 
         function abrirTecladoPrecio() { inputActivoId = 'input-precio-accion'; tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado'); forzarCierreTecladoNativo(); }
 
-        // MÓDULO OCR: CAPTURA DIRECTA DE PRECIO POR CÁMARA
+        // CONTROL INDEPENDIENTE DEL STREAM OCR
+        function pararStreamOcr() {
+            if (streamOcr) {
+                streamOcr.getTracks().forEach(t => t.stop());
+                streamOcr = null;
+            }
+            const video = document.getElementById('video-ocr');
+            if (video) {
+                video.pause();
+                video.srcObject = null;
+            }
+            document.getElementById('ocr-container').style.display = 'none';
+        }
+
+        function cerrarOcrCamara() {
+            pararStreamOcr();
+            if (document.getElementById('input-precio-accion')) {
+                abrirTecladoPrecio();
+            }
+        }
+
         async function iniciarOcrCamara() {
-            cerrarCualquierCamara();
+            await cerrarCualquierCamara();
+            
             tecladoVirtual.style.display = 'none';
             document.body.classList.remove('modo-teclado');
             const ocrCont = document.getElementById('ocr-container');
             ocrCont.style.display = 'flex';
 
+            // Pausa de 350ms para asegurar la liberación del sensor en el hardware
+            await new Promise(r => setTimeout(r, 350));
+
             try {
                 streamOcr = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+                    video: { 
+                        facingMode: { ideal: "environment" },
+                        width: { ideal: 1280 }, 
+                        height: { ideal: 720 } 
+                    }
                 });
-                document.getElementById('video-ocr').srcObject = streamOcr;
+                const video = document.getElementById('video-ocr');
+                video.srcObject = streamOcr;
+                await video.play();
             } catch (err) {
-                alert("Error al iniciar cámara para OCR: " + err.message);
+                console.error("Error al iniciar cámara OCR:", err);
+                alert("No se pudo encender la cámara para el OCR: " + err.message);
                 cerrarOcrCamara();
-            }
-        }
-
-        function cerrarOcrCamara() {
-            if (streamOcr) {
-                streamOcr.getTracks().forEach(t => t.stop());
-                streamOcr = null;
-            }
-            document.getElementById('video-ocr').srcObject = null;
-            document.getElementById('ocr-container').style.display = 'none';
-            if (document.getElementById('input-precio-accion')) {
-                abrirTecladoPrecio();
             }
         }
 
@@ -486,7 +509,7 @@
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
 
-                // Recortar exactamente la franja central correspondiente a la mira
+                // Recortar la franja central correspondiente a la mira
                 const cropWidth = video.videoWidth * 0.75;
                 const cropHeight = video.videoHeight * 0.25;
                 const cropX = (video.videoWidth - cropWidth) / 2;
@@ -497,17 +520,16 @@
 
                 ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
-                // Preprocesado: escala de grises y binarización de alto contraste
+                // Binarización de alto contraste
                 const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const d = imgData.data;
                 for (let i = 0; i < d.length; i += 4) {
                     let gris = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114);
-                    let color = gris < 135 ? 0 : 255; // Poner números negros sobre fondo blanco puro
+                    let color = gris < 135 ? 0 : 255;
                     d[i] = color; d[i+1] = color; d[i+2] = color;
                 }
                 ctx.putImageData(imgData, 0, 0);
 
-                // Ejecución de Tesseract con caracteres restringidos
                 const worker = await Tesseract.createWorker('eng');
                 await worker.setParameters({
                     tessedit_char_whitelist: '0123456789.,'
@@ -517,7 +539,6 @@
                 await worker.terminate();
 
                 const textoExtraido = ret.data.text.trim();
-                // Buscar formato monetario (ej: 1.95, 0,80, 12.50)
                 const patronPvp = textoExtraido.match(/(\d{1,3}[,.]\d{2})/);
 
                 if (patronPvp) {
@@ -526,7 +547,6 @@
                     reproducirBeep();
                     cerrarOcrCamara();
                 } else {
-                    // Intento secundario con cualquier secuencia numérica encontrada
                     const patronSimple = textoExtraido.match(/\d+/g);
                     if (patronSimple && patronSimple.length >= 2) {
                         const combinado = patronSimple[0] + "." + patronSimple[1].substring(0, 2);
@@ -534,7 +554,7 @@
                         reproducirBeep();
                         cerrarOcrCamara();
                     } else {
-                        alert("No se pudo detectar el precio claramente. Enfoca más cerca o pulsa Salir para escribirlo.");
+                        alert("No se detectó el precio con claridad. Acércate más o pulsa Salir para escribirlo.");
                     }
                 }
             } catch (err) {
@@ -565,7 +585,7 @@
                 resultadoDiv.style.display = 'flex'; resultadoDiv.innerHTML = `<p style="margin:0; font-size:14px; color:#666;">Precio guardado:</p><h3 style="margin:4px 0; color:#9c27b0; font-size:22px;">${precioCompStr} €</h3><p style="margin:0; font-size:14px;">Diferencia: <b style="color:${colorOpus}">${opusFinal}</b></p>`;
             } else { resultadoDiv.style.display = 'none'; resultadoDiv.innerHTML = ""; }
             tecladoVirtual.style.display = 'none'; document.body.classList.remove('modo-teclado'); inputActivoId = 'inputCodigo'; inputCodigo.value = "";
-            if (ultimoModo === 'camara') setTimeout(abrirCamaraSegunPreferencia, 800); else setTimeout(() => { inputCodigo.focus(); }, 150); 
+            if (ultimoModo === 'camara') setTimeout(abrirCamaraSegunPreferencia, 1000); else setTimeout(() => { inputCodigo.focus(); }, 150); 
         }
 
         function procesarEscaneoPedido(termino) {
@@ -753,7 +773,7 @@
         }
 
         async function iniciarCamaraA() {
-            cerrarCualquierCamara();
+            await cerrarCualquierCamara();
             const container = document.getElementById('video-container-zxing');
             container.style.display = 'block';
             tecladoVirtual.style.display = 'none';
@@ -791,8 +811,8 @@
             setTimeout(iniciarCamaraA, 300);
         }
 
-        function iniciarCamaraB() {
-            cerrarCualquierCamara();
+        async function iniciarCamaraB() {
+            await cerrarCualquierCamara();
             const container = document.getElementById('scanner-container');
             container.style.display = 'flex';
             document.getElementById('resultado').style.display = 'none';
@@ -818,24 +838,21 @@
             }
         }
 
-        function cerrarCualquierCamara() {
-            cerrarOcrCamara();
+        async function cerrarCualquierCamara() {
+            pararStreamOcr();
+
             if (codeReader) {
                 try { codeReader.reset(); } catch(e){}
             }
             document.getElementById('video-container-zxing').style.display = 'none';
 
             if (html5QrcodeScanner) {
-                html5QrcodeScanner.clear().then(() => {
-                    html5QrcodeScanner = null;
-                    document.getElementById('scanner-container').style.display = 'none';
-                }).catch(() => {
-                    html5QrcodeScanner = null;
-                    document.getElementById('scanner-container').style.display = 'none';
-                });
-            } else {
-                document.getElementById('scanner-container').style.display = 'none';
+                try {
+                    await html5QrcodeScanner.clear();
+                } catch (e) {}
+                html5QrcodeScanner = null;
             }
+            document.getElementById('scanner-container').style.display = 'none';
         }
 
         function parsearCSV(texto, options) { return new Promise(resolve => { Papa.parse(texto, { ...options, complete: resolve }); }); }
