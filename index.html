@@ -2,20 +2,18 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- viewport-fit=cover activa el uso de safe-area-inset en iPhone con Notch / Dynamic Island -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>MOVILEC</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#28a745">
     
-    <!-- Metaetiquetas exclusivas para PWA en iOS -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="MOVILEC">
     <link rel="apple-touch-icon" href="icono.png">
 
-    <!-- Librerías: Parseo, Motores de Cámara (A y B), Excel y Generador de Código de Barras -->
+    <!-- Librerías: Parseo, Motores de Cámara (A y B), Excel y Código de Barras -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -23,32 +21,16 @@
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 
     <style>
-        * { 
-            box-sizing: border-box; 
-            -webkit-tap-highlight-color: transparent; 
-        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         html, body { 
-            height: 100%; 
-            height: 100dvh; /* dynamic viewport height para evitar desajustes con barras de Safari */
-            width: 100%; 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            margin: 0; 
-            padding: 0; 
-            overflow: hidden; 
-            overscroll-behavior: none; /* Evita el rebote de pantalla de iOS */
-            -webkit-user-select: none; 
-            user-select: none;
+            height: 100%; height: 100dvh; width: 100%; position: fixed; top: 0; left: 0; 
+            margin: 0; padding: 0; overflow: hidden; overscroll-behavior: none; -webkit-user-select: none; user-select: none;
         }
         
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #f4f6f8; 
-            display: flex; 
-            flex-direction: column; 
-            /* Márgenes seguros dinámicos para notch y barra inferior */
+            background-color: #f4f6f8; display: flex; flex-direction: column; 
             padding-top: max(6px, env(safe-area-inset-top));
             padding-bottom: max(6px, env(safe-area-inset-bottom));
             padding-left: max(6px, env(safe-area-inset-left));
@@ -62,10 +44,7 @@
             justify-content: center; align-items: center; text-align: center; padding: 20px;
         }
         #aviso-rotacion h2 { color: #dc3545; font-size: 22px; margin-bottom: 8px; }
-        @media screen and (orientation: landscape) { 
-            body > *:not(#aviso-rotacion) { display: none !important; } 
-            #aviso-rotacion { display: flex; } 
-        }
+        @media screen and (orientation: landscape) { body > *:not(#aviso-rotacion) { display: none !important; } #aviso-rotacion { display: flex; } }
 
         .cabecera-top { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; padding: 0 4px; }
         h1 { margin: 0; font-size: 19px; font-weight: 900; color: #111; letter-spacing: -0.5px; }
@@ -76,25 +55,22 @@
         
         #espaciador-central { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; justify-content: center; }
 
-        /* VISOR CÁMARA A (ZXing en iOS) */
+        /* CÁMARA A (ZXing iOS) */
         #video-container-zxing { width: 100%; max-width: 320px; background: #000; margin: 4px auto; border-radius: 8px; overflow: hidden; position: relative; display: none; }
         #controles-video-zxing { padding: 6px; background: rgba(0,0,0,0.7); display: flex; justify-content: space-between; align-items: center; gap: 4px; }
         #selector-subcamara-zxing { width: 100%; max-width: 200px; padding: 6px; border-radius: 6px; font-size: 16px; background: white; color: black; border: 1px solid #ccc; outline: none; }
         #video-preview { width: 100%; height: auto; max-height: 200px; display: block; object-fit: cover; }
 
-        /* VISOR CÁMARA B (html5-qrcode optimizado iOS) */
+        /* CÁMARA B (Html5Qrcode iOS) */
         #scanner-container { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999;
             padding-top: max(20px, env(safe-area-inset-top)); flex-direction: column; justify-content: space-between;
         }
         #reader { width: 100%; max-width: 500px; margin: auto; background: #000; }
         #reader video { object-fit: cover; border-radius: 8px; }
-        .btn-cerrar-camara-b { 
-            margin: 15px auto max(20px, env(safe-area-inset-bottom)) auto; 
-            width: 88%; max-width: 320px; padding: 14px; background: #dc3545; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer; text-transform: uppercase; 
-        }
+        .btn-cerrar-camara-b { margin: 15px auto max(20px, env(safe-area-inset-bottom)) auto; width: 88%; max-width: 320px; padding: 14px; background: #dc3545; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer; text-transform: uppercase; }
 
-        /* FICHA DE ARTÍCULO Y PEDIDOS */
+        /* FICHAS DE ARTÍCULO Y PEDIDOS */
         .resultado { display: none; width: 98%; margin: 0 auto; padding: 10px; border: 2px solid #222222; border-radius: 12px; background-color: #ffffff; flex-direction: column; gap: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.06); max-height: 100%; overflow-y: auto; }
         .titulo-encontrado { color: #28a745; margin: 0; font-size: 15px; font-weight: bold; }
         .texto-ean { font-size: 13px; color: #555; margin: 0; font-weight: 800; }
@@ -134,9 +110,7 @@
         #btn-modo-lista { background-color: #007bff; }
 
         .grupo-input-camara { display: flex; gap: 6px; width: 100%; justify-content: space-between; align-items: center; }
-        .select-selector-cam-engine { flex: 0 0 72px; height: 48px; border-radius: 8px; border: 2px solid #17a2b8; background: #fff; font-weight: 900; font-size: 16px; /* Evita zoom iOS */ color: #111; outline: none; text-align: center; }
-        
-        /* Font-size 16px obligatorio en iOS para que no haga zoom el visor al enfocar */
+        .select-selector-cam-engine { flex: 0 0 72px; height: 48px; border-radius: 8px; border: 2px solid #17a2b8; background: #fff; font-weight: 900; font-size: 16px; color: #111; outline: none; text-align: center; }
         #inputCodigo { flex: 1; min-width: 0; height: 48px; padding: 8px; font-size: 16px; text-align: center; border: 2px solid #007bff; border-radius: 8px; outline: none; font-weight: bold; }
         #inputCodigo:disabled { background-color: #e9ecef; border-color: #ced4da; }
         .btn-camara-cuadrado { flex: 0 0 76px; height: 48px; background-color: #17a2b8; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold; }
@@ -187,7 +161,7 @@
         <p>MOVILEC está diseñado para trabajar en posición vertical.</p>
     </div>
 
-    <!-- CÁMARA B (Html5Qrcode adaptado para iOS) -->
+    <!-- CÁMARA B (Html5Qrcode iOS) -->
     <div id="scanner-container">
         <div id="reader"></div>
         <button class="btn-cerrar-camara-b" onclick="cerrarCualquierCamara()">✕ Cerrar Cámara</button>
@@ -201,7 +175,7 @@
     <div id="estado">Iniciando BBDD Local...</div>
 
     <div id="espaciador-central">
-        <!-- CÁMARA A (ZXing con playsinline estricto) -->
+        <!-- CÁMARA A (ZXing playsinline) -->
         <div id="video-container-zxing">
             <div id="controles-video-zxing">
                 <select id="selector-subcamara-zxing" onchange="cambiarSubCamaraZXing()">
@@ -228,7 +202,6 @@
                 <option value="B">CÁM B</option>
                 <option value="A">CÁM A</option>
             </select>
-            <!-- Entrada con autofocus y enter automático para lectores externos / Bluetooth en iOS -->
             <input type="text" id="inputCodigo" placeholder="Escribe, escanea o EAN..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
             <button class="btn-camara-cuadrado" onclick="abrirCamaraSegunPreferencia()">📷 VER</button>
         </div>
@@ -310,7 +283,6 @@
             });
         }
 
-        // DESBLOQUEO DE AUDIO PARA SAFARI / iOS
         let audioCtx = null;
         function initAudio() {
             if (!audioCtx) { 
@@ -356,7 +328,6 @@
         let competenciaGuardada = localStorage.getItem('inventarioCompetencia') || '';
         let emailGuardado = localStorage.getItem('inventarioEmail') || '';
         
-        // En iOS, el Motor B (Html5Qrcode) suele ser más estable por defecto
         let motorCamaraPreferido = localStorage.getItem('movilec_camara_tipo') || 'B';
         let codeReader = null; 
         let html5QrcodeScanner = null;
@@ -590,7 +561,6 @@
             setTimeout(() => inputCodigo.blur(), 80);
         }
 
-        // GENERADOR DE CÓDIGO DE BARRAS VISUAL (COMPATIBLE RETINA / iOS)
         function dibujarCodigoBarras(codigo) {
             if (!codigo || codigo === "-") return;
             const svgElement = document.getElementById("codigo-barras-svg");
@@ -701,7 +671,6 @@
             if (tecladoVirtual.style.display !== 'grid') document.body.classList.remove('modo-teclado'); 
         });
 
-        // Soporte para pistolas y lectores Bluetooth conectados al iPhone (envían Enter al final)
         inputCodigo.addEventListener('keypress', function(e) { 
             if (e.key === 'Enter') { 
                 e.preventDefault(); 
@@ -732,7 +701,6 @@
             }
         }
 
-        // MOTOR A (ZXing con constraints específicos para iOS Safari)
         async function iniciarCamaraA() {
             cerrarCualquierCamara();
             const container = document.getElementById('video-container-zxing');
@@ -781,7 +749,6 @@
             setTimeout(iniciarCamaraA, 300);
         }
 
-        // MOTOR B (Html5Qrcode con visor responsive para iPhone)
         function iniciarCamaraB() {
             cerrarCualquierCamara();
             const container = document.getElementById('scanner-container');
@@ -1015,7 +982,6 @@
             var blob = new Blob([wbout], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
             var file = new File([blob], 'Trabajo.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
-            // En iOS Safari, navigator.share permite mandar el archivo por AirDrop, WhatsApp o Mail nativo
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 try { 
                     await navigator.share({ title: 'Exportación de Inventario', files: [file] }); 

@@ -7,12 +7,9 @@
 
     <link rel="manifest" href="manifest-android.json">
     <meta name="theme-color" content="#28a745">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="MOVILEC">
-    <link rel="apple-touch-icon" href="icono.png">
+    <link rel="icon" href="icono.png">
 
-    <!-- Librerías: Parseo, Motores de Cámara (A y B), Excel y Generador de Código de Barras -->
+    <!-- Librerías: Parseo, Motores de Cámara (A y B), Excel y Código de Barras -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -45,13 +42,13 @@
         
         #espaciador-central { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
 
-        /* VISOR CÁMARA A (ZXing) */
+        /* CÁMARA A (ZXing) */
         #video-container-zxing { width: 100%; max-width: 320px; background: #000; margin: 4px auto; border-radius: 6px; overflow: hidden; position: relative; display: none; }
         #controles-video-zxing { padding: 6px; background: rgba(0,0,0,0.7); display: flex; justify-content: space-between; align-items: center; gap: 4px; }
         #selector-subcamara-zxing { width: 100%; max-width: 200px; padding: 6px; border-radius: 4px; font-size: 12px; background: white; color: black; border: 1px solid #ccc; outline: none; }
         #video-preview { width: 100%; height: auto; max-height: 200px; display: block; object-fit: cover; }
 
-        /* VISOR CÁMARA B (html5-qrcode optimizado) */
+        /* CÁMARA B (Html5Qrcode) */
         #scanner-container { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; background: #000; z-index: 9999;
             padding-top: max(10px, env(safe-area-inset-top)); flex-direction: column; border-bottom: 4px solid #17a2b8; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
@@ -61,7 +58,7 @@
         .btn-cerrar-camara-b { margin: 10px auto 15px auto; width: 90%; max-width: 300px; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; text-transform: uppercase; }
         .btn-cerrar-camara-b:active { background: #c82333; }
 
-        /* FICHA DE CONSULTA CON CÓDIGO DE BARRAS */
+        /* FICHAS DE ARTÍCULO Y PEDIDO */
         .resultado { display: none; width: 98%; margin: 0 auto; padding: 10px; border: 2px solid #222222; border-radius: 12px; background-color: #ffffff; flex-direction: column; gap: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-height: 100%; overflow-y: auto; }
         .titulo-encontrado { color: #28a745; margin: 0; font-size: 15px; font-weight: bold; }
         .texto-ean { font-size: 13px; color: #555; margin: 0; font-weight: 800; }
@@ -118,15 +115,7 @@
 
         body.modo-teclado .cabecera-top, body.modo-teclado #estado, body.modo-teclado .contenedor-modos { display: none !important; }
 
-        @media (max-height: 780px) {
-            .tecla-v { height: 48px; font-size: 26px; } .tecla-accion { font-size: 15px; } .tecla-ok { font-size: 34px; }
-            .btn-modo { padding: 10px 4px; font-size: 13px; } 
-            .grupo-input-camara #inputCodigo, .grupo-input-camara .btn-camara-cuadrado, .grupo-input-camara .select-selector-cam-engine { height: 46px; }
-            .resultado { padding: 8px; margin-bottom: 2px; gap: 3px; margin-top: auto; } .descripcion-producto { font-size: 16px; }
-            .numero-stock { font-size: 38px; } .panel-secundario { padding: 4px; margin: 2px 0; }
-            #codigo-barras-svg { height: 44px; }
-        }
-
+        /* MODAL LISTA */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
         .modal-content { background: #f4f6f8; width: 92%; max-height: 85dvh; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
@@ -163,7 +152,7 @@
         <p>El escáner de códigos y la interfaz funcionan correctamente en modo vertical.</p>
     </div>
 
-    <!-- CÁMARA B: Contenedor Html5Qrcode exacto de beta -->
+    <!-- CÁMARA B (Html5Qrcode) -->
     <div id="scanner-container">
         <div id="reader"></div>
         <button class="btn-cerrar-camara-b" onclick="cerrarCualquierCamara()">✕ Cerrar Cámara</button>
@@ -171,15 +160,13 @@
 
     <div class="cabecera-top">
         <h1>MOVILEC</h1>
-        <div style="display: flex; gap: 4px;">
-            <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sync</button>
-        </div>
+        <button class="btn-actualizar" onclick="cargarInventario()">🔄 Sync</button>
     </div>
 
     <div id="estado">Iniciando BBDD Local...</div>
 
     <div id="espaciador-central">
-        <!-- CÁMARA A: Contenedor ZXing exacto de index -->
+        <!-- CÁMARA A (ZXing) -->
         <div id="video-container-zxing">
             <div id="controles-video-zxing">
                 <select id="selector-subcamara-zxing" onchange="cambiarSubCamaraZXing()">
@@ -310,7 +297,6 @@
         let competenciaGuardada = localStorage.getItem('inventarioCompetencia') || '';
         let emailGuardado = localStorage.getItem('inventarioEmail') || '';
         
-        // CÁMARA A (ZXing) / CÁMARA B (Html5Qrcode)
         let motorCamaraPreferido = localStorage.getItem('movilec_camara_tipo') || 'B';
         let codeReader = null; 
         let html5QrcodeScanner = null;
@@ -410,7 +396,6 @@
             if (ultimoModo === 'camara') setTimeout(abrirCamaraSegunPreferencia, 800); else setTimeout(() => { inputCodigo.focus(); }, 150); 
         }
 
-        // TOMA DE PEDIDOS CON CÓDIGO DE BARRAS VISUAL INTEGRADO
         function procesarEscaneoPedido(termino) {
             let result = buscarArticuloGlobal(termino); 
             let desc = "DESCONOCIDO (Sin datos)"; 
@@ -516,7 +501,6 @@
             setTimeout(() => inputCodigo.blur(), 100);
         }
 
-        // GENERACIÓN GRÁFICA DEL CÓDIGO DE BARRAS EN PANTALLA
         function dibujarCodigoBarras(codigo) {
             if (!codigo || codigo === "-") return;
             try {
@@ -544,7 +528,6 @@
             }
         }
 
-        // FICHA DE CONSULTA PURA (CON BARRAS VISUALES)
         function mostrarArticuloCompleto(ean, esSinStock = false) {
             let art = esSinStock ? inventarioSinStock[ean] : inventario[ean];
             let colorBorde = esSinStock ? "#ff9800" : "#222222"; 
@@ -577,7 +560,6 @@
                 </div>
             `;
             inputCodigo.value = ""; 
-
             dibujarCodigoBarras(ean);
         }
 
@@ -611,7 +593,6 @@
         inputCodigo.addEventListener('blur', () => { if (tecladoVirtual.style.display !== 'grid') document.body.classList.remove('modo-teclado'); });
         inputCodigo.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); ultimoModo = 'teclado'; procesarBusqueda(inputCodigo.value.trim()); } });
 
-        // SELECTOR DE MOTOR: CÁMARA A vs B
         function seleccionarMotorCamara(nuevoMotor) {
             motorCamaraPreferido = nuevoMotor;
             localStorage.setItem('movilec_camara_tipo', nuevoMotor);
@@ -634,7 +615,6 @@
             }
         }
 
-        // MOTOR A (ZXing)
         async function iniciarCamaraA() {
             cerrarCualquierCamara();
             const container = document.getElementById('video-container-zxing');
@@ -674,7 +654,6 @@
             setTimeout(iniciarCamaraA, 300);
         }
 
-        // MOTOR B (Html5Qrcode exacto de beta)
         function iniciarCamaraB() {
             cerrarCualquierCamara();
             const container = document.getElementById('scanner-container');
@@ -754,7 +733,6 @@
         function verListas() { document.getElementById('modalListas').style.display = 'flex'; renderizarLista(); }
         function cerrarModalListas() { document.getElementById('modalListas').style.display = 'none'; if (ultimoModo === 'teclado') inputCodigo.focus(); }
 
-        // RENDERIZADO DE LA LISTA GUARDADA CON CÓDIGOS DE BARRAS OPTIMIZADOS
         function renderizarLista() {
             const contenedor = document.getElementById('modal-body-listas');
             if (listaTrabajo.length === 0) { 
@@ -777,7 +755,6 @@
                     badge = `<span class="etiqueta-tipo-lista bg-pedido">Pedido</span>`; 
                     detalleEx = `<br><span style="color:#17a2b8; font-weight:bold;">Stock actual: ${item.stock}</span>`; 
                     
-                    // Tarjeta blanca con margen de lectura para escáner
                     barcodeContenedor = `
                         <div style="background: #ffffff; padding: 4px 6px; border: 1px solid #dcdcdc; border-radius: 6px; margin-top: 6px; width: fit-content; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
                             <svg id="barcode-pedido-${idx}" style="display: block; max-width: 100%; height: 46px;"></svg>
@@ -806,7 +783,6 @@
 
             contenedor.innerHTML = html;
 
-            // Generación gráfica inmediata de las barras
             listaInvertida.forEach((item, idx) => {
                 if (item.tipo === 'pedido' && item.ean && item.ean !== "-") {
                     const eanLimpio = String(item.ean).trim();
@@ -814,14 +790,13 @@
                     if (!svgElement) return;
 
                     try {
-                        // Intento estándar EAN-13 si tiene exactamente 13 dígitos
                         if (/^\d{13}$/.test(eanLimpio)) {
                             JsBarcode(svgElement, eanLimpio, {
                                 format: "EAN13",
                                 lineColor: "#000000",
                                 width: 1.8,
                                 height: 44,
-                                displayValue: false, // Las cifras ya se leen en el texto superior
+                                displayValue: false,
                                 margin: 6,
                                 background: "#ffffff"
                             });
@@ -829,7 +804,6 @@
                             throw new Error("No es EAN-13 estándar");
                         }
                     } catch (e) {
-                        // Fallback universal a CODE128 (códigos de 12 dígitos, alfanuméricos o sin checksum estricto)
                         try {
                             JsBarcode(svgElement, eanLimpio, {
                                 format: "CODE128",
