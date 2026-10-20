@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-title" content="MOVILEC">
     <link rel="apple-touch-icon" href="icono.png">
 
-    <!-- Librerías requeridas -->
+    <!-- Librerías: Parseo, Motores Barcode (A y B), Excel, Barcode visual y OCR -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -62,20 +62,20 @@
         .btn-cerrar-camara-b { margin: 10px auto 15px auto; width: 90%; max-width: 300px; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; text-transform: uppercase; }
         .btn-cerrar-camara-b:active { background: #c82333; }
 
-        /* VISOR OCR (CAPTURA DE PVP) */
+        /* VISOR OCR: MIRA MÁS ALTA Y ESTRECHA */
         #ocr-container {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95); z-index: 99999; flex-direction: column;
             justify-content: space-between; align-items: center; padding: max(15px, env(safe-area-inset-top)) 10px max(20px, env(safe-area-inset-bottom)) 10px;
         }
-        .visor-ocr-wrapper { position: relative; width: 100%; max-width: 360px; height: 340px; border-radius: 12px; overflow: hidden; background: #000; display: flex; justify-content: center; align-items: center; }
+        .visor-ocr-wrapper { position: relative; width: 100%; max-width: 360px; height: 350px; border-radius: 12px; overflow: hidden; background: #000; display: flex; justify-content: center; align-items: center; }
         #video-ocr { width: 100%; height: 100%; object-fit: cover; }
         .mira-ocr {
-            position: absolute; width: 75%; height: 75px; border: 3px solid #ff9800;
-            border-radius: 10px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+            position: absolute; width: 48%; height: 140px; border: 3px solid #ff9800;
+            border-radius: 10px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.6);
             display: flex; justify-content: center; align-items: center; pointer-events: none;
         }
-        .mira-ocr::after { content: "ENCUADRA EL PVP"; font-size: 11px; font-weight: 900; color: #ffc107; letter-spacing: 1px; text-shadow: 0 1px 3px #000; }
+        .mira-ocr::after { content: "ENCUADRA EL PVP"; font-size: 10px; font-weight: 900; color: #ffc107; letter-spacing: 1px; text-shadow: 0 1px 3px #000; }
         .ocr-instruccion { color: #fff; font-size: 14px; font-weight: bold; margin: 4px 0; }
         .ocr-botones-barra { width: 100%; max-width: 360px; display: flex; gap: 8px; }
         .btn-ocr-disparo { flex: 2; padding: 16px; background-color: #28a745; color: white; border: none; border-radius: 8px; font-size: 17px; font-weight: 900; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #198754; }
@@ -103,8 +103,6 @@
 
         .panel-cantidad { display: none; flex-direction: row; gap: 8px; margin-top: 6px; }
         .input-cantidad { flex: 1; padding: 12px; border: 3px solid #ff9800; border-radius: 8px; font-size: 20px; text-align: center; font-weight: bold; outline: none; background-color: white; color: #111; }
-        .btn-abrir-ocr { padding: 10px 14px; background: #9c27b0; color: white; border: none; border-radius: 8px; font-weight: 900; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; }
-        .btn-abrir-ocr:active { background: #7b1fa2; }
 
         .lista-resultados { list-style: none; padding: 0; margin: 0; text-align: left; border: 1px solid #dee2e6; border-radius: 6px; }
         .item-resultado { padding: 8px; border-bottom: 1px solid #dee2e6; cursor: pointer; background-color: #fff; }
@@ -192,9 +190,9 @@
         <button class="btn-cerrar-camara-b" onclick="cerrarCualquierCamara()">✕ Cerrar Cámara</button>
     </div>
 
-    <!-- VISOR OCR: ENCUADRE DE PRECIO -->
+    <!-- VISOR OCR: MIRA ALTA Y ESTRECHA -->
     <div id="ocr-container">
-        <div class="ocr-instruccion">Encuadra el precio dentro de la mira naranja</div>
+        <div class="ocr-instruccion">Encuadra el precio en la mira naranja</div>
         <div class="visor-ocr-wrapper">
             <video id="video-ocr" playsinline autoplay muted></video>
             <div class="mira-ocr"></div>
@@ -395,7 +393,7 @@
                 if (modo === 'chequeo' && !competenciaGuardada) { alert("¡Atención! Para chequear precios escribe la Competencia en Ajustes."); return; }
                 modoActivo = modo; btnRapido.classList.remove('activo'); btnChequeo.classList.remove('activo'); btnPedidos.classList.remove('activo'); resultadoDiv.style.display = 'flex';
                 if (modo === 'rapido') { btnRapido.classList.add('activo'); resultadoDiv.innerHTML = "<h3 style='color:#ffc107; margin:0;'>⚡ MODO 1 ACTIVO</h3><p style='font-size:15px; margin-top:4px;'>Se guardarán a tu Lista con cantidad 1 automáticamente.</p>"; } 
-                else if (modo === 'chequeo') { btnChequeo.classList.add('activo'); resultadoDiv.innerHTML = `<h3 style='color:#9c27b0; margin:0;'>🕵️ CHEQUEANDO: ${competenciaGuardada}</h3><p style='font-size:15px; margin-top:4px;'>Escanea el producto para introducir o capturar su PVP.</p>`; } 
+                else if (modo === 'chequeo') { btnChequeo.classList.add('activo'); resultadoDiv.innerHTML = `<h3 style='color:#9c27b0; margin:0;'>🕵️ CHEQUEANDO: ${competenciaGuardada}</h3><p style='font-size:15px; margin-top:4px;'>Escanea el producto para capturar su PVP.</p>`; } 
                 else if (modo === 'pedidos') { btnPedidos.classList.add('activo'); resultadoDiv.innerHTML = `<h3 style='color:#17a2b8; margin:0;'>🛒 MODO PEDIDOS</h3><p style='font-size:15px; margin-top:4px;'>Escanea para ver Rayón/Stock y pedir.</p>`; }
             }
         }
@@ -413,7 +411,7 @@
             return null;
         }
 
-        // MODO CHEQUEO CON APERTURA AUTOMÁTICA DEL VISOR OCR
+        // MODO CHEQUEO: SIN BOTÓN MANUAL, APERTURA DIRECTA DE OCR
         function procesarEscaneoChequeo(termino) {
             let result = buscarArticuloGlobal(termino); 
             let desc = "COMPETENCIA (Sin datos)"; 
@@ -433,12 +431,11 @@
                 <p style='font-size:14px; color:#555; margin:4px 0;'>${textoPvp}</p>
                 <div class="panel-cantidad" style="display:flex;">
                     <input type="text" id="input-precio-accion" class="input-cantidad" placeholder="PVP Rival €..." readonly onclick="abrirTecladoPrecio()">
-                    <button class="btn-abrir-ocr" onclick="iniciarOcrCamara()">📷 FOTO PVP</button>
                 </div>
             `;
             dibujarCodigoBarras(eanDetectado);
 
-            // Transición automática al visor OCR tras liberar la cámara anterior
+            // Abre de forma automática el visor OCR tras limpiar el lector anterior
             setTimeout(() => {
                 iniciarOcrCamara();
             }, 450);
@@ -446,7 +443,7 @@
 
         function abrirTecladoPrecio() { inputActivoId = 'input-precio-accion'; tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado'); forzarCierreTecladoNativo(); }
 
-        // CONTROL INDEPENDIENTE DEL STREAM OCR
+        // CONTROL DEL STREAM OCR
         function pararStreamOcr() {
             if (streamOcr) {
                 streamOcr.getTracks().forEach(t => t.stop());
@@ -475,7 +472,7 @@
             const ocrCont = document.getElementById('ocr-container');
             ocrCont.style.display = 'flex';
 
-            // Pausa de 350ms para asegurar la liberación del sensor en el hardware
+            // Pausa requerida para que el SO libere el hardware de la cámara previa
             await new Promise(r => setTimeout(r, 350));
 
             try {
@@ -509,9 +506,9 @@
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
 
-                // Recortar la franja central correspondiente a la mira
-                const cropWidth = video.videoWidth * 0.75;
-                const cropHeight = video.videoHeight * 0.25;
+                // Recorte correspondiente a la mira más alta y estrecha (ancho 48%, alto 40%)
+                const cropWidth = video.videoWidth * 0.48;
+                const cropHeight = video.videoHeight * 0.40;
                 const cropX = (video.videoWidth - cropWidth) / 2;
                 const cropY = (video.videoHeight - cropHeight) / 2;
 
@@ -520,7 +517,7 @@
 
                 ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
-                // Binarización de alto contraste
+                // Binarización de alto contraste para números claros
                 const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const d = imgData.data;
                 for (let i = 0; i < d.length; i += 4) {
