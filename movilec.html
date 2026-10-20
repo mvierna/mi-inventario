@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-title" content="MOVILEC">
     <link rel="apple-touch-icon" href="icono.png">
 
-    <!-- Librerías: Parseo, Motores Barcode (A y B), Excel, Barcode visual y OCR -->
+    <!-- Librerías requeridas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -62,21 +62,35 @@
         .btn-cerrar-camara-b { margin: 10px auto 15px auto; width: 90%; max-width: 300px; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; text-transform: uppercase; }
         .btn-cerrar-camara-b:active { background: #c82333; }
 
-        /* VISOR OCR: MIRA ALTA Y ESTRECHA */
+        /* VISOR OCR PROFESIONAL */
         #ocr-container {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95); z-index: 99999; flex-direction: column;
-            justify-content: space-between; align-items: center; padding: max(15px, env(safe-area-inset-top)) 10px max(20px, env(safe-area-inset-bottom)) 10px;
+            justify-content: space-between; align-items: center; padding: max(10px, env(safe-area-inset-top)) 10px max(15px, env(safe-area-inset-bottom)) 10px;
         }
-        .visor-ocr-wrapper { position: relative; width: 100%; max-width: 360px; height: 350px; border-radius: 12px; overflow: hidden; background: #000; display: flex; justify-content: center; align-items: center; }
+        .barra-superior-ocr { width: 100%; max-width: 360px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .grupo-tallas-mira { display: flex; gap: 4px; }
+        .btn-talla-mira { background: #333; color: #fff; border: 1px solid #666; padding: 6px 10px; font-size: 11px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        .btn-talla-mira.activo { background: #ff9800; color: #000; border-color: #ff9800; }
+        .btn-linterna { background: #444; color: #fff; border: 1px solid #777; padding: 6px 12px; font-size: 14px; border-radius: 6px; cursor: pointer; }
+        .btn-linterna.activo { background: #ffc107; color: #000; }
+
+        .visor-ocr-wrapper { position: relative; width: 100%; max-width: 360px; height: 360px; border-radius: 12px; overflow: hidden; background: #000; display: flex; justify-content: center; align-items: center; }
         #video-ocr { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* MIRA OCR DINÁMICA */
         .mira-ocr {
-            position: absolute; width: 50%; height: 140px; border: 3px solid #ff9800;
-            border-radius: 10px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.6);
-            display: flex; justify-content: center; align-items: center; pointer-events: none;
+            position: absolute; border: 3px solid #ff9800; border-radius: 8px;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.65); pointer-events: none;
+            transition: all 0.2s ease;
         }
-        .mira-ocr::after { content: "ENCUADRA EL PVP"; font-size: 10px; font-weight: 900; color: #ffc107; letter-spacing: 1px; text-shadow: 0 1px 3px #000; }
-        .ocr-instruccion { color: #fff; font-size: 14px; font-weight: bold; margin: 4px 0; }
+        .mira-ocr.mira-normal { width: 60%; height: 110px; }
+        .mira-ocr.mira-grande { width: 85%; height: 180px; }
+        .mira-ocr.mira-compacta { width: 45%; height: 75px; }
+
+        .barra-zoom { width: 100%; max-width: 360px; display: flex; align-items: center; gap: 8px; color: white; font-size: 12px; font-weight: bold; margin: 4px 0; }
+        .barra-zoom input[type=range] { flex: 1; accent-color: #ff9800; height: 6px; }
+
         .ocr-botones-barra { width: 100%; max-width: 360px; display: flex; gap: 8px; }
         .btn-ocr-disparo { flex: 2; padding: 16px; background-color: #28a745; color: white; border: none; border-radius: 8px; font-size: 17px; font-weight: 900; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 0 #198754; }
         .btn-ocr-disparo:active { transform: translateY(3px); box-shadow: none; }
@@ -101,7 +115,6 @@
         .etiqueta-stock { font-size: 11px; text-transform: uppercase; margin: 0; font-weight: bold; letter-spacing: 0.5px; opacity: 0.95; }
         .numero-stock { font-size: 46px; font-weight: 900; margin: 0; line-height: 1; color: #ffffff; }
 
-        /* PANEL CANTIDAD LIMPIO (SIN BOTÓN LATERAL) */
         .panel-cantidad { display: none; flex-direction: row; gap: 8px; margin-top: 6px; width: 100%; }
         .input-cantidad { width: 100%; padding: 12px; border: 3px solid #ff9800; border-radius: 8px; font-size: 22px; text-align: center; font-weight: bold; outline: none; background-color: white; color: #111; }
 
@@ -191,20 +204,35 @@
         <button class="btn-cerrar-camara-b" onclick="cerrarCualquierCamara()">✕ Cerrar Cámara</button>
     </div>
 
-    <!-- VISOR OCR: MIRA ALTA Y ESTRECHA -->
+    <!-- VISOR OCR: MIRA ADAPTABLE CON ZOOM Y LUZ -->
     <div id="ocr-container">
-        <div class="ocr-instruccion">Encuadra el precio en la mira naranja</div>
+        <div class="barra-superior-ocr">
+            <div class="grupo-tallas-mira">
+                <button class="btn-talla-mira" onclick="cambiarTallaMira('compacta')">Compacta</button>
+                <button class="btn-talla-mira activo" onclick="cambiarTallaMira('normal')">Normal</button>
+                <button class="btn-talla-mira" onclick="cambiarTallaMira('grande')">Grande</button>
+            </div>
+            <button id="btn-toggle-luz" class="btn-linterna" onclick="toggleLinterna()">🔦</button>
+        </div>
+
         <div class="visor-ocr-wrapper">
             <video id="video-ocr" playsinline autoplay muted></video>
-            <div class="mira-ocr"></div>
+            <div id="mira-ocr" class="mira-ocr mira-normal"></div>
         </div>
+
+        <div class="barra-zoom">
+            <span>1x</span>
+            <input type="range" id="slider-zoom" min="1" max="3" step="0.1" value="1" oninput="cambiarZoomManual(this.value)">
+            <span>3x</span>
+        </div>
+
         <div class="ocr-botones-barra">
             <button class="btn-ocr-cancelar" onclick="cerrarOcrCamara()">✕ Salir</button>
             <button id="btn-disparo-ocr" class="btn-ocr-disparo" onclick="capturarPvpConOcr()">📸 LEER PRECIO</button>
         </div>
     </div>
 
-    <!-- MODAL SELECCIÓN MODO CHEQUEO (SIN BOTÓN LATERAL) -->
+    <!-- MODAL SELECCIÓN MODO CHEQUEO -->
     <div id="modalSeleccionChequeo" class="modal-overlay">
         <div class="modal-content" style="max-width: 320px; text-align: center; gap: 10px;">
             <div class="modal-header" style="justify-content: center; margin-bottom: 2px;">
@@ -360,7 +388,7 @@
         let inventarioSinStock = {}; 
         let ultimoModo = 'teclado'; 
         let modoActivo = 'normal';
-        let tipoChequeoSeleccionado = 'teclado'; // 'teclado' o 'ocr'
+        let tipoChequeoSeleccionado = 'teclado'; 
         let listaTrabajo = JSON.parse(localStorage.getItem('inventarioListaTrabajo')) || [];
         let usuarioGuardado = localStorage.getItem('inventarioUsuario') || '';
         let competenciaGuardada = localStorage.getItem('inventarioCompetencia') || '';
@@ -371,6 +399,7 @@
         let html5QrcodeScanner = null;
         let camaraManualIdZXing = localStorage.getItem('camaraPreferidaZXing') || null; 
         let streamOcr = null;
+        let estadoLinterna = false;
 
         let inputActivoId = 'inputCodigo';
         let itemActual = { ean: null, desc: null, rayon: null, stock: null, pvp_nuestro: null };
@@ -403,13 +432,11 @@
             }
         });
 
-        // GESTIÓN DE MODOS Y SELECCIÓN AL ENTRAR EN CHEQUEO
         function activarModo(modo) {
             const btnRapido = document.getElementById('btn-modo-rapido'); 
             const btnChequeo = document.getElementById('btn-modo-chequeo'); 
             const btnPedidos = document.getElementById('btn-modo-pedidos');
             
-            // Si ya está activo, se desactiva y vuelve a normal
             if (modoActivo === modo) {
                 modoActivo = 'normal'; 
                 btnRapido.classList.remove('activo'); 
@@ -422,7 +449,6 @@
 
             if (!usuarioGuardado) { alert("¡Atención! Para usar modos especiales debes guardar tu Nombre en Ajustes."); return; }
             
-            // Si pulsa chequeo: muestra la ventana de elección de modo
             if (modo === 'chequeo') {
                 if (!competenciaGuardada) { alert("¡Atención! Para chequear precios escribe la Competencia en Ajustes."); return; }
                 abrirModalSeleccionChequeo();
@@ -487,7 +513,6 @@
             return null;
         }
 
-        // PROCESADO EN CHEQUEO SEGÚN EL MODO ELEGIDO
         function procesarEscaneoChequeo(termino) {
             let result = buscarArticuloGlobal(termino); 
             let desc = "COMPETENCIA (Sin datos)"; 
@@ -520,7 +545,37 @@
 
         function abrirTecladoPrecio() { inputActivoId = 'input-precio-accion'; tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado'); forzarCierreTecladoNativo(); }
 
-        // CONTROL DEL STREAM OCR
+        // CONTROL DE TALLAS DE LA MIRA
+        function cambiarTallaMira(talla) {
+            const mira = document.getElementById('mira-ocr');
+            mira.className = 'mira-ocr mira-' + talla;
+            document.querySelectorAll('.btn-talla-mira').forEach(b => b.classList.remove('activo'));
+            event.target.classList.add('activo');
+        }
+
+        // CONTROL DE LINTERNA / FLASH
+        async function toggleLinterna() {
+            if (!streamOcr) return;
+            const track = streamOcr.getVideoTracks()[0];
+            const btnLuz = document.getElementById('btn-toggle-luz');
+            try {
+                estadoLinterna = !estadoLinterna;
+                await track.applyConstraints({ advanced: [{ torch: estadoLinterna }] });
+                btnLuz.classList.toggle('activo', estadoLinterna);
+            } catch (e) {
+                console.log("Linterna no soportada:", e);
+            }
+        }
+
+        // CONTROL DE ZOOM MANUAL
+        async function cambiarZoomManual(val) {
+            if (!streamOcr) return;
+            const track = streamOcr.getVideoTracks()[0];
+            try {
+                await track.applyConstraints({ advanced: [{ zoom: parseFloat(val) }] });
+            } catch (e) {}
+        }
+
         function pararStreamOcr() {
             if (streamOcr) {
                 streamOcr.getTracks().forEach(t => t.stop());
@@ -531,6 +586,8 @@
                 video.pause();
                 video.srcObject = null;
             }
+            estadoLinterna = false;
+            document.getElementById('btn-toggle-luz').classList.remove('activo');
             document.getElementById('ocr-container').style.display = 'none';
         }
 
@@ -552,11 +609,12 @@
             await new Promise(r => setTimeout(r, 350));
 
             try {
+                // Solicitar alta resolución y autoenfoque continuo para máxima nitidez
                 streamOcr = await navigator.mediaDevices.getUserMedia({
                     video: { 
                         facingMode: { ideal: "environment" },
                         width: { ideal: 1920 }, 
-                        height: { ideal: 1080 } 
+                        height: { ideal: 1080 }
                     }
                 });
                 const video = document.getElementById('video-ocr');
@@ -565,10 +623,26 @@
 
                 const track = streamOcr.getVideoTracks()[0];
                 const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+
+                // Configurar slider de zoom según capacidades reales del móvil
+                const sliderZoom = document.getElementById('slider-zoom');
                 if (capabilities.zoom) {
-                    const zoomVal = Math.min(capabilities.zoom.max, 1.8);
-                    track.applyConstraints({ advanced: [{ zoom: zoomVal }] }).catch(() => {});
+                    sliderZoom.min = capabilities.zoom.min || 1;
+                    sliderZoom.max = Math.min(capabilities.zoom.max || 3, 3.5);
+                    sliderZoom.step = capabilities.zoom.step || 0.1;
+                    sliderZoom.value = 1.3;
+                    track.applyConstraints({ advanced: [{ zoom: 1.3 }] }).catch(() => {});
+                } else {
+                    sliderZoom.parentElement.style.display = 'none';
                 }
+
+                // Ocultar botón linterna si el hardware no tiene flash
+                if (!capabilities.torch) {
+                    document.getElementById('btn-toggle-luz').style.display = 'none';
+                } else {
+                    document.getElementById('btn-toggle-luz').style.display = 'block';
+                }
+
             } catch (err) {
                 console.error("Error al iniciar cámara OCR:", err);
                 alert("No se pudo encender la cámara para el OCR: " + err.message);
@@ -576,50 +650,84 @@
             }
         }
 
+        // CAPTURA EXACTA CON MAPEO SCREEN-TO-SENSOR Y SUPER-RESOLUCIÓN
         async function capturarPvpConOcr() {
             const btnDisparo = document.getElementById('btn-disparo-ocr');
             const video = document.getElementById('video-ocr');
-            if (!video.videoWidth) return;
+            const mira = document.getElementById('mira-ocr');
+            if (!video.videoWidth || !video.videoHeight) return;
 
             btnDisparo.innerText = "⏳ LEYENDO...";
             btnDisparo.style.opacity = "0.7";
             btnDisparo.disabled = true;
 
             try {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+                // 1. Mapeo geométrico de 'object-fit: cover' a las coordenadas reales del sensor
+                const videoW = video.videoWidth;
+                const videoH = video.videoHeight;
+                const elemW = video.clientWidth;
+                const elemH = video.clientHeight;
 
-                // Recorte de la mira alta y estrecha (50% x 40%)
-                const cropWidth = video.videoWidth * 0.50;
-                const cropHeight = video.videoHeight * 0.40;
-                const cropX = (video.videoWidth - cropWidth) / 2;
-                const cropY = (video.videoHeight - cropHeight) / 2;
+                const videoRatio = videoW / videoH;
+                const elemRatio = elemW / elemH;
 
-                canvas.width = cropWidth;
-                canvas.height = cropHeight;
-
-                ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-
-                // Normalización de contraste para dígitos
-                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const d = imgData.data;
-                let minGris = 255, maxGris = 0;
-
-                for (let i = 0; i < d.length; i += 4) {
-                    let gris = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
-                    if (gris < minGris) minGris = gris;
-                    if (gris > maxGris) maxGris = gris;
+                let renderW, renderH, offsetX, offsetY;
+                if (elemRatio > videoRatio) {
+                    renderW = elemW;
+                    renderH = elemW / videoRatio;
+                    offsetX = 0;
+                    offsetY = (renderH - elemH) / 2;
+                } else {
+                    renderH = elemH;
+                    renderW = elemH * videoRatio;
+                    offsetX = (renderW - elemW) / 2;
+                    offsetY = 0;
                 }
 
-                const rango = maxGris - minGris || 1;
+                const scale = videoW / renderW;
+                const miraRect = mira.getBoundingClientRect();
+                const videoRect = video.getBoundingClientRect();
+
+                const cropX = Math.max(0, ((miraRect.left - videoRect.left) + offsetX) * scale);
+                const cropY = Math.max(0, ((miraRect.top - videoRect.top) + offsetY) * scale);
+                const cropW = Math.min(videoW - cropX, miraRect.width * scale);
+                const cropH = Math.min(videoH - cropY, miraRect.height * scale);
+
+                // 2. Reescalado automático en Canvas: asegurar altura mínima de 120px para nitidez en Tesseract
+                let factorAumento = 1;
+                if (cropH < 120) {
+                    factorAumento = Math.ceil(120 / cropH);
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = cropW * factorAumento;
+                canvas.height = cropH * factorAumento;
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = false; // Preserva bordes afilados en texto
+
+                ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
+
+                // 3. Normalización dinámica de contraste (funciona en etiquetas blancas, amarillas o en sombra)
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const d = imgData.data;
+                let minG = 255, maxG = 0;
+
                 for (let i = 0; i < d.length; i += 4) {
-                    let gris = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
-                    let normalizado = ((gris - minGris) / rango) * 255;
-                    normalizado = normalizado < 110 ? normalizado * 0.5 : Math.min(255, normalizado * 1.2);
-                    d[i] = d[i + 1] = d[i + 2] = normalizado;
+                    let g = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+                    if (g < minG) minG = g;
+                    if (g > maxG) maxG = g;
+                }
+
+                const rango = maxG - minG || 1;
+                for (let i = 0; i < d.length; i += 4) {
+                    let g = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+                    let norm = ((g - minG) / rango) * 255;
+                    norm = norm < 115 ? norm * 0.4 : Math.min(255, norm * 1.25);
+                    d[i] = d[i + 1] = d[i + 2] = norm;
                 }
                 ctx.putImageData(imgData, 0, 0);
 
+                // 4. Reconocimiento óptico restringido
                 const worker = await Tesseract.createWorker('eng');
                 await worker.setParameters({
                     tessedit_char_whitelist: '0123456789.,€',
@@ -632,10 +740,12 @@
                 const rawText = ret.data.text.trim();
                 let precioFinal = null;
 
+                // Formato directo (ej: 1.95, 2,49)
                 const matchDirecto = rawText.match(/(\d{1,3}[,.]\d{2})/);
                 if (matchDirecto) {
                     precioFinal = matchDirecto[0].replace(',', '.');
                 } else {
+                    // Reconstrucción de superíndices (ej: "1" en línea 1 y "95" en línea 2)
                     const numeros = rawText.match(/\d+/g);
                     if (numeros && numeros.length >= 2) {
                         const entero = numeros[0];
@@ -650,7 +760,7 @@
                     reproducirBeep();
                     cerrarOcrCamara();
                 } else {
-                    alert(`No se detectó un precio claro (leído: "${rawText}"). Pulsa Salir para escribirlo.`);
+                    alert(`No se detectó el precio claramente (leído: "${rawText}"). Cambia el tamaño de mira o pulsa Salir para escribirlo.`);
                 }
             } catch (err) {
                 alert("Error en el reconocimiento: " + err.message);
