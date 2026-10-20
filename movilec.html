@@ -62,7 +62,7 @@
         .btn-cerrar-camara-b { margin: 10px auto 15px auto; width: 90%; max-width: 300px; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; text-transform: uppercase; }
         .btn-cerrar-camara-b:active { background: #c82333; }
 
-        /* VISOR OCR: MIRA MÁS ALTA Y ESTRECHA */
+        /* VISOR OCR: MIRA ALTA Y ESTRECHA */
         #ocr-container {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95); z-index: 99999; flex-direction: column;
@@ -71,7 +71,7 @@
         .visor-ocr-wrapper { position: relative; width: 100%; max-width: 360px; height: 350px; border-radius: 12px; overflow: hidden; background: #000; display: flex; justify-content: center; align-items: center; }
         #video-ocr { width: 100%; height: 100%; object-fit: cover; }
         .mira-ocr {
-            position: absolute; width: 48%; height: 140px; border: 3px solid #ff9800;
+            position: absolute; width: 50%; height: 140px; border: 3px solid #ff9800;
             border-radius: 10px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.6);
             display: flex; justify-content: center; align-items: center; pointer-events: none;
         }
@@ -103,6 +103,8 @@
 
         .panel-cantidad { display: none; flex-direction: row; gap: 8px; margin-top: 6px; }
         .input-cantidad { flex: 1; padding: 12px; border: 3px solid #ff9800; border-radius: 8px; font-size: 20px; text-align: center; font-weight: bold; outline: none; background-color: white; color: #111; }
+        .btn-switch-ocr { flex: 0 0 58px; background: #9c27b0; color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-switch-ocr:active { background: #7b1fa2; }
 
         .lista-resultados { list-style: none; padding: 0; margin: 0; text-align: left; border: 1px solid #dee2e6; border-radius: 6px; }
         .item-resultado { padding: 8px; border-bottom: 1px solid #dee2e6; cursor: pointer; background-color: #fff; }
@@ -156,6 +158,10 @@
         
         .input-email-config { width: 100%; padding: 12px; border: 2px solid #007bff; border-radius: 6px; margin-bottom: 8px; font-size: 16px; font-weight: bold; outline: none; text-align: center; }
         .input-competencia { border-color: #9c27b0; color: #9c27b0; margin-bottom: 8px; }
+
+        .fila-config-modo { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 8px 12px; border-radius: 6px; border: 2px solid #9c27b0; margin-bottom: 8px; }
+        .fila-config-modo span { font-size: 13px; font-weight: 800; color: #333; }
+        .select-config-modo { padding: 8px; font-weight: 900; border-radius: 6px; border: 1px solid #ccc; outline: none; background: #f8f9fa; color: #111; }
         
         .modal-body { overflow-y: auto; flex: 1; background: white; border-radius: 8px; border: 1px solid #dee2e6; margin-bottom: 10px; }
         .item-lista-guardada { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #dee2e6; align-items: center; }
@@ -265,6 +271,7 @@
         </div>
     </div>
 
+    <!-- MODAL AJUSTES CON CONFIGURACIÓN DE CHEQUEO -->
     <div id="modalListas" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
@@ -276,6 +283,14 @@
             <input type="text" id="nombre-competencia-input" class="input-email-config input-competencia" placeholder="🏪 Nombre Competencia (Ej: Mercadona)..." onchange="guardarConfiguracion()">
             <input type="email" id="email-destino-input" class="input-email-config" style="border-color: #28a745;" placeholder="📧 Email Destino (Ej: jefe@tienda.com)..." onchange="guardarConfiguracion()">
             
+            <div class="fila-config-modo">
+                <span>Modo Chequeo PVP:</span>
+                <select id="config-chequeo-modo" class="select-config-modo" onchange="guardarConfiguracion()">
+                    <option value="teclado">🔢 Teclado directo</option>
+                    <option value="ocr">📷 Cámara OCR (Auto)</option>
+                </select>
+            </div>
+
             <div id="modal-body-listas" class="modal-body"></div>
             
             <div class="modal-footer">
@@ -344,8 +359,9 @@
         let competenciaGuardada = localStorage.getItem('inventarioCompetencia') || '';
         let emailGuardado = localStorage.getItem('inventarioEmail') || '';
         
-        // CONFIGURACIÓN DE CÁMARAS A (ZXing) / B (Html5Qrcode) / OCR
+        // CÁMARA (A/B) Y CONFIGURACIÓN DE CHEQUEO
         let motorCamaraPreferido = localStorage.getItem('movilec_camara_tipo') || 'B';
+        let chequeoModoConfig = localStorage.getItem('movilec_chequeo_modo') || 'teclado';
         let codeReader = null; 
         let html5QrcodeScanner = null;
         let camaraManualIdZXing = localStorage.getItem('camaraPreferidaZXing') || null; 
@@ -363,14 +379,18 @@
         document.getElementById('nombre-competencia-input').value = competenciaGuardada; 
         document.getElementById('email-destino-input').value = emailGuardado;
         document.getElementById('selector-motor-camara').value = motorCamaraPreferido;
+        document.getElementById('config-chequeo-modo').value = chequeoModoConfig;
 
         function guardarConfiguracion() {
             usuarioGuardado = document.getElementById('nombre-usuario-input').value.trim(); 
             competenciaGuardada = document.getElementById('nombre-competencia-input').value.trim(); 
             emailGuardado = document.getElementById('email-destino-input').value.trim();
+            chequeoModoConfig = document.getElementById('config-chequeo-modo').value;
+
             localStorage.setItem('inventarioUsuario', usuarioGuardado); 
             localStorage.setItem('inventarioCompetencia', competenciaGuardada); 
             localStorage.setItem('inventarioEmail', emailGuardado);
+            localStorage.setItem('movilec_chequeo_modo', chequeoModoConfig);
         }
 
         document.getElementById('espaciador-central').addEventListener('click', function(e) {
@@ -393,7 +413,7 @@
                 if (modo === 'chequeo' && !competenciaGuardada) { alert("¡Atención! Para chequear precios escribe la Competencia en Ajustes."); return; }
                 modoActivo = modo; btnRapido.classList.remove('activo'); btnChequeo.classList.remove('activo'); btnPedidos.classList.remove('activo'); resultadoDiv.style.display = 'flex';
                 if (modo === 'rapido') { btnRapido.classList.add('activo'); resultadoDiv.innerHTML = "<h3 style='color:#ffc107; margin:0;'>⚡ MODO 1 ACTIVO</h3><p style='font-size:15px; margin-top:4px;'>Se guardarán a tu Lista con cantidad 1 automáticamente.</p>"; } 
-                else if (modo === 'chequeo') { btnChequeo.classList.add('activo'); resultadoDiv.innerHTML = `<h3 style='color:#9c27b0; margin:0;'>🕵️ CHEQUEANDO: ${competenciaGuardada}</h3><p style='font-size:15px; margin-top:4px;'>Escanea el producto para capturar su PVP.</p>`; } 
+                else if (modo === 'chequeo') { btnChequeo.classList.add('activo'); resultadoDiv.innerHTML = `<h3 style='color:#9c27b0; margin:0;'>🕵️ CHEQUEANDO: ${competenciaGuardada}</h3><p style='font-size:15px; margin-top:4px;'>Escanea el producto para introducir o capturar su PVP.</p>`; } 
                 else if (modo === 'pedidos') { btnPedidos.classList.add('activo'); resultadoDiv.innerHTML = `<h3 style='color:#17a2b8; margin:0;'>🛒 MODO PEDIDOS</h3><p style='font-size:15px; margin-top:4px;'>Escanea para ver Rayón/Stock y pedir.</p>`; }
             }
         }
@@ -411,7 +431,7 @@
             return null;
         }
 
-        // MODO CHEQUEO: SIN BOTÓN MANUAL, APERTURA DIRECTA DE OCR
+        // MODO CHEQUEO: CONFIGURABLE (TECLADO O CÁMARA OCR)
         function procesarEscaneoChequeo(termino) {
             let result = buscarArticuloGlobal(termino); 
             let desc = "COMPETENCIA (Sin datos)"; 
@@ -431,14 +451,16 @@
                 <p style='font-size:14px; color:#555; margin:4px 0;'>${textoPvp}</p>
                 <div class="panel-cantidad" style="display:flex;">
                     <input type="text" id="input-precio-accion" class="input-cantidad" placeholder="PVP Rival €..." readonly onclick="abrirTecladoPrecio()">
+                    <button class="btn-switch-ocr" onclick="iniciarOcrCamara()" title="Capturar con Cámara">📷</button>
                 </div>
             `;
             dibujarCodigoBarras(eanDetectado);
 
-            // Abre de forma automática el visor OCR tras limpiar el lector anterior
-            setTimeout(() => {
-                iniciarOcrCamara();
-            }, 450);
+            if (chequeoModoConfig === 'ocr') {
+                setTimeout(() => { iniciarOcrCamara(); }, 450);
+            } else {
+                abrirTecladoPrecio();
+            }
         }
 
         function abrirTecladoPrecio() { inputActivoId = 'input-precio-accion'; tecladoVirtual.style.display = 'grid'; document.body.classList.add('modo-teclado'); forzarCierreTecladoNativo(); }
@@ -472,20 +494,26 @@
             const ocrCont = document.getElementById('ocr-container');
             ocrCont.style.display = 'flex';
 
-            // Pausa requerida para que el SO libere el hardware de la cámara previa
             await new Promise(r => setTimeout(r, 350));
 
             try {
                 streamOcr = await navigator.mediaDevices.getUserMedia({
                     video: { 
                         facingMode: { ideal: "environment" },
-                        width: { ideal: 1280 }, 
-                        height: { ideal: 720 } 
+                        width: { ideal: 1920 }, 
+                        height: { ideal: 1080 } 
                     }
                 });
                 const video = document.getElementById('video-ocr');
                 video.srcObject = streamOcr;
                 await video.play();
+
+                const track = streamOcr.getVideoTracks()[0];
+                const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+                if (capabilities.zoom) {
+                    const zoomVal = Math.min(capabilities.zoom.max, 1.8);
+                    track.applyConstraints({ advanced: [{ zoom: zoomVal }] }).catch(() => {});
+                }
             } catch (err) {
                 console.error("Error al iniciar cámara OCR:", err);
                 alert("No se pudo encender la cámara para el OCR: " + err.message);
@@ -506,8 +534,8 @@
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
 
-                // Recorte correspondiente a la mira más alta y estrecha (ancho 48%, alto 40%)
-                const cropWidth = video.videoWidth * 0.48;
+                // Recorte correspondiente a la mira vertical (ancho 50%, alto 40%)
+                const cropWidth = video.videoWidth * 0.50;
                 const cropHeight = video.videoHeight * 0.40;
                 const cropX = (video.videoWidth - cropWidth) / 2;
                 const cropY = (video.videoHeight - cropHeight) / 2;
@@ -517,42 +545,57 @@
 
                 ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
-                // Binarización de alto contraste para números claros
+                // Normalización de contraste dinámico
                 const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const d = imgData.data;
+                let minGris = 255, maxGris = 0;
+
                 for (let i = 0; i < d.length; i += 4) {
-                    let gris = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114);
-                    let color = gris < 135 ? 0 : 255;
-                    d[i] = color; d[i+1] = color; d[i+2] = color;
+                    let gris = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+                    if (gris < minGris) minGris = gris;
+                    if (gris > maxGris) maxGris = gris;
+                }
+
+                const rango = maxGris - minGris || 1;
+                for (let i = 0; i < d.length; i += 4) {
+                    let gris = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+                    let normalizado = ((gris - minGris) / rango) * 255;
+                    normalizado = normalizado < 110 ? normalizado * 0.5 : Math.min(255, normalizado * 1.2);
+                    d[i] = d[i + 1] = d[i + 2] = normalizado;
                 }
                 ctx.putImageData(imgData, 0, 0);
 
                 const worker = await Tesseract.createWorker('eng');
                 await worker.setParameters({
-                    tessedit_char_whitelist: '0123456789.,'
+                    tessedit_char_whitelist: '0123456789.,€',
+                    tessedit_pageseg_mode: '6'
                 });
 
                 const ret = await worker.recognize(canvas);
                 await worker.terminate();
 
-                const textoExtraido = ret.data.text.trim();
-                const patronPvp = textoExtraido.match(/(\d{1,3}[,.]\d{2})/);
+                const rawText = ret.data.text.trim();
+                let precioFinal = null;
 
-                if (patronPvp) {
-                    const precioValido = patronPvp[0].replace(',', '.');
-                    document.getElementById('input-precio-accion').value = precioValido;
+                const matchDirecto = rawText.match(/(\d{1,3}[,.]\d{2})/);
+                if (matchDirecto) {
+                    precioFinal = matchDirecto[0].replace(',', '.');
+                } else {
+                    const numeros = rawText.match(/\d+/g);
+                    if (numeros && numeros.length >= 2) {
+                        const entero = numeros[0];
+                        let decimales = numeros[1].substring(0, 2);
+                        if (decimales.length === 1) decimales += "0";
+                        precioFinal = `${entero}.${decimales}`;
+                    }
+                }
+
+                if (precioFinal && parseFloat(precioFinal) > 0) {
+                    document.getElementById('input-precio-accion').value = precioFinal;
                     reproducirBeep();
                     cerrarOcrCamara();
                 } else {
-                    const patronSimple = textoExtraido.match(/\d+/g);
-                    if (patronSimple && patronSimple.length >= 2) {
-                        const combinado = patronSimple[0] + "." + patronSimple[1].substring(0, 2);
-                        document.getElementById('input-precio-accion').value = combinado;
-                        reproducirBeep();
-                        cerrarOcrCamara();
-                    } else {
-                        alert("No se detectó el precio con claridad. Acércate más o pulsa Salir para escribirlo.");
-                    }
+                    alert(`No se detectó un precio claro (leído: "${rawText}"). Pulsa Salir para escribirlo.`);
                 }
             } catch (err) {
                 alert("Error en el reconocimiento: " + err.message);
