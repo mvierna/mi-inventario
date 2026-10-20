@@ -1,6 +1,7 @@
 import csv
 import subprocess
 import os
+from datetime import datetime
 
 def formatear_precio_abaco(precio_str):
     if not precio_str or str(precio_str).strip() == "" or str(precio_str).strip() == "-":
@@ -14,12 +15,16 @@ def formatear_precio_abaco(precio_str):
         return str(precio_str)
 
 def limpiar_cantidad_abaco(val_str):
-    if not val_str or str(val_str).strip() == "": return "0"
+    if not val_str or str(val_str).strip() == "": 
+        return "0"
     val = str(val_str).strip()
-    if val.endswith('.0000'): val = val[:-5]
-    elif val.endswith('.000'): val = val[:-4]
+    if val.endswith('.0000'): 
+        val = val[:-5]
+    elif val.endswith('.000'): 
+        val = val[:-4]
     val = val.replace('.', '')
-    if val == "" or val == "-": return "0"
+    if val == "" or val == "-": 
+        return "0"
     return val
 
 def limpiar_ean(ean_raw):
@@ -39,7 +44,7 @@ def limpiar_datos():
         try:
             f = open(archivo, 'r', encoding='utf-8-sig', errors='replace')
             primera_linea = f.readline()
-        except:
+        except Exception:
             f = open(archivo, 'r', encoding='latin-1', errors='replace')
             primera_linea = f.readline()
             
@@ -48,7 +53,8 @@ def limpiar_datos():
         lector = list(csv.reader(f, delimiter=delimitador_entrada))
         f.close()
 
-        if not lector: return set()
+        if not lector: 
+            return set()
 
         fila_muestra = None
         for fila in lector:
@@ -64,19 +70,22 @@ def limpiar_datos():
                 for fila in lector:
                     if len(fila) > 0:
                         ean_limpio = limpiar_ean(fila[0])
-                        if ean_limpio and ean_limpio.upper() not in ['EAN', 'CODIGO']: eans_tienda.add(ean_limpio)
+                        if ean_limpio and ean_limpio.upper() not in ['EAN', 'CODIGO']: 
+                            eans_tienda.add(ean_limpio)
                 return eans_tienda
 
         print("   Iniciando limpieza profunda de TIENDA...")
         for fila in lector:
-            if len(fila) < 3: continue
+            if len(fila) < 3: 
+                continue
                 
             shift = 1 if limpiar_ean(fila[0]).upper() == 'FALSE' else 0
             if shift == 0 and not (limpiar_ean(fila[0]).isdigit() and len(limpiar_ean(fila[0])) >= 6) and len(fila) > 1 and limpiar_ean(fila[1]).isdigit() and len(limpiar_ean(fila[1])) >= 6:
                 shift = 1
 
             ean = limpiar_ean(fila[0 + shift] if len(fila) > 0 + shift else "")
-            if ean.upper() in ['EAN', 'CODIGO', 'CÓDIGO', 'DESIGNACIÓN', 'DESIGNACION'] or not ean: continue
+            if ean.upper() in ['EAN', 'CODIGO', 'CÓDIGO', 'DESIGNACIÓN', 'DESIGNACION'] or not ean: 
+                continue
 
             desc = fila[1 + shift].strip() if len(fila) > 1 + shift else ""
             stock = fila[2 + shift].strip() if len(fila) > 2 + shift else "0"
@@ -88,8 +97,10 @@ def limpiar_datos():
             
             if fechas_encontradas:
                 idx_fecha, fecha = fechas_encontradas[-1]
-                if ' ' in fecha and ':' in fecha: fecha = fecha.split(' ')[0]
-                if len(fila) > idx_fecha + 1 and str(fila[idx_fecha + 1]).strip() != "": ventas = str(fila[idx_fecha + 1]).strip()
+                if ' ' in fecha and ':' in fecha: 
+                    fecha = fecha.split(' ')[0]
+                if len(fila) > idx_fecha + 1 and str(fila[idx_fecha + 1]).strip() != "": 
+                    ventas = str(fila[idx_fecha + 1]).strip()
                     
             datos_limpios.append([ean, desc, stock, rayon, pvc, fecha, ventas])
             eans_tienda.add(ean)
@@ -120,7 +131,7 @@ def procesar_sin_stock(eans_en_tienda):
         try:
             f = open(archivo_origen, 'r', encoding='utf-8-sig', errors='replace')
             primera_linea = f.readline()
-        except:
+        except Exception:
             f = open(archivo_origen, 'r', encoding='latin-1', errors='replace')
             primera_linea = f.readline()
             
@@ -129,7 +140,8 @@ def procesar_sin_stock(eans_en_tienda):
         lector = list(csv.reader(f, delimiter=delimitador_entrada))
         f.close()
 
-        if len(lector) < 2: return
+        if len(lector) < 2: 
+            return
         
         cabeceras = [str(c).strip().upper().replace('"', '').replace('\ufeff', '') for c in lector[0]]
         
@@ -157,7 +169,8 @@ def procesar_sin_stock(eans_en_tienda):
             if len(fila) > idx_ean:
                 ean = limpiar_ean(fila[idx_ean])
                 
-                if not ean or ean in eans_procesados or ean in eans_en_tienda: continue
+                if not ean or ean in eans_procesados or ean in eans_en_tienda: 
+                    continue
                     
                 desc = fila[idx_desc].strip() if len(fila) > idx_desc else ""
                 pv = fila[idx_pv].strip() if idx_pv != -1 and len(fila) > idx_pv else "-"
@@ -166,14 +179,17 @@ def procesar_sin_stock(eans_en_tienda):
                 stock = limpiar_cantidad_abaco(fila[idx_stock]) if idx_stock != -1 and len(fila) > idx_stock else "0"
                 ventas = limpiar_cantidad_abaco(fila[idx_ventas]) if idx_ventas != -1 and len(fila) > idx_ventas else "0"
                 
-                # UNIFICACIÓN DEL FORMATO DEL RAYÓN
                 r_code = fila[idx_rayon_code].strip() if idx_rayon_code != -1 and len(fila) > idx_rayon_code else ""
                 r_lib = fila[idx_rayon_lib].strip() if idx_rayon_lib != -1 and len(fila) > idx_rayon_lib else ""
                 
-                if r_code and r_lib: rayon = f"{r_code} {r_lib}"
-                elif r_lib: rayon = r_lib
-                elif r_code: rayon = r_code
-                else: rayon = "-"
+                if r_code and r_lib: 
+                    rayon = f"{r_code} {r_lib}"
+                elif r_lib: 
+                    rayon = r_lib
+                elif r_code: 
+                    rayon = r_code
+                else: 
+                    rayon = "-"
                 
                 sin_stock_limpio.append([ean, desc, stock, rayon, formatear_precio_abaco(pv), fecha, ventas])
                 eans_procesados.add(ean)
@@ -187,13 +203,22 @@ def procesar_sin_stock(eans_en_tienda):
 def subir_a_github():
     print("-> Sincronizando GitHub...")
     try:
-        subprocess.run(['git', 'add', '.'], check=True)
-        subprocess.run(['git', 'commit', '-m', 'Unificación del formato del Rayón'], check=False)
+        subprocess.run(['git', 'add', '-A'], check=True)
+        resultado_status = subprocess.run(['git', 'status', '--porcelain'], capture_output=True, text=True, check=True)
+        
+        if resultado_status.stdout.strip():
+            ahora = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+            mensaje = f"Sincronización automática: {ahora}"
+            subprocess.run(['git', 'commit', '-m', mensaje], check=True)
+            print(f"   Commit generado: '{mensaje}'")
+        else:
+            print("   ℹ️ No hay archivos nuevos ni modificados respecto al repositorio local.")
+
         subprocess.run(['git', 'pull', '--rebase'], check=False)
-        subprocess.run(['git', 'push'], check=True)
-        print("✅ Sincronización completada.")
+        subprocess.run(['git', 'push', 'origin', 'main'], check=True)
+        print("✅ Sincronización completada con éxito en GitHub.")
     except Exception as e:
-        print(f"❌ Error Git: {e}")
+        print(f"❌ Error durante la sincronización Git: {e}")
 
 if __name__ == '__main__':
     print("="*60)
