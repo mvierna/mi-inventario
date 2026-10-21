@@ -149,17 +149,30 @@ def procesar_sin_stock(eans_en_tienda):
         idx_stock, idx_ventas, idx_rayon_code, idx_rayon_lib = -1, -1, -1, -1
         
         for i, col in enumerate(cabeceras):
-            if 'EAN' in col or 'CÓDIGO' in col or 'CODIGO' in col: idx_ean = i
-            elif 'DESIG' in col or 'ARTICULO' in col: idx_desc = i
-            elif col == 'PV' or 'PVC' in col or 'PRECIO' in col: idx_pv = i
-            elif 'DATE' in col or 'MOUVEMENT' in col or 'FECHA' in col or 'ÚLTIMA' in col or 'ULTIMA' in col: idx_fecha = i
-            elif 'STOCK' in col: idx_stock = i
-            elif 'UV' in col or 'VENDUES' in col or 'VENTAS' in col: idx_ventas = i
-            elif 'LIB. RAYON' in col: idx_rayon_lib = i
-            elif col == 'RAYON' or col == 'RAYÓN': idx_rayon_code = i
+            # Prioridad estricta para Code EAN (evita que Código de Elemento se tome como EAN)
+            if 'EAN' in col:
+                idx_ean = i
+            elif ('CÓDIGO' in col or 'CODIGO' in col) and 'ELEMENTO' in col:
+                idx_rayon_code = i
+            elif idx_ean == -1 and ('CÓDIGO' in col or 'CODIGO' in col):
+                idx_ean = i
+            elif 'DESIG' in col or 'ARTICULO' in col:
+                idx_desc = i
+            elif col == 'PV' or 'PVC' in col or 'PRECIO' in col:
+                idx_pv = i
+            elif 'DATE' in col or 'MOUVEMENT' in col or 'FECHA' in col or 'ÚLTIMA' in col or 'ULTIMA' in col or 'LITMA' in col:
+                idx_fecha = i
+            elif 'STOCK' in col:
+                idx_stock = i
+            elif 'UV' in col or 'VENDUES' in col or 'VENTAS' in col:
+                idx_ventas = i
+            elif 'LIB. RAYON' in col:
+                idx_rayon_lib = i
+            elif (col == 'RAYON' or col == 'RAYÓN') and idx_rayon_code == -1:
+                idx_rayon_code = i
 
         if idx_ean == -1 or idx_desc == -1:
-            print(f"   ❌ Error: No se detectan columnas principales. Esto es lo que veo: {cabeceras}")
+            print(f"   ❌ Error: No se detectan columnas principales. Cabeceras detectadas: {cabeceras}")
             return
 
         sin_stock_limpio = [['EAN', 'DESCRIPCION', 'STOCK', 'RAYON', 'PVC', 'FECHA', 'VENTAS']]
@@ -169,16 +182,22 @@ def procesar_sin_stock(eans_en_tienda):
             if len(fila) > idx_ean:
                 ean = limpiar_ean(fila[idx_ean])
                 
+                # Ignorar filas vacías, duplicadas o que ya están activas con stock en tienda
                 if not ean or ean in eans_procesados or ean in eans_en_tienda: 
                     continue
                     
                 desc = fila[idx_desc].strip() if len(fila) > idx_desc else ""
                 pv = fila[idx_pv].strip() if idx_pv != -1 and len(fila) > idx_pv else "-"
+                
+                # Limpieza de fecha: retirar hora si viene incluida (ej. "18/06/26 00:00:00" -> "18/06/26")
                 fecha = fila[idx_fecha].strip() if idx_fecha != -1 and len(fila) > idx_fecha else "-"
+                if ' ' in fecha and ':' in fecha:
+                    fecha = fecha.split(' ')[0]
                 
                 stock = limpiar_cantidad_abaco(fila[idx_stock]) if idx_stock != -1 and len(fila) > idx_stock else "0"
                 ventas = limpiar_cantidad_abaco(fila[idx_ventas]) if idx_ventas != -1 and len(fila) > idx_ventas else "0"
                 
+                # Extracción del Rayón (columna "Código de elemento")
                 r_code = fila[idx_rayon_code].strip() if idx_rayon_code != -1 and len(fila) > idx_rayon_code else ""
                 r_lib = fila[idx_rayon_lib].strip() if idx_rayon_lib != -1 and len(fila) > idx_rayon_lib else ""
                 
@@ -196,7 +215,7 @@ def procesar_sin_stock(eans_en_tienda):
 
         with open('SIN_STOCK_FILTRADO.csv', 'w', encoding='utf-8-sig', newline='') as f:
             csv.writer(f, delimiter=';').writerows(sin_stock_limpio)
-        print(f"   SIN_STOCK_FILTRADO.csv generado con éxito ({len(sin_stock_limpio)-1} referencias).")
+        print(f"   SIN_STOCK_FILTRADO.csv generado con éxito ({len(sin_stock_limpio)-1} referencias con Rayón correcto).")
     except Exception as e:
         print(f"❌ Error en SIN STOCK: {e}")
 
