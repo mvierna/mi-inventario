@@ -528,40 +528,44 @@
             }
         }
 
-        function mostrarArticuloCompleto(ean, esSinStock = false) {
-            let art = esSinStock ? inventarioSinStock[ean] : inventario[ean];
-            let colorBorde = esSinStock ? "#ff9800" : "#222222"; 
-            let titulo = esSinStock ? "📚 Sin Stock (Vendido últ. año)" : "¡Artículo encontrado!"; 
-            let colorTitulo = esSinStock ? "#ff9800" : "#28a745"; 
-            let colorStock = esSinStock ? "#dc3545" : "#28a745";
+function mostrarArticuloCompleto(ean, esSinStock = false) {
+    let art = esSinStock ? inventarioSinStock[ean] : inventario[ean];
+    let colorBorde = esSinStock ? "#ff9800" : "#222222"; 
+    let titulo = esSinStock ? "📚 Sin Stock (Vendido últ. año)" : "¡Artículo encontrado!"; 
+    let colorTitulo = esSinStock ? "#ff9800" : "#28a745"; 
+    let colorStock = esSinStock ? "#dc3545" : "#28a745";
 
-            resultadoDiv.style.display = 'flex'; 
-            resultadoDiv.style.borderColor = colorBorde;
-            resultadoDiv.innerHTML = `
-                <div style="display: flex; flex-direction: column; gap: 2px;">
-                    <p class="titulo-encontrado" style="color: ${colorTitulo};">${titulo}</p>
-                    <p class="texto-ean">EAN: ${ean}</p>
-                    
-                    <div class="contenedor-barcode">
-                        <svg id="codigo-barras-svg"></svg>
-                    </div>
+    // NUEVA VARIABLE: Cambia el texto según el stock
+    let etiquetaFecha = esSinStock ? "ÚLT. VENTA" : "ÚLT. RECEPCIÓN";
 
-                    <div class="descripcion-producto">${art.descripcion}</div>
-                </div>
-                <div class="panel-secundario">
-                    <div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${art.rayon}</span></div>
-                    <div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${art.precio}</span></div>
-                    <div class="item-secundario"><span class="etiqueta-secundaria">Últ. Mov.</span><span class="valor-secundario">${art.fecha}</span></div>
-                    <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${art.ventas || '0'}</span></div>
-                </div>
-                <div class="caja-stock" style="background-color: ${colorStock};">
-                    <p class="etiqueta-stock">STOCK DISPONIBLE</p>
-                    <p class="numero-stock">${art.stock}</p>
-                </div>
-            `;
-            inputCodigo.value = ""; 
-            dibujarCodigoBarras(ean);
-        }
+    resultadoDiv.style.display = 'flex'; 
+    resultadoDiv.style.borderColor = colorBorde;
+    resultadoDiv.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+            <p class="titulo-encontrado" style="color: ${colorTitulo};">${titulo}</p>
+            <p class="texto-ean">EAN: ${ean}</p>
+            
+            <div class="contenedor-barcode">
+                <svg id="codigo-barras-svg"></svg>
+            </div>
+
+            <div class="descripcion-producto">${art.descripcion}</div>
+        </div>
+        <div class="panel-secundario">
+            <div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${art.rayon}</span></div>
+            <div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${art.precio}</span></div>
+            <!-- SE APLICA LA VARIABLE AQUÍ -->
+            <div class="item-secundario"><span class="etiqueta-secundaria">${etiquetaFecha}</span><span class="valor-secundario">${art.fecha}</span></div>
+            <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${art.ventas || '0'}</span></div>
+        </div>
+        <div class="caja-stock" style="background-color: ${colorStock};">
+            <p class="etiqueta-stock">STOCK DISPONIBLE</p>
+            <p class="numero-stock">${art.stock}</p>
+        </div>
+    `;
+    inputCodigo.value = ""; 
+    dibujarCodigoBarras(ean);
+}
 
         function mostrarArticuloDesconocido(termino) {
             resultadoDiv.style.display = 'flex'; 
