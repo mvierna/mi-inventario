@@ -67,10 +67,44 @@ def ejecutar_robot():
         if not clic_visual('FILTRO.png', tiempo_espera=2): return
         if not clic_visual('FILTRO 2.png', tiempo_espera=2): return
 
-        # 4. Introducción del modelo
+        # 4. Introducción del modelo y secuencia de teclado
         print("Escribiendo el modelo '101'...")
         pyautogui.write('101', interval=0.2)
         time.sleep(0.5)
+
+        print("Pulsando tres veces enter...")
+        pyautogui.press('enter', presses=3, interval=0.3)
+        time.sleep(0.5)
+        
+        print("Flecha hacia arriba cinco pulsaciones...")
+        pyautogui.press('up', presses=5, interval=0.2)
+        time.sleep(0.5)
+        
+        print("Abriendo la fila seleccionada con Enter (en lugar del ratón)...")
+        pyautogui.press('enter')
+        time.sleep(0.5)
+        
+        print("Escribiendo 0525...")
+        pyautogui.write('0525', interval=0.2)
+        time.sleep(0.5)
+        
+        print("Tabular una vez, enter una vez...")
+        pyautogui.press('tab')
+        time.sleep(0.2)
+        pyautogui.press('enter')
+        time.sleep(0.5)
+        
+        print("Control + Tab una vez...")
+        pyautogui.hotkey('ctrl', 'tab')
+        time.sleep(0.5)
+        
+        print("Siete tabulaciones...")
+        pyautogui.press('tab', presses=7, interval=0.2)
+        time.sleep(0.5)
+        
+        print("Dos enter...")
+        pyautogui.press('enter', presses=2, interval=0.3)
+        time.sleep(1)
 
         print("Confirmando el modelo (doble Enter)...")
         pyautogui.press('enter', presses=2, interval=0.5)
