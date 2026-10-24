@@ -336,6 +336,9 @@
         }
 
         document.getElementById('espaciador-central').addEventListener('click', function(e) {
+            // Ignorar los clics que ocurran dentro de la tarjeta de resultados/botones para que no cierren el teclado
+            if (e.target.closest('.resultado')) return; 
+            
             if (tecladoVirtual.style.display === 'grid') {
                 tecladoVirtual.style.display = 'none';
                 document.body.classList.remove('modo-teclado');
