@@ -257,7 +257,17 @@
             </div>
             
             <input type="text" id="nombre-usuario-input" class="input-email-config" placeholder="👤 Tu nombre o Nº Terminal..." onchange="guardarConfiguracion()">
-            <input type="text" id="nombre-competencia-input" class="input-email-config input-competencia" placeholder="🏪 Nombre Competencia..." onchange="guardarConfiguracion()">
+            
+            <select id="nombre-competencia-input" class="input-email-config input-competencia" onchange="guardarConfiguracion()">
+                <option value="">🏪 Selecciona Competencia...</option>
+                <option value="CARREFOUR">CARREFOUR</option>
+                <option value="GADIS">GADIS</option>
+                <option value="DIA">DIA</option>
+                <option value="ALIMERKA">ALIMERKA</option>
+                <option value="ALCAMPO">ALCAMPO</option>
+                <option value="OTROS">OTROS</option>
+            </select>
+            
             <input type="email" id="email-destino-input" class="input-email-config" style="border-color: #28a745;" placeholder="📧 Email Destino..." onchange="guardarConfiguracion()">
             
             <div id="modal-body-listas" class="modal-body"></div>
