@@ -486,28 +486,40 @@
             finally { btnDrive.classList.remove('loading'); btnDrive.innerText = "☁️ Guardar en Drive"; }
         }
 
+        function seleccionarArticulo(ean, esSinStock = false) {
+            if (modoActivo === 'rapido') { procesarEscaneoRapido(ean); }
+            else if (modoActivo === 'chequeo') { procesarEscaneoChequeo(ean); }
+            else if (modoActivo === 'pedidos') { procesarEscaneoPedido(ean); }
+            else { mostrarArticuloCompleto(ean, esSinStock); }
+        }
+
         function procesarBusqueda(terminoBusqueda, fromCam = false) {
             if (fromCam) ultimoModo = 'camara';
             if (inputActivoId !== 'inputCodigo') { inputCodigo.value = ""; return; }
             let termino = terminoBusqueda.trim().toUpperCase(); inputCodigo.value = ""; if (!termino) return;
-            if (modoActivo === 'rapido') { procesarEscaneoRapido(termino); return; }
-            if (modoActivo === 'chequeo') { procesarEscaneoChequeo(termino); return; }
-            if (modoActivo === 'pedidos') { procesarEscaneoPedido(termino); return; }
-
+            
             let result = buscarArticuloGlobal(termino);
-            if (result) { mostrarArticuloCompleto(result.ean, result.esSinStock); } 
+            if (result) { 
+                seleccionarArticulo(result.ean, result.esSinStock); 
+                return;
+            } 
+            
+            let palabras = termino.split(" ").filter(t => t.length > 0); let coincidencias = [];
+            for (const [ean, articulo] of Object.entries(inventario)) { if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) { coincidencias.push({ ean: ean, articulo: articulo, esSinStock: false }); } }
+            if (coincidencias.length < 50) { for (const [ean, articulo] of Object.entries(inventarioSinStock)) { if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) { coincidencias.push({ ean: ean, articulo: articulo, esSinStock: true }); if (coincidencias.length >= 50) break; } } }
+            
+            if (coincidencias.length === 0) { 
+                if (modoActivo === 'rapido') { procesarEscaneoRapido(termino); return; }
+                if (modoActivo === 'chequeo') { procesarEscaneoChequeo(termino); return; }
+                if (modoActivo === 'pedidos') { procesarEscaneoPedido(termino); return; }
+                mostrarArticuloDesconocido(termino); 
+            } 
+            else if (coincidencias.length === 1) { seleccionarArticulo(coincidencias[0].ean, coincidencias[0].esSinStock); } 
             else {
-                let palabras = termino.split(" ").filter(t => t.length > 0); let coincidencias = [];
-                for (const [ean, articulo] of Object.entries(inventario)) { if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) { coincidencias.push({ ean: ean, articulo: articulo, esSinStock: false }); } }
-                if (coincidencias.length < 50) { for (const [ean, articulo] of Object.entries(inventarioSinStock)) { if (palabras.every(palabra => articulo.descripcion.toUpperCase().includes(palabra))) { coincidencias.push({ ean: ean, articulo: articulo, esSinStock: true }); if (coincidencias.length >= 50) break; } } }
-                if (coincidencias.length === 0) { mostrarArticuloDesconocido(termino); } 
-                else if (coincidencias.length === 1) { mostrarArticuloCompleto(coincidencias[0].ean, coincidencias[0].esSinStock); } 
-                else {
-                    let htmlLista = `<h3 style="margin: 0 0 8px 0; font-size: 14px; color: #007bff;">${coincidencias.length} encontrados:</h3><ul class="lista-resultados">`;
-                    coincidencias.slice(0, 50).forEach(c => { let etiquetaExtra = c.esSinStock ? `<span style="color:#ff9800; font-size:10px; font-weight:bold;">(SIN STOCK)</span>` : ""; htmlLista += `<li class="item-resultado" onclick="mostrarArticuloCompleto('${c.ean}', ${c.esSinStock})"><span class="item-desc">${c.articulo.descripcion}</span><span class="item-ean">EAN: ${c.ean} ${etiquetaExtra}</span></li>`; });
-                    if (coincidencias.length >= 50) { htmlLista += `<li class="item-resultado" style="text-align:center; color:#666; font-size:12px;">...limitado a 50. Añade más palabras para filtrar.</li>`; }
-                    htmlLista += `</ul>`; resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#007bff"; resultadoDiv.innerHTML = htmlLista;
-                }
+                let htmlLista = `<h3 style="margin: 0 0 8px 0; font-size: 14px; color: #007bff;">${coincidencias.length} encontrados:</h3><ul class="lista-resultados">`;
+                coincidencias.slice(0, 50).forEach(c => { let etiquetaExtra = c.esSinStock ? `<span style="color:#ff9800; font-size:10px; font-weight:bold;">(SIN STOCK)</span>` : ""; htmlLista += `<li class="item-resultado" onclick="seleccionarArticulo('${c.ean}', ${c.esSinStock})"><span class="item-desc">${c.articulo.descripcion}</span><span class="item-ean">EAN: ${c.ean} ${etiquetaExtra}</span></li>`; });
+                if (coincidencias.length >= 50) { htmlLista += `<li class="item-resultado" style="text-align:center; color:#666; font-size:12px;">...limitado a 50. Añade más palabras para filtrar.</li>`; }
+                htmlLista += `</ul>`; resultadoDiv.style.display = 'flex'; resultadoDiv.style.borderColor = "#007bff"; resultadoDiv.innerHTML = htmlLista;
             }
             setTimeout(() => inputCodigo.blur(), 100);
         }
@@ -539,44 +551,47 @@
             }
         }
 
-function mostrarArticuloCompleto(ean, esSinStock = false) {
-    let art = esSinStock ? inventarioSinStock[ean] : inventario[ean];
-    let colorBorde = esSinStock ? "#ff9800" : "#222222"; 
-    let titulo = esSinStock ? "📚 Sin Stock (Vendido últ. año)" : "¡Artículo encontrado!"; 
-    let colorTitulo = esSinStock ? "#ff9800" : "#28a745"; 
-    let colorStock = esSinStock ? "#dc3545" : "#28a745";
+        function mostrarArticuloCompleto(ean, esSinStock = false) {
+            let art = esSinStock ? inventarioSinStock[ean] : inventario[ean];
+            let colorBorde = esSinStock ? "#ff9800" : "#222222"; 
+            let titulo = esSinStock ? "📚 Sin Stock (Vendido últ. año)" : "¡Artículo encontrado!"; 
+            let colorTitulo = esSinStock ? "#ff9800" : "#28a745"; 
+            let colorStock = esSinStock ? "#dc3545" : "#28a745";
 
-    // NUEVA VARIABLE: Cambia el texto según el stock
-    let etiquetaFecha = esSinStock ? "ÚLT. VENTA" : "ÚLT. RECEPCIÓN";
+            let etiquetaFecha = esSinStock ? "ÚLT. VENTA" : "ÚLT. RECEPCIÓN";
 
-    resultadoDiv.style.display = 'flex'; 
-    resultadoDiv.style.borderColor = colorBorde;
-    resultadoDiv.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 2px;">
-            <p class="titulo-encontrado" style="color: ${colorTitulo};">${titulo}</p>
-            <p class="texto-ean">EAN: ${ean}</p>
-            
-            <div class="contenedor-barcode">
-                <svg id="codigo-barras-svg"></svg>
-            </div>
+            resultadoDiv.style.display = 'flex'; 
+            resultadoDiv.style.borderColor = colorBorde;
+            resultadoDiv.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <p class="titulo-encontrado" style="color: ${colorTitulo};">${titulo}</p>
+                    <p class="texto-ean">EAN: ${ean}</p>
+                    
+                    <div class="contenedor-barcode">
+                        <svg id="codigo-barras-svg"></svg>
+                    </div>
 
-            <div class="descripcion-producto">${art.descripcion}</div>
-        </div>
-        <div class="panel-secundario">
-            <div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${art.rayon}</span></div>
-            <div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${art.precio}</span></div>
-            <!-- SE APLICA LA VARIABLE AQUÍ -->
-            <div class="item-secundario"><span class="etiqueta-secundaria">${etiquetaFecha}</span><span class="valor-secundario">${art.fecha}</span></div>
-            <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${art.ventas || '0'}</span></div>
-        </div>
-        <div class="caja-stock" style="background-color: ${colorStock};">
-            <p class="etiqueta-stock">STOCK DISPONIBLE</p>
-            <p class="numero-stock">${art.stock}</p>
-        </div>
-    `;
-    inputCodigo.value = ""; 
-    dibujarCodigoBarras(ean);
-}
+                    <div class="descripcion-producto">${art.descripcion}</div>
+                </div>
+                <div class="panel-secundario">
+                    <div class="item-secundario"><span class="etiqueta-secundaria">Rayón</span><span class="valor-secundario">${art.rayon}</span></div>
+                    <div class="item-secundario"><span class="etiqueta-secundaria">P.V.P.</span><span class="valor-secundario">${art.precio}</span></div>
+                    <div class="item-secundario"><span class="etiqueta-secundaria">${etiquetaFecha}</span><span class="valor-secundario">${art.fecha}</span></div>
+                    <div class="item-secundario"><span class="etiqueta-secundaria">Ventas</span><span class="valor-secundario">${art.ventas || '0'}</span></div>
+                </div>
+                <div class="caja-stock" style="background-color: ${colorStock};">
+                    <p class="etiqueta-stock">STOCK DISPONIBLE</p>
+                    <p class="numero-stock">${art.stock}</p>
+                </div>
+                <div style="display: flex; gap: 4px; margin-top: 8px;">
+                    <button onclick="procesarEscaneoRapido('${ean}')" style="flex: 1; padding: 10px; background: #ffc107; border: none; border-radius: 6px; font-weight: bold;">⚡ M1</button>
+                    <button onclick="procesarEscaneoPedido('${ean}')" style="flex: 1; padding: 10px; background: #17a2b8; color: white; border: none; border-radius: 6px; font-weight: bold;">🛒 Pedir</button>
+                    <button onclick="procesarEscaneoChequeo('${ean}')" style="flex: 1; padding: 10px; background: #9c27b0; color: white; border: none; border-radius: 6px; font-weight: bold;">🕵️ Chequeo</button>
+                </div>
+            `;
+            inputCodigo.value = ""; 
+            dibujarCodigoBarras(ean);
+        }
 
         function mostrarArticuloDesconocido(termino) {
             resultadoDiv.style.display = 'flex'; 
