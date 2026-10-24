@@ -756,7 +756,6 @@ function mostrarArticuloCompleto(ean, esSinStock = false) {
                     badge = `<span class="etiqueta-tipo-lista bg-competencia">Chequeo</span>`; 
                     let colorDif = item.opus.includes("+") ? "#dc3545" : (item.opus.includes("-") ? "#28a745" : "#9c27b0");
                     detalleEx = `<br><span style="color:#555; font-size:12px;">Leclerc: <b>${item.pvp_nuestro || '-'}€</b></span> | <span style="color:#9c27b0; font-weight:bold;">${item.competencia}: ${item.pvp_competencia}€</span> <span style="color:${colorDif}; font-weight:bold;">(Dif: ${item.opus})</span>`; 
-                } 
                 } else if (item.tipo === 'pedido') { 
                     badge = `<span class="etiqueta-tipo-lista bg-pedido">Pedido</span>`; 
                     detalleEx = `<br><span style="color:#17a2b8; font-weight:bold;">Stock actual: ${item.stock}</span>`; 
