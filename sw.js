@@ -1,4 +1,4 @@
-const VERSION_CACHE = 'inventario-v5';
+const VERSION_CACHE = 'inventario-v6';
 
 // Archivos estáticos principales para caché local
 const ARCHIVOS_ESTATICOS = [
