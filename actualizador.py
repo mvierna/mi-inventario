@@ -30,6 +30,21 @@ def limpiar_cantidad_abaco(val_str):
 def limpiar_ean(ean_raw):
     return str(ean_raw).replace('="', '').replace('"', '').replace('=', '').strip().replace('.0', '')
 
+def leer_csv_robusto(ruta):
+    """Lee detectando automáticamente si es UTF-8 o Latin-1 para no romper tildes."""
+    encoding_detectado = 'utf-8-sig'
+    try:
+        with open(ruta, 'r', encoding='utf-8-sig') as f_test:
+            f_test.read()
+    except UnicodeDecodeError:
+        encoding_detectado = 'latin-1'
+
+    with open(ruta, 'r', encoding=encoding_detectado, errors='replace') as f:
+        primera_linea = f.readline()
+        delimitador = ';' if ';' in primera_linea else (',' if ',' in primera_linea else '\t')
+        f.seek(0)
+        return list(csv.reader(f, delimiter=delimitador))
+
 def limpiar_datos():
     archivo = 'TIENDA.csv'
     if not os.path.exists(archivo):
@@ -41,18 +56,7 @@ def limpiar_datos():
     eans_tienda = set()
     
     try:
-        try:
-            f = open(archivo, 'r', encoding='utf-8-sig', errors='replace')
-            primera_linea = f.readline()
-        except Exception:
-            f = open(archivo, 'r', encoding='latin-1', errors='replace')
-            primera_linea = f.readline()
-            
-        delimitador_entrada = ';' if ';' in primera_linea else (',' if ',' in primera_linea else '\t')
-        f.seek(0)
-        lector = list(csv.reader(f, delimiter=delimitador_entrada))
-        f.close()
-
+        lector = leer_csv_robusto(archivo)
         if not lector: 
             return set()
 
@@ -105,7 +109,8 @@ def limpiar_datos():
             datos_limpios.append([ean, desc, stock, rayon, pvc, fecha, ventas])
             eans_tienda.add(ean)
 
-        with open(archivo, 'w', encoding='utf-8', newline='') as f:
+        # CAMBIO CLAVE: Guardar con utf-8-sig para que la PWA y Excel lean bien los acentos
+        with open(archivo, 'w', encoding='utf-8-sig', newline='') as f:
             csv.writer(f, delimiter=';').writerows(datos_limpios)
         print(f"   ¡Limpieza completada! {len(datos_limpios)} artículos.")
         return eans_tienda
@@ -128,18 +133,7 @@ def procesar_sin_stock(eans_en_tienda):
 
     print(f"-> Procesando {archivo_origen}...")
     try:
-        try:
-            f = open(archivo_origen, 'r', encoding='utf-8-sig', errors='replace')
-            primera_linea = f.readline()
-        except Exception:
-            f = open(archivo_origen, 'r', encoding='latin-1', errors='replace')
-            primera_linea = f.readline()
-            
-        delimitador_entrada = ';' if ';' in primera_linea else (',' if ',' in primera_linea else '\t')
-        f.seek(0)
-        lector = list(csv.reader(f, delimiter=delimitador_entrada))
-        f.close()
-
+        lector = leer_csv_robusto(archivo_origen)
         if len(lector) < 2: 
             return
         
@@ -149,7 +143,6 @@ def procesar_sin_stock(eans_en_tienda):
         idx_stock, idx_ventas, idx_rayon_code, idx_rayon_lib = -1, -1, -1, -1
         
         for i, col in enumerate(cabeceras):
-            # Prioridad estricta para Code EAN (evita que Código de Elemento se tome como EAN)
             if 'EAN' in col:
                 idx_ean = i
             elif ('CÓDIGO' in col or 'CODIGO' in col) and 'ELEMENTO' in col:
@@ -182,14 +175,12 @@ def procesar_sin_stock(eans_en_tienda):
             if len(fila) > idx_ean:
                 ean = limpiar_ean(fila[idx_ean])
                 
-                # Ignorar filas vacías, duplicadas o que ya están activas con stock en tienda
                 if not ean or ean in eans_procesados or ean in eans_en_tienda: 
                     continue
                     
                 desc = fila[idx_desc].strip() if len(fila) > idx_desc else ""
                 pv = fila[idx_pv].strip() if idx_pv != -1 and len(fila) > idx_pv else "-"
                 
-                # Limpieza de fecha: retirar hora si viene incluida (ej. "18/06/26 00:00:00" -> "18/06/26")
                 fecha = fila[idx_fecha].strip() if idx_fecha != -1 and len(fila) > idx_fecha else "-"
                 if ' ' in fecha and ':' in fecha:
                     fecha = fecha.split(' ')[0]
@@ -197,7 +188,6 @@ def procesar_sin_stock(eans_en_tienda):
                 stock = limpiar_cantidad_abaco(fila[idx_stock]) if idx_stock != -1 and len(fila) > idx_stock else "0"
                 ventas = limpiar_cantidad_abaco(fila[idx_ventas]) if idx_ventas != -1 and len(fila) > idx_ventas else "0"
                 
-                # Extracción del Rayón (columna "Código de elemento")
                 r_code = fila[idx_rayon_code].strip() if idx_rayon_code != -1 and len(fila) > idx_rayon_code else ""
                 r_lib = fila[idx_rayon_lib].strip() if idx_rayon_lib != -1 and len(fila) > idx_rayon_lib else ""
                 
@@ -215,7 +205,7 @@ def procesar_sin_stock(eans_en_tienda):
 
         with open('SIN_STOCK_FILTRADO.csv', 'w', encoding='utf-8-sig', newline='') as f:
             csv.writer(f, delimiter=';').writerows(sin_stock_limpio)
-        print(f"   SIN_STOCK_FILTRADO.csv generado con éxito ({len(sin_stock_limpio)-1} referencias con Rayón correcto).")
+        print(f"   SIN_STOCK_FILTRADO.csv generado con éxito ({len(sin_stock_limpio)-1} referencias).")
     except Exception as e:
         print(f"❌ Error en SIN STOCK: {e}")
 

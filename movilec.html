@@ -754,7 +754,9 @@ function mostrarArticuloCompleto(ean, esSinStock = false) {
 
                 if (item.tipo === 'competencia') { 
                     badge = `<span class="etiqueta-tipo-lista bg-competencia">Chequeo</span>`; 
-                    detalleEx = `<br><span style="color:#9c27b0; font-weight:bold;">${item.competencia}: ${item.pvp_competencia}€ (Dif: ${item.opus})</span>`; 
+                    let colorDif = item.opus.includes("+") ? "#dc3545" : (item.opus.includes("-") ? "#28a745" : "#9c27b0");
+                    detalleEx = `<br><span style="color:#555; font-size:12px;">Leclerc: <b>${item.pvp_nuestro || '-'}€</b></span> | <span style="color:#9c27b0; font-weight:bold;">${item.competencia}: ${item.pvp_competencia}€</span> <span style="color:${colorDif}; font-weight:bold;">(Dif: ${item.opus})</span>`; 
+                } 
                 } else if (item.tipo === 'pedido') { 
                     badge = `<span class="etiqueta-tipo-lista bg-pedido">Pedido</span>`; 
                     detalleEx = `<br><span style="color:#17a2b8; font-weight:bold;">Stock actual: ${item.stock}</span>`; 
@@ -844,54 +846,142 @@ function mostrarArticuloCompleto(ean, esSinStock = false) {
         function eliminarItemLista(index) { listaTrabajo.splice(index, 1); localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo)); renderizarLista(); }
         function borrarListaActual() { if(confirm('¿VACIAR toda la lista?')) { listaTrabajo = []; localStorage.setItem('inventarioListaTrabajo', JSON.stringify(listaTrabajo)); renderizarLista(); } }
         
-        async function exportarListaExcel() {
-            if(listaTrabajo.length === 0) return;
-            let listaInvertida = [...listaTrabajo].reverse(); let dataInventario = []; let dataCompetencia = []; let dataPedidos = [];
+async function exportarListaExcel() {
+    if (listaTrabajo.length === 0) return;
+    let listaInvertida = [...listaTrabajo].reverse();
+    let dataInventario = [];
+    let dataCompetencia = [];
+    let dataPedidos = [];
 
-            listaInvertida.forEach(item => {
-                let descLimpia = item.descripcion || ""; let eanLimpio = item.ean ? String(item.ean) : ""; 
-                if (item.tipo === 'competencia') { dataCompetencia.push({"RAYON": item.rayon || "", "EAN": eanLimpio, "PVP COMPETENCIA": item.pvp_competencia || "", "PVP LECLERC": item.pvp_nuestro || "", "OPUS": item.opus || "", "DESCRIPCION": descLimpia, "COMPETENCIA": item.competencia || "", "USUARIO / TERMINAL": usuarioGuardado }); } 
-                else if (item.tipo === 'pedido') { dataPedidos.push({"RAYON": item.rayon || "", "EAN": eanLimpio, "CANTIDAD": item.cantidad || "", "STOCK": item.stock || "", "DESCRIPCION": descLimpia, "FECHA": item.fecha || "", "USUARIO / TERMINAL": usuarioGuardado }); } 
-                else { dataInventario.push({"EAN": eanLimpio, "CANTIDAD": item.cantidad || "", "DESCRIPCION": descLimpia, "FECHA": item.fecha || "", "USUARIO / TERMINAL": usuarioGuardado }); }
+    listaInvertida.forEach(item => {
+        let descLimpia = item.descripcion || "";
+        let eanLimpio = item.ean ? String(item.ean) : "";
+
+        if (item.tipo === 'competencia') {
+            // Se limpian los precios para exportar valor numérico con decimales
+            let pvpCompNum = parseFloat(String(item.pvp_competencia).replace(',', '.'));
+            let pvpNuesNum = parseFloat(String(item.pvp_nuestro).replace(',', '.'));
+
+            dataCompetencia.push({
+                "RAYON": item.rayon || "",
+                "EAN": eanLimpio,
+                "PVP COMPETENCIA": isNaN(pvpCompNum) ? (item.pvp_competencia || "") : pvpCompNum,
+                "PVP LECLERC": isNaN(pvpNuesNum) ? (item.pvp_nuestro || "") : pvpNuesNum,
+                "OPUS": item.opus || "",
+                "DESCRIPCION": descLimpia,
+                "COMPETENCIA": item.competencia || "",
+                "USUARIO / TERMINAL": usuarioGuardado
             });
-
-            if(dataInventario.length === 0) dataInventario.push({"EAN":"-", "CANTIDAD":"-", "DESCRIPCION":"Sin datos", "FECHA":"-", "USUARIO / TERMINAL":"-"});
-            if(dataCompetencia.length === 0) dataCompetencia.push({"RAYON":"-", "EAN":"-", "PVP COMPETENCIA":"-", "PVP LECLERC":"-", "OPUS":"-", "DESCRIPCION":"Sin datos", "COMPETENCIA":"-", "USUARIO / TERMINAL":"-"});
-            if(dataPedidos.length === 0) dataPedidos.push({"RAYON":"-", "EAN":"-", "STOCK":"-", "CANTIDAD":"-", "DESCRIPCION":"Sin datos", "FECHA":"-", "USUARIO / TERMINAL":"-"});
-
-            var wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataInventario), "LISTADO");
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataCompetencia), "SEGUIMIENTO PRECIOS");
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataPedidos), "PEDIDOS");
-
-            let emailDestino = document.getElementById('email-destino-input').value.trim();
-            if (emailDestino !== "") {
-                if (confirm(`¿Quieres enviar también una copia de este Excel por correo a ${emailDestino}?`)) {
-                    const btnExcel = document.querySelector('.btn-footer[onclick="exportarListaExcel()"]');
-                    let textoOriginal = btnExcel.innerText;
-                    btnExcel.innerText = "⏳ ENVIANDO..."; btnExcel.style.opacity = "0.7";
-                    
-                    try {
-                        var wboutBase64 = XLSX.write(wb, {bookType:'xlsx', type:'base64'});
-                        const payload = { action: "send_excel", email: emailDestino, excelBase64: wboutBase64 };
-                        const response = await fetch(URL_GOOGLE_APPS_SCRIPT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
-                        const result = await response.json();
-                        if (result.status === "success") alert("Excel enviado por correo con éxito.");
-                        else alert("Error al enviar el correo: " + result.message);
-                    } catch (e) { alert("Error de conexión al enviar correo: " + e); } 
-                    finally { btnExcel.innerText = textoOriginal; btnExcel.style.opacity = "1"; }
-                }
-            }
-
-            var wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-            var blob = new Blob([wbout], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
-            var file = new File([blob], 'Trabajo.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                try { await navigator.share({ title: 'Exportación de Inventario', files: [file] }); return; } catch (err) { console.log('Compartir cancelado o no disponible.', err); }
-            }
-            const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.setAttribute("download", `Trabajo.xlsx`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        } else if (item.tipo === 'pedido') {
+            let stockNum = parseFloat(String(item.stock).replace(',', '.'));
+            dataPedidos.push({
+                "RAYON": item.rayon || "",
+                "EAN": eanLimpio,
+                "STOCK": isNaN(stockNum) ? (item.stock || "") : stockNum,
+                "CANTIDAD": item.cantidad || "",
+                "DESCRIPCION": descLimpia,
+                "FECHA": item.fecha || "",
+                "USUARIO / TERMINAL": usuarioGuardado
+            });
+        } else {
+            dataInventario.push({
+                "EAN": eanLimpio,
+                "CANTIDAD": item.cantidad || "",
+                "DESCRIPCION": descLimpia,
+                "FECHA": item.fecha || "",
+                "USUARIO / TERMINAL": usuarioGuardado
+            });
         }
+    });
+
+    if (dataInventario.length === 0) dataInventario.push({"EAN":"-", "CANTIDAD":"-", "DESCRIPCION":"Sin datos", "FECHA":"-", "USUARIO / TERMINAL":"-"});
+    if (dataCompetencia.length === 0) dataCompetencia.push({"RAYON":"-", "EAN":"-", "PVP COMPETENCIA":"-", "PVP LECLERC":"-", "OPUS":"-", "DESCRIPCION":"Sin datos", "COMPETENCIA":"-", "USUARIO / TERMINAL":"-"});
+    if (dataPedidos.length === 0) dataPedidos.push({"RAYON":"-", "EAN":"-", "STOCK":"-", "CANTIDAD":"-", "DESCRIPCION":"Sin datos", "FECHA":"-", "USUARIO / TERMINAL":"-"});
+
+    var wb = XLSX.utils.book_new();
+    var wsInventario = XLSX.utils.json_to_sheet(dataInventario);
+    var wsCompetencia = XLSX.utils.json_to_sheet(dataCompetencia);
+    var wsPedidos = XLSX.utils.json_to_sheet(dataPedidos);
+
+    // Ajuste de márgenes / anchos de columna (anchura en caracteres)
+    wsCompetencia['!cols'] = [
+        { wch: 18 }, // RAYON
+        { wch: 16 }, // EAN
+        { wch: 18 }, // PVP COMPETENCIA
+        { wch: 15 }, // PVP LECLERC
+        { wch: 12 }, // OPUS
+        { wch: 42 }, // DESCRIPCION
+        { wch: 16 }, // COMPETENCIA
+        { wch: 22 }  // USUARIO / TERMINAL
+    ];
+
+    wsInventario['!cols'] = [
+        { wch: 16 }, // EAN
+        { wch: 12 }, // CANTIDAD
+        { wch: 42 }, // DESCRIPCION
+        { wch: 18 }, // FECHA
+        { wch: 22 }  // USUARIO / TERMINAL
+    ];
+
+    wsPedidos['!cols'] = [
+        { wch: 18 }, // RAYON
+        { wch: 16 }, // EAN
+        { wch: 12 }, // STOCK
+        { wch: 12 }, // CANTIDAD
+        { wch: 42 }, // DESCRIPCION
+        { wch: 18 }, // FECHA
+        { wch: 22 }  // USUARIO / TERMINAL
+    ];
+
+    XLSX.utils.book_append_sheet(wb, wsInventario, "LISTADO");
+    XLSX.utils.book_append_sheet(wb, wsCompetencia, "SEGUIMIENTO PRECIOS");
+    XLSX.utils.book_append_sheet(wb, wsPedidos, "PEDIDOS");
+
+    let emailDestino = document.getElementById('email-destino-input').value.trim();
+    if (emailDestino !== "") {
+        if (confirm(`¿Quieres enviar también una copia de este Excel por correo a ${emailDestino}?`)) {
+            const btnExcel = document.querySelector('.btn-footer[onclick="exportarListaExcel()"]');
+            let textoOriginal = btnExcel.innerText;
+            btnExcel.innerText = "⏳ ENVIANDO...";
+            btnExcel.style.opacity = "0.7";
+
+            try {
+                var wboutBase64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+                const payload = { action: "send_excel", email: emailDestino, excelBase64: wboutBase64 };
+                const response = await fetch(URL_GOOGLE_APPS_SCRIPT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (result.status === "success") alert("Excel enviado por correo con éxito.");
+                else alert("Error al enviar el correo: " + result.message);
+            } catch (e) {
+                alert("Error de conexión al enviar correo: " + e);
+            } finally {
+                btnExcel.innerText = textoOriginal;
+                btnExcel.style.opacity = "1";
+            }
+        }
+    }
+
+    var wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    var blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    var file = new File([blob], 'Trabajo.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({ title: 'Exportación de Inventario', files: [file] });
+            return;
+        } catch (err) {}
+    }
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", `Trabajo.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 
         window.onload = () => cargarInventario();
     </script>
