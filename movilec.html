@@ -554,6 +554,20 @@
             }
         }
 
+        function cambiarModoYProcesar(modo, ean) {
+            // Si el modo elegido no está activo, lo activamos primero
+            if (modoActivo !== modo) {
+                activarModo(modo);
+                // Si la validación en activarModo falló (faltan datos en Ajustes), modoActivo no cambiará y abortamos
+                if (modoActivo !== modo) return;
+            }
+            
+            // Ejecutamos la acción correspondiente sobre el artículo escaneado
+            if (modo === 'rapido') { procesarEscaneoRapido(ean); }
+            else if (modo === 'pedidos') { procesarEscaneoPedido(ean); }
+            else if (modo === 'chequeo') { procesarEscaneoChequeo(ean); }
+        }
+
         function mostrarArticuloCompleto(ean, esSinStock = false) {
             let art = esSinStock ? inventarioSinStock[ean] : inventario[ean];
             let colorBorde = esSinStock ? "#ff9800" : "#222222"; 
@@ -587,9 +601,9 @@
                     <p class="numero-stock">${art.stock}</p>
                 </div>
                 <div style="display: flex; gap: 4px; margin-top: 8px;">
-                    <button onclick="procesarEscaneoRapido('${ean}')" style="flex: 1; padding: 10px; background: #ffc107; border: none; border-radius: 6px; font-weight: bold;">⚡ M1</button>
-                    <button onclick="procesarEscaneoPedido('${ean}')" style="flex: 1; padding: 10px; background: #17a2b8; color: white; border: none; border-radius: 6px; font-weight: bold;">🛒 Pedir</button>
-                    <button onclick="procesarEscaneoChequeo('${ean}')" style="flex: 1; padding: 10px; background: #9c27b0; color: white; border: none; border-radius: 6px; font-weight: bold;">🕵️ Chequeo</button>
+                    <button onclick="cambiarModoYProcesar('rapido', '${ean}')" style="flex: 1; padding: 10px; background: #ffc107; border: none; border-radius: 6px; font-weight: bold;">⚡ M1</button>
+                    <button onclick="cambiarModoYProcesar('pedidos', '${ean}')" style="flex: 1; padding: 10px; background: #17a2b8; color: white; border: none; border-radius: 6px; font-weight: bold;">🛒 Pedir</button>
+                    <button onclick="cambiarModoYProcesar('chequeo', '${ean}')" style="flex: 1; padding: 10px; background: #9c27b0; color: white; border: none; border-radius: 6px; font-weight: bold;">🕵️ Chequeo</button>
                 </div>
             `;
             inputCodigo.value = ""; 
