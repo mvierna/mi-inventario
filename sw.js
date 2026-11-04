@@ -5,14 +5,14 @@
 // - Los CSV y Google Apps Script NO pasan por aquí: los CSV ya se guardan en IndexedDB desde la app.
 // Si cambias las versiones de las librerías en movilec.html, cámbialas también aquí y sube VERSION.
 
-const VERSION = 'movilec-v29';
+const VERSION = 'movilec-v30';
 
 const ARCHIVOS_APP = ['./', 'index.html', 'movilec.html', 'manifest.json', 'manifest-android.json', 'icono.png'];
 const LIBRERIAS = [
     'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js',
     'https://unpkg.com/@zxing/library@0.23.0/umd/index.min.js',
     'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js',
     'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js',
     'https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.5/dist/iife/reader/index.js',
     'https://fastly.jsdelivr.net/npm/zxing-wasm@3.1.5/dist/reader/zxing_reader.wasm',
